@@ -101,9 +101,16 @@ alwaysApply: true
 
 ### At Session Start
 1. **Check current branch** - Ensure on correct feature branch
-2. **Create feature branch if needed** - Auto-create for new sprint/phase
-3. **Review uncommitted changes** - Prompt to commit or stash
-4. **Update session log** - Record session start and objectives in `.cursor/session-logs/YYYY-MM-DD-{session-implementation-focus}.md` using `date` command for timestamps
+2. **Validate sprint completion** - Check if previous sprint is complete and merged to main
+3. **Create feature branch if needed** - Auto-create for new sprint/phase FROM MAIN BRANCH ONLY
+4. **Review uncommitted changes** - Prompt to commit or stash
+5. **Update session log** - Record session start and objectives in `.cursor/session-logs/YYYY-MM-DD-{session-implementation-focus}.md` using `date` command for timestamps
+
+### Sprint Completion Detection Rules
+- **Sprint Complete**: All "Definition of Done" items marked complete in session log
+- **Merge Required**: When sprint complete, MUST merge to main before creating new feature branch
+- **Branch Validation**: New feature branches MUST be created from main, never from incomplete feature branches
+- **Workflow Enforcement**: If creating new feature branch from incomplete sprint, STOP and merge to main first
 
 ### During Development
 1. **Monitor commit triggers** - Watch for logical commit points
@@ -140,9 +147,16 @@ alwaysApply: true
 #### Merge Process
 1. **Switch to main branch**
 2. **Merge feature branch** with descriptive merge commit
-3. **Update sprint status** - Mark current sprint complete, advance to next
-4. **Create next feature branch** - Auto-setup for next phase
-5. **Archive session logs** - Move to completed phase documentation
+3. **Delete completed feature branch** - Clean up completed sprint branch
+4. **Update sprint status** - Mark current sprint complete, advance to next
+5. **Create next feature branch FROM MAIN** - Auto-setup for next phase from main branch
+6. **Archive session logs** - Move to completed phase documentation
+
+#### Critical Workflow Validation
+- **NEVER create new feature branch from incomplete sprint branch**
+- **ALWAYS verify sprint completion before creating new feature branch**
+- **ALWAYS merge completed sprint to main before starting new sprint**
+- **If workflow violation detected, STOP and correct before proceeding**
 
 ## Recovery and Revert Strategies
 
@@ -173,6 +187,13 @@ alwaysApply: true
 - [ ] **Commit message follows template**
 - [ ] **Session log updated** with progress
 - [ ] **Files properly organized** according to architecture rules
+
+### Workflow Validation Checklist
+- [ ] **Sprint completion verified** - All Definition of Done items complete
+- [ ] **Merge to main completed** - Previous sprint merged to main branch
+- [ ] **Feature branch created from main** - New sprint branch created from main, not incomplete feature branch
+- [ ] **Branch cleanup** - Completed feature branches deleted
+- [ ] **Session log updated** - Sprint status and next priorities documented
 
 ### Architecture Review Integration
 - **Before major commits**: Check if architecture review needed
