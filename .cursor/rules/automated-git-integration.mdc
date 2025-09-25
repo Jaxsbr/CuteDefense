@@ -1,0 +1,43 @@
+---
+alwaysApply: true
+---
+
+# Automated Git Integration Guide
+
+## Commit Triggers
+- **Feature completion** - When checklist item marked complete
+- **Working state** - Code passes test and functions correctly
+- **New file creation** - Especially managers/systems
+- **Integration success** - Cross-system connections working
+
+## Commit Message Format
+```
+{type}({scope}): {description}
+```
+
+**Types**: feat, fix, refactor, test, docs, style, arch
+**Scopes**: grid, input, resources, buildings, enemies, ui, core
+
+**IMPORTANT**: Commit messages must be ONE LINE ONLY. No sub-points, no bullet lists, no detailed descriptions. All detailed information goes in session logs.
+
+## Session Logging Format
+```
+# Session: {DATE} - Sprint {NUMBER}
+
+## {TIME} - {FEATURE_NAME}
+Action: {WHAT_WAS_DONE}
+Files: {FILES_MODIFIED}
+Test: {TEST_RESULT}
+Commit: {COMMIT_HASH} - {COMMIT_MESSAGE}
+
+## Technical Details
+- {DETAILED_CHANGES}
+- {DECISIONS_MADE}
+- {TESTING_NOTES}
+- {INTEGRATION_POINTS}
+```
+
+## Recovery Commands
+- **"Show revert options"** - Display rollback points
+- **"Emergency revert"** - Quick rollback to last stable
+- **"Commit checkpoint"** - Manual stable state marker

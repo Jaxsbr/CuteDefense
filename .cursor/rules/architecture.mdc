@@ -1,0 +1,31 @@
+---
+alwaysApply: true
+---
+
+# Architecture & Technical Patterns
+
+## Core Principles
+- **Single Responsibility**: Each class has one clear purpose
+- **Composition over Inheritance**: Compose focused classes
+- **Event-Driven Communication**: Use event bus for loose coupling
+
+## File Organization
+```
+src/
+├── game.js              # Main game loop
+├── managers/            # System orchestrators
+├── systems/             # Focused components
+├── shared/              # Cross-cutting concerns
+└── data/                # Configuration
+```
+
+## Integration Rules
+- Use event bus for system communication
+- Avoid circular dependencies
+- Test each integration point independently
+
+## Debug System
+- **D**: Toggle debug mode
+- **G**: Toggle grid visualization  
+- **P**: Toggle path visualization
+- **C**: Toggle collision visualization

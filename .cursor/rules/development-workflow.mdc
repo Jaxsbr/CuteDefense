@@ -1,0 +1,73 @@
+---
+alwaysApply: true
+---
+
+# Development Workflow & Sprint Planning
+
+## Sprint Principles
+- **Clear Objectives**: Each sprint has specific, testable goals
+- **Definition of Done**: Concrete criteria for sprint completion
+- **Incremental Progress**: Build upon previous sprint achievements
+- **Scope Control**: Keep sprints focused and achievable
+
+## Session Workflow
+
+### Session Start Checklist
+1. **Check git state** - Verify correct feature branch, handle uncommitted changes
+2. **Create feature branch** - Auto-create feature branches as needed
+3. **Check project state** - Review current sprint status
+4. **Focus on active features only** - Don't work on backlog items
+5. **Identify next concrete step** - Pick single, testable objective
+6. **Set success criteria** - Define how to know when step is complete
+7. **Start session log** - Record session objectives and starting point
+
+### During Development
+1. **Make small, testable changes** - Each change should be immediately verifiable
+2. **Monitor commit triggers** - System watches for logical commit points
+3. **Respond to commit prompts** - When system detects commit point
+4. **Separate concerns** - Keep rendering, logic, and input handling separate
+5. **Update session log** - Track progress and decisions in real-time
+6. **Test frequently** - After each major change, suggest a test
+
+### Session End Checklist
+1. **Final commit check** - Ensure all work is committed
+2. **Test current functionality** - Ensure nothing is broken
+3. **Complete session log** - Document accomplishments, tests, revert points
+4. **Update sprint status** - Mark completed tasks
+5. **Note any scope changes** - Document if priorities shifted
+6. **Identify next session priority** - Set clear starting point
+7. **Check for phase completion** - If sprint "Definition of Done" met, prompt for merge
+
+## Testing Strategy
+
+### Testing Priorities
+1. **Visible progress**: Every change should be immediately testable
+2. **Core mechanics first**: Essential game functionality
+3. **Integration points**: Where systems connect
+4. **Fail fast**: Quick tests to validate core assumptions
+
+### Testing Workflow
+- **Unit level**: Test individual classes/functions in isolation
+- **Integration level**: Test system interactions
+- **User level**: Play through basic scenarios manually
+- **Regression**: Ensure old features still work after changes
+
+## Complexity Management
+
+### Feature Scoping Rules
+- Features touching 4+ files = break into sub-features
+- New files over 200 lines = immediate decomposition required
+- If implementation fails 2x = scope too large for current phase
+
+### Refactoring Triggers
+- Any class hits 500 lines: Refactor checkpoint
+- Functions over 20 lines: Consider decomposition
+- Copy-pasted code: Extract into shared utility
+- Complex conditionals: Consider state pattern or lookup tables
+
+## Code Quality Standards
+- Readable variable names
+- Functions under 20 lines when possible
+- Comment any "magic numbers"
+- Separate concerns (rendering, logic, input)
+- Classes over 400 lines should be decomposed

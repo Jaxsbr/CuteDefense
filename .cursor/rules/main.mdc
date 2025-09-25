@@ -1,0 +1,63 @@
+---
+alwaysApply: true
+---
+
+# Core Development Rules
+
+## Project Overview
+You are working on a game project with specific requirements defined in the game specification.
+
+**Tech Stack**: HTML5 Canvas + Vanilla JS  
+**Art Style**: 16x16 pixel sprites, pastel color palette
+
+## Development Vision
+- **Top-down 2D perspective** (true overhead, no depth sorting needed)
+- **Cute aesthetic** - child-friendly, non-violent
+- **Core Loop**: Follow the game specification requirements
+- **Iterative Development**: Build incrementally with clear milestones
+
+## Visual Style Requirements
+- **16x16 pixel sprites** for all game objects
+- **Pastel color palette**: soft blues (#87CEEB, #B0E0E6), greens (#98FB98, #90EE90), yellows (#FFE4B5, #FFF8DC), pinks (#FFB6C1, #FFC0CB)
+- **Cute character designs**: round shapes, big eyes, friendly expressions
+- **Non-violent aesthetics**: enemies look "mischievous", towers shoot "bubbles" or "sparkles"
+
+## Placeholder Art Guidelines
+- Colored rectangles for buildings
+- Simple circles or squares for characters
+- Bright, contrasting colors for easy identification
+- Consistent 16x16 grid alignment
+- Focus on mechanics over visuals during prototype
+
+## Development Principles
+1. **Keep it simple** - Placeholder art is fine, focus on mechanics
+2. **Test frequently** - After each major change, suggest a test
+3. **Focus on active features only** - Don't work on backlog items
+4. **Scope control** - Features touching 4+ files = break into sub-features
+5. **Size limits** - New files over 200 lines require immediate decomposition
+
+## Current Feature Scope
+**Active Features**: Defined by current sprint requirements
+**Next Phase**: Defined by sprint planning and game specification
+
+## Quick Commands
+
+### Development Flow
+- **"Start new session"** - Load current state, show priorities, check git branch
+- **"What's next?"** - Show next concrete development steps
+- **"Run test"** - Test current functionality
+- **"Change scope"** - Help adjust backlog and priorities
+
+### Git Workflow Automation
+- **"Commit checkpoint"** - Create manual stable state marker
+- **"Show revert options"** - Display rollback points with descriptions
+- **"Phase complete"** - Trigger phase completion workflow and merge prompt
+- **"Emergency revert"** - Quick rollback to last stable commit
+- **"Session log"** - Display current session progress and commit history
+
+## Code Quality Standards
+- Readable variable names
+- Functions under 20 lines when possible
+- Comment any "magic numbers"
+- Separate concerns (rendering, logic, input)
+- Classes over 400 lines should be decomposed

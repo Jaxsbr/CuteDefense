@@ -1,0 +1,176 @@
+---
+alwaysApply: true
+---
+
+# CuteDefense - Automated Git Workflow Management
+
+## Core Git Workflow Principles
+
+### Automatic Branch Management
+- **Feature branches created automatically** for each Sprint/Phase
+- **Branch naming convention**: `feature/sprint-{number}-{description}` (e.g., `feature/sprint-1-foundation`)
+- **Main branch protection**: All development happens on feature branches
+- **Merge only after phase completion confirmation**
+
+### Logical Commit Point Detection
+
+#### Primary Commit Triggers
+1. **Feature Completion**: When a checklist item is marked complete
+2. **Working State Achievement**: When code passes manual test and works as expected
+3. **Architecture Milestone**: After major refactoring or new system integration
+4. **Phase Boundary**: At end of sprint when "Definition of Done" is met
+5. **Error Recovery**: Before attempting fixes when implementation fails 2x
+
+#### Secondary Commit Triggers
+- New file creation (especially managers, systems)
+- Integration points working (enemy-building collision, etc.)
+- Debug system additions (D/G/P/C toggle functionality)
+- Test suite additions or major test updates
+
+### Commit Message Standards
+
+#### Simple Commit Format
+```
+{TYPE}({SCOPE}): {DESCRIPTION}
+```
+
+#### Session Log Integration
+- **Session logs capture detailed information** about changes, decisions, and context
+- **Commit messages are simple one-liners** for quick identification
+- **Session logs reference commit hashes** to link detailed context to commits
+- **Commit hash added to session log** after each commit for traceability
+
+#### Type Categories
+- **feat**: New feature implementation
+- **fix**: Bug fixes or error corrections
+- **refactor**: Code restructuring without behavior change
+- **test**: Test additions or modifications
+- **docs**: Documentation updates
+- **style**: Visual/UI improvements
+- **arch**: Architecture or system design changes
+
+#### Scope Examples
+- **grid**: Grid system and tile management
+- **player**: Player movement and interaction
+- **resources**: Resource collection and management
+- **buildings**: Building placement and management
+- **enemies**: Enemy spawning and behavior
+- **ui**: User interface and HUD
+- **core**: Game loop and fundamental systems
+
+### Session Logging Integration
+
+#### High-Level Session Log Format
+```
+# Session: {DATE} - Sprint {NUMBER}
+
+## Objective
+{WHAT_WE_PLANNED_TO_ACCOMPLISH}
+
+## Accomplishments
+- {FEATURE_1}: {STATUS} - Commit: {HASH}
+- {FEATURE_2}: {STATUS} - Commit: {HASH}
+
+## Technical Changes
+- Files Modified: {COUNT}
+- New Systems: {LIST}
+- Integration Points: {LIST}
+
+## Testing Results
+- Manual Tests: {PASS/FAIL}
+- Regression Check: {PASS/FAIL}
+- Performance Notes: {OBSERVATIONS}
+
+## Next Session Priority
+{CLEAR_STARTING_POINT}
+
+## Revert Points
+- Last stable: {COMMIT_HASH}
+- Feature rollback: {COMMIT_HASH}
+- Architecture change: {COMMIT_HASH}
+```
+
+## Automated Workflow Rules
+
+### At Session Start
+1. **Check current branch** - Ensure on correct feature branch
+2. **Create feature branch if needed** - Auto-create for new sprint/phase
+3. **Review uncommitted changes** - Prompt to commit or stash
+4. **Update session log** - Record session start and objectives
+
+### During Development
+1. **Monitor commit triggers** - Watch for logical commit points
+2. **Prompt for commits** - When triggers detected, ask: "Ready to commit this progress?"
+3. **Generate commit messages** - Auto-suggest using template and context
+4. **Update session log** - Track progress and decisions in real-time
+
+### Commit Point Decision Matrix
+
+| Trigger Type | Auto-Prompt | Require Confirmation | Generate Message |
+|-------------|------------|---------------------|------------------|
+| Feature Complete | Yes | Yes | Yes |
+| Working State | Yes | Yes | Yes |
+| File Creation | Yes | No | Yes |
+| Integration Success | Yes | Yes | Yes |
+| Phase Complete | Yes | Yes | Yes |
+| Error Recovery | Yes | No | Yes |
+
+### At Session End
+1. **Final commit check** - Ensure all work is committed
+2. **Update session log** - Complete session summary
+3. **Identify revert points** - Mark stable commits
+4. **Set next session priority** - Clear handoff to next session
+
+### Phase/Sprint Completion Workflow
+
+#### Phase Completion Checklist
+1. **Verify Definition of Done** - All sprint requirements met
+2. **Run comprehensive tests** - Manual and regression testing
+3. **Update documentation** - Sprint status and architecture notes
+4. **Create completion commit** - Comprehensive commit for phase end
+5. **Prompt for merge confirmation** - "Ready to merge Sprint X to main?"
+
+#### Merge Process
+1. **Switch to main branch**
+2. **Merge feature branch** with descriptive merge commit
+3. **Update sprint status** - Mark current sprint complete, advance to next
+4. **Create next feature branch** - Auto-setup for next phase
+5. **Archive session logs** - Move to completed phase documentation
+
+## Recovery and Revert Strategies
+
+### Quick Recovery Commands
+- **"Revert to last stable"** - Automated rollback to last known good state
+- **"Show revert options"** - Display available rollback points with descriptions
+- **"Create checkpoint"** - Manual stable state marking
+- **"Feature rollback"** - Remove specific feature while keeping others
+
+### Revert Point Types
+1. **Stable Commits**: Working game state, all basic functionality intact
+2. **Feature Commits**: Specific feature working, ready for next development
+3. **Architecture Commits**: Major system changes complete and tested
+4. **Phase Commits**: Sprint "Definition of Done" achieved
+
+### Change Identification System
+- **Commit tags** with clear feature associations
+- **File change tracking** in commit messages
+- **Session log cross-references** linking decisions to commits
+- **Visual commit history** showing feature development tree
+
+## Integration with Development Rules
+
+### Enhanced Before-Commit Checklist
+- [ ] **Code quality standards met** (existing rules apply)
+- [ ] **Manual test passes** for current feature
+- [ ] **No broken functionality** - regression check
+- [ ] **Commit message follows template**
+- [ ] **Session log updated** with progress
+- [ ] **Files properly organized** according to architecture rules
+
+### Architecture Review Integration
+- **Before major commits**: Check if architecture review needed
+- **After system additions**: Verify dependency flow correctness
+- **At phase boundaries**: Full architecture validation
+- **During integration**: Cross-system communication patterns
+
+This git workflow system ensures every development session has clear progress tracking, easy rollback options, and systematic feature development that aligns with the project's sprint-based methodology.
