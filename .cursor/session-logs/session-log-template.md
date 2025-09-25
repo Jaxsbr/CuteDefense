@@ -1,9 +1,9 @@
 # Session Log Template
 
-## Session: {DATE} - Sprint {SPRINT_NUMBER}
+## Session: $(date +%Y-%m-%d) - Sprint {SPRINT_NUMBER}
 
 **Feature Branch**: `feature/sprint-{number}-{description}`  
-**Start Time**: {TIME}  
+**Start Time**: $(date)  
 **Session Goal**: {PRIMARY_OBJECTIVE}
 
 ---
@@ -15,12 +15,12 @@
 
 ## Progress Log
 
-### {TIME} - Session Start
+### $(date) - Session Start
 - **Git Status**: {BRANCH_NAME} - {CLEAN/UNCOMMITTED_CHANGES}
 - **Starting Point**: {CURRENT_STATE_DESCRIPTION}
 - **Target**: {WHAT_WE_PLAN_TO_ACHIEVE}
 
-### {TIME} - {MILESTONE_NAME}
+### $(date) - {MILESTONE_NAME}
 - **Action**: {WHAT_WAS_DONE}
 - **Files**: {FILES_MODIFIED_OR_CREATED}
 - **Test Result**: {PASS/FAIL/NOTES}
@@ -135,6 +135,6 @@
 
 ---
 
-**Session End Time**: {TIME}  
+**Session End Time**: $(date)  
 **Total Duration**: {DURATION}  
 **Next Session Branch**: `{BRANCH_NAME}` *(if continuing)* / `{NEW_BRANCH}` *(if phase complete)*

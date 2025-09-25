@@ -19,20 +19,20 @@ alwaysApply: true
 4. **Focus on active features only** - Don't work on backlog items
 5. **Identify next concrete step** - Pick single, testable objective
 6. **Set success criteria** - Define how to know when step is complete
-7. **Start session log** - Record session objectives and starting point
+7. **Start session log** - Record session objectives and starting point in `.cursor/session-logs/YYYY-MM-DD-{session-implementation-focus}.md` using `date` command for timestamps
 
 ### During Development
 1. **Make small, testable changes** - Each change should be immediately verifiable
 2. **Monitor commit triggers** - System watches for logical commit points
 3. **Respond to commit prompts** - When system detects commit point
 4. **Separate concerns** - Keep rendering, logic, and input handling separate
-5. **Update session log** - Track progress and decisions in real-time
+5. **Update session log** - Track progress and decisions in real-time using `date` command for accurate timestamps
 6. **Test frequently** - After each major change, suggest a test
 
 ### Session End Checklist
 1. **Final commit check** - Ensure all work is committed
 2. **Test current functionality** - Ensure nothing is broken
-3. **Complete session log** - Document accomplishments, tests, revert points
+3. **Complete session log** - Document accomplishments, tests, revert points in `.cursor/session-logs/YYYY-MM-DD-{session-implementation-focus}.md`
 4. **Update sprint status** - Mark completed tasks
 5. **Note any scope changes** - Document if priorities shifted
 6. **Identify next session priority** - Set clear starting point

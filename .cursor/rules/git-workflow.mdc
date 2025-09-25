@@ -60,6 +60,13 @@ alwaysApply: true
 
 ### Session Logging Integration
 
+#### Session Log File Standards
+- **File Path**: `.cursor/session-logs/YYYY-MM-DD-{session-implementation-focus}.md`
+- **Date Format**: Use `date +%Y-%m-%d` command for consistent date formatting
+- **Naming Convention**: `{date}-{focus}` where focus describes the primary implementation goal
+- **Template**: Use `.cursor/session-logs/session-log-template.md` as base structure
+- **Timestamps**: Use `date` command throughout session for accurate time tracking
+
 #### High-Level Session Log Format
 ```
 # Session: {DATE} - Sprint {NUMBER}
@@ -96,13 +103,13 @@ alwaysApply: true
 1. **Check current branch** - Ensure on correct feature branch
 2. **Create feature branch if needed** - Auto-create for new sprint/phase
 3. **Review uncommitted changes** - Prompt to commit or stash
-4. **Update session log** - Record session start and objectives
+4. **Update session log** - Record session start and objectives in `.cursor/session-logs/YYYY-MM-DD-{session-implementation-focus}.md` using `date` command for timestamps
 
 ### During Development
 1. **Monitor commit triggers** - Watch for logical commit points
 2. **Prompt for commits** - When triggers detected, ask: "Ready to commit this progress?"
 3. **Generate commit messages** - Auto-suggest using template and context
-4. **Update session log** - Track progress and decisions in real-time
+4. **Update session log** - Track progress and decisions in real-time using `date` command for accurate timestamps
 
 ### Commit Point Decision Matrix
 
@@ -117,7 +124,7 @@ alwaysApply: true
 
 ### At Session End
 1. **Final commit check** - Ensure all work is committed
-2. **Update session log** - Complete session summary
+2. **Update session log** - Complete session summary in `.cursor/session-logs/YYYY-MM-DD-{session-implementation-focus}.md`
 3. **Identify revert points** - Mark stable commits
 4. **Set next session priority** - Clear handoff to next session
 
