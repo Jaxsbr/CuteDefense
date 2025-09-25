@@ -24,7 +24,9 @@ let gameState = {
     },
     grid: null,
     input: null,
-    renderer: null
+    renderer: null,
+    enemySystem: null,
+    enemyManager: null
 };
 
 // Initialize game
@@ -39,9 +41,14 @@ function initGame() {
     gameState.grid = new GridSystem(CONFIG.GRID_COLS, CONFIG.GRID_ROWS, CONFIG.TILE_SIZE);
     gameState.input = new InputSystem(canvas);
     gameState.renderer = new RenderSystem(ctx, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
+    gameState.enemySystem = new EnemySystem();
+    gameState.enemyManager = new EnemyManager(gameState.enemySystem, gameState.grid);
     
     // Set up input handlers
     setupInputHandlers();
+    
+    // Start wave system
+    gameState.enemyManager.startWaveSystem();
     
     // Start game loop
     gameState.isRunning = true;
@@ -64,10 +71,21 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
+// Track last frame time for delta time calculation
+let lastFrameTime = 0;
+
 // Update game state
 function update() {
+    const currentTime = performance.now();
+    const deltaTime = currentTime - lastFrameTime;
+    lastFrameTime = currentTime;
+    
     // Update input system
     gameState.input.update();
+    
+    // Update enemy systems
+    gameState.enemySystem.update(deltaTime);
+    gameState.enemyManager.update(deltaTime);
     
     // Handle input events
     handleInput();
@@ -81,10 +99,16 @@ function render() {
     // Render grid
     gameState.renderer.renderGrid(gameState.grid, gameState.debug);
     
+    // Render enemies
+    gameState.renderer.renderEnemies(gameState.enemySystem.getEnemiesForRendering(), CONFIG.TILE_SIZE);
+    
     // Render debug info
     if (gameState.debug.enabled) {
         gameState.renderer.renderDebugInfo(gameState.debug);
     }
+    
+    // Render wave info
+    gameState.renderer.renderWaveInfo(gameState.enemyManager.getWaveInfo());
 }
 
 // Handle input events
