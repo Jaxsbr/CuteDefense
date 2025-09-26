@@ -245,4 +245,11 @@ class TowerSystem {
     hasTowerAt(x, y) {
         return this.getTowerAt(x, y) !== undefined;
     }
+
+    // Clear all towers (for game restart)
+    clearAllTowers() {
+        this.towers = [];
+        this.projectiles = [];
+        console.log('🗑️ All towers and projectiles cleared');
+    }
 }

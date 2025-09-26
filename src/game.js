@@ -30,6 +30,7 @@ let gameState = {
     towerSystem: null,
     towerManager: null,
     resourceSystem: null,
+    gameStateManager: null, // Track game state (win/lose/restart)
     selectedTower: null // Track selected tower for HUD
 };
 
@@ -59,6 +60,8 @@ function initGame() {
     console.log('Resource system initialized');
     gameState.towerManager = new TowerManager(gameState.towerSystem, gameState.grid, gameState.resourceSystem);
     console.log('Tower manager initialized');
+    gameState.gameStateManager = new GameStateManager();
+    console.log('Game state manager initialized');
 
     // Set resource system reference in render system
     gameState.renderer.setResourceSystem(gameState.resourceSystem);
@@ -115,6 +118,9 @@ function update() {
     // Update tower systems with damage integration
     gameState.towerManager.update(deltaTime, gameState.enemySystem.getEnemiesForRendering(), gameState.enemySystem);
     gameState.resourceSystem.update(deltaTime);
+    
+    // Update game state management
+    gameState.gameStateManager.update(gameState.enemyManager, gameState.resourceSystem);
 }
 
 // Render game frame
@@ -158,6 +164,9 @@ function render() {
     if (gameState.selectedTower) {
         gameState.renderer.renderTowerHUD(gameState.selectedTower, gameState.towerManager);
     }
+
+    // Render game state overlay (game over, victory, etc.)
+    gameState.renderer.renderGameStateOverlay(gameState.gameStateManager.getGameStateInfo());
 }
 
 // Handle HUD clicks
@@ -195,6 +204,46 @@ function handleHUDClick(clickX, clickY) {
     return false;
 }
 
+// Handle restart button click
+function handleRestartButtonClick(clickX, clickY) {
+    if (!gameState.renderer.restartButtonBounds) return false;
+
+    const bounds = gameState.renderer.restartButtonBounds;
+    if (clickX >= bounds.x && clickX <= bounds.x + bounds.width &&
+        clickY >= bounds.y && clickY <= bounds.y + bounds.height) {
+        
+        console.log('🔄 Restart button clicked!');
+        restartGame();
+        return true;
+    }
+    return false;
+}
+
+// Restart the game
+function restartGame() {
+    console.log('🔄 Restarting game...');
+    
+    // Reset game state manager
+    gameState.gameStateManager.reset();
+    
+    // Clear all enemies
+    gameState.enemySystem.clearAllEnemies();
+    
+    // Clear all towers
+    gameState.towerManager.clearAllTowers();
+    
+    // Reset resource system
+    gameState.resourceSystem.reset();
+    
+    // Clear tower selection
+    gameState.selectedTower = null;
+    
+    // Restart wave system
+    gameState.enemyManager.startWaveSystem();
+    
+    console.log('✅ Game restarted successfully!');
+}
+
 // Handle input events
 function handleInput() {
     if (gameState.input.wasClicked()) {
@@ -202,6 +251,18 @@ function handleInput() {
         const clickPos = gameState.input.getClickPosition();
 
         console.log(`📍 Clicked at screen (${clickPos.x}, ${clickPos.y})`);
+
+        // Check if game is in terminal state and restart button was clicked
+        if (gameState.gameStateManager.isTerminalState()) {
+            if (handleRestartButtonClick(clickPos.x, clickPos.y)) {
+                return; // Restart button click handled
+            }
+        }
+
+        // If game is not playing, don't handle other input
+        if (!gameState.gameStateManager.isPlaying()) {
+            return;
+        }
 
         // First, try to collect a coin (coins take priority over tower placement)
         if (gameState.resourceSystem.tryCollectCoin(clickPos.x, clickPos.y)) {

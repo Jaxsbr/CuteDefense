@@ -154,4 +154,10 @@ class TowerManager {
         if (!upgradeInfo) return false;
         return this.resourceSystem.canAfford(upgradeInfo.cost);
     }
+
+    // Clear all towers (for game restart)
+    clearAllTowers() {
+        this.towerSystem.clearAllTowers();
+        console.log('🗑️ All towers cleared');
+    }
 }

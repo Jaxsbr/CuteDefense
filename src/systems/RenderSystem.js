@@ -674,6 +674,102 @@ class RenderSystem {
         }
     }
 
+    renderGameStateOverlay(gameStateInfo) {
+        // Only render overlay for terminal states
+        if (!gameStateInfo.gameState || (gameStateInfo.gameState !== 'gameOver' && gameStateInfo.gameState !== 'victory')) {
+            return;
+        }
+
+        // Semi-transparent overlay
+        this.ctx.save();
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        this.ctx.fillRect(0, 0, this.width, this.height);
+        this.ctx.restore();
+
+        // Get restart instructions
+        const instructions = this.getGameStateInstructions(gameStateInfo);
+        if (!instructions) return;
+
+        const centerX = this.width / 2;
+        const centerY = this.height / 2;
+
+        // Render title
+        this.ctx.save();
+        this.ctx.font = 'bold 48px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillStyle = gameStateInfo.gameState === 'victory' ? '#4CAF50' : '#F44336';
+        this.ctx.strokeStyle = '#FFFFFF';
+        this.ctx.lineWidth = 4;
+        
+        this.ctx.strokeText(instructions.title, centerX, centerY - 60);
+        this.ctx.fillText(instructions.title, centerX, centerY - 60);
+        this.ctx.restore();
+
+        // Render message
+        this.ctx.save();
+        this.ctx.font = '24px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.strokeStyle = '#000000';
+        this.ctx.lineWidth = 2;
+        
+        this.ctx.strokeText(instructions.message, centerX, centerY);
+        this.ctx.fillText(instructions.message, centerX, centerY);
+        this.ctx.restore();
+
+        // Render restart button
+        this.renderRestartButton(centerX, centerY + 80, instructions.buttonText);
+    }
+
+    getGameStateInstructions(gameStateInfo) {
+        if (gameStateInfo.gameState === 'gameOver') {
+            return {
+                title: 'Game Over!',
+                message: `Too many enemies reached the goal! (${gameStateInfo.enemiesReachedGoal}/${gameStateInfo.maxEnemiesAllowed})`,
+                buttonText: 'Try Again'
+            };
+        } else if (gameStateInfo.gameState === 'victory') {
+            return {
+                title: 'Victory!',
+                message: `Congratulations! You completed all waves!`,
+                buttonText: 'Play Again'
+            };
+        }
+        return null;
+    }
+
+    renderRestartButton(centerX, centerY, buttonText) {
+        const buttonWidth = 200;
+        const buttonHeight = 50;
+        const buttonX = centerX - buttonWidth / 2;
+        const buttonY = centerY - buttonHeight / 2;
+
+        // Button background
+        this.ctx.save();
+        this.ctx.fillStyle = '#4CAF50';
+        this.ctx.fillRect(buttonX, buttonY, buttonWidth, buttonHeight);
+        
+        // Button border
+        this.ctx.strokeStyle = '#FFFFFF';
+        this.ctx.lineWidth = 3;
+        this.ctx.strokeRect(buttonX, buttonY, buttonWidth, buttonHeight);
+        
+        // Button text
+        this.ctx.font = 'bold 20px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.fillText(buttonText, centerX, centerY + 8);
+        this.ctx.restore();
+
+        // Store button bounds for click detection
+        this.restartButtonBounds = {
+            x: buttonX,
+            y: buttonY,
+            width: buttonWidth,
+            height: buttonHeight
+        };
+    }
+
     renderDebugInfo(debug) {
         // Render additional debug information on canvas
         this.ctx.fillStyle = this.colors.ui;
