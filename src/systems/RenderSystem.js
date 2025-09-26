@@ -417,7 +417,7 @@ class RenderSystem {
     }
 
     renderWaveInfo(waveInfo) {
-        // Render wave announcement
+        // Render wave announcement with enhanced visual effects
         if (waveInfo.announcement) {
             const time = Date.now() / 1000;
             const textX = this.width / 2;
@@ -426,59 +426,145 @@ class RenderSystem {
             // Split announcement into lines
             const lines = waveInfo.announcement.split('\n');
 
-            // Check if this is the dramatic countdown announcement
+            // Check announcement type for different visual effects
             const isCountdown = waveInfo.announcement.includes('STARTS IN');
+            const isWaveStart = waveInfo.announcement.includes('WAVE') && waveInfo.announcement.includes('INCOMING');
+            const isWaveComplete = waveInfo.announcement.includes('Complete');
+            const isBossWave = waveInfo.announcement.includes('BOSS WAVE');
 
             if (isCountdown) {
-                // Subtle effects only for countdown
-                const scale = Math.sin(time * 3) * 0.05 + 1; // Much gentler grow/shrink (5% max)
-                const hue = (time * 60) % 360; // Slower color cycling
+                // Dramatic countdown with pulsing and color cycling
+                const scale = Math.sin(time * 4) * 0.1 + 1; // More dramatic pulsing
+                const hue = (time * 120) % 360; // Faster color cycling
+                const alpha = Math.sin(time * 2) * 0.3 + 0.7; // Pulsing opacity
 
-                // Save context state
                 this.ctx.save();
-
-                // Translate to center before scaling to keep text centered
                 this.ctx.translate(textX, textY);
                 this.ctx.scale(scale, scale);
                 this.ctx.translate(-textX, -textY);
 
-                // Larger, dramatic font for countdown
-                this.ctx.font = 'bold 36px Arial';
+                this.ctx.font = 'bold 48px Arial';
                 this.ctx.textAlign = 'center';
-                this.ctx.lineWidth = 4;
+                this.ctx.lineWidth = 6;
 
                 lines.forEach((line, index) => {
-                    const y = textY + (index * 50);
+                    const y = textY + (index * 60);
 
-                    // Subtle color for countdown
-                    this.ctx.fillStyle = `hsl(${hue}, 80%, 60%)`;
+                    // Bright, pulsing colors for countdown
+                    this.ctx.fillStyle = `hsla(${hue}, 90%, 70%, ${alpha})`;
                     this.ctx.strokeStyle = '#FFFFFF';
 
-                    // Draw multiple outlines for dramatic effect
+                    // Multiple outlines for dramatic effect
+                    for (let i = -3; i <= 3; i++) {
+                        for (let j = -3; j <= 3; j++) {
+                            this.ctx.strokeText(line, textX + i, y + j);
+                        }
+                    }
+                    this.ctx.fillText(line, textX, y);
+                });
+
+                this.ctx.restore();
+            } else if (isWaveStart) {
+                // Exciting wave start announcement with zoom and sparkle effects
+                const scale = Math.sin(time * 2) * 0.05 + 1;
+                const hue = (time * 30) % 360;
+                
+                this.ctx.save();
+                this.ctx.translate(textX, textY);
+                this.ctx.scale(scale, scale);
+                this.ctx.translate(-textX, -textY);
+
+                this.ctx.font = 'bold 42px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.lineWidth = 5;
+
+                lines.forEach((line, index) => {
+                    const y = textY + (index * 55);
+
+                    // Bright, exciting colors
+                    this.ctx.fillStyle = `hsl(${hue}, 85%, 65%)`;
+                    this.ctx.strokeStyle = '#FFD700'; // Gold outline
+
+                    // Thick outline for impact
                     this.ctx.strokeText(line, textX - 2, y - 2);
                     this.ctx.strokeText(line, textX + 2, y + 2);
                     this.ctx.strokeText(line, textX, y);
                     this.ctx.fillText(line, textX, y);
                 });
 
-                // Restore context state
                 this.ctx.restore();
+            } else if (isBossWave) {
+                // Special boss wave announcement with intense effects
+                const scale = Math.sin(time * 3) * 0.08 + 1;
+                const hue = (time * 180) % 360;
+                
+                this.ctx.save();
+                this.ctx.translate(textX, textY);
+                this.ctx.scale(scale, scale);
+                this.ctx.translate(-textX, -textY);
+
+                this.ctx.font = 'bold 44px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.lineWidth = 6;
+
+                lines.forEach((line, index) => {
+                    const y = textY + (index * 60);
+
+                    // Intense red-orange colors for boss waves
+                    this.ctx.fillStyle = `hsl(${hue}, 90%, 60%)`;
+                    this.ctx.strokeStyle = '#FF0000'; // Red outline
+
+                    // Multiple thick outlines
+                    for (let i = -4; i <= 4; i += 2) {
+                        for (let j = -4; j <= 4; j += 2) {
+                            this.ctx.strokeText(line, textX + i, y + j);
+                        }
+                    }
+                    this.ctx.fillText(line, textX, y);
+                });
+
+                this.ctx.restore();
+            } else if (isWaveComplete) {
+                // Celebration for wave completion
+                const scale = Math.sin(time * 1.5) * 0.03 + 1;
+                const hue = (time * 45) % 360;
+                
+                this.ctx.font = 'bold 32px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.lineWidth = 4;
+
+                lines.forEach((line, index) => {
+                    const y = textY + (index * 40);
+
+                    // Bright, celebratory colors
+                    this.ctx.fillStyle = `hsl(${hue}, 80%, 70%)`;
+                    this.ctx.strokeStyle = '#00FF00'; // Green outline
+
+                    this.ctx.strokeText(line, textX - 2, y - 2);
+                    this.ctx.strokeText(line, textX + 2, y + 2);
+                    this.ctx.strokeText(line, textX, y);
+                    this.ctx.fillText(line, textX, y);
+                });
             } else {
-                // Simple, non-animated text for other announcements
-                this.ctx.font = 'bold 24px Arial';
+                // Default announcement styling
+                this.ctx.font = 'bold 28px Arial';
                 this.ctx.textAlign = 'center';
                 this.ctx.fillStyle = this.colors.waveInfo;
                 this.ctx.strokeStyle = this.colors.ui;
-                this.ctx.lineWidth = 2;
+                this.ctx.lineWidth = 3;
 
                 lines.forEach((line, index) => {
-                    const y = textY + (index * 30);
+                    const y = textY + (index * 35);
 
-                    // Draw text with simple outline
                     this.ctx.strokeText(line, textX, y);
                     this.ctx.fillText(line, textX, y);
                 });
             }
+        }
+
+        // Render wave announcement effects (particles, sparkles, etc.)
+        if (waveInfo.announcement) {
+            this.renderWaveAnnouncementEffects(waveInfo);
         }
 
         // Render wave stats
@@ -502,6 +588,89 @@ class RenderSystem {
             case 'active': return '#4CAF50';
             case 'complete': return '#2196F3';
             default: return '#333333';
+        }
+    }
+
+    renderWaveAnnouncementEffects(waveInfo) {
+        const time = Date.now() / 1000;
+        const centerX = this.width / 2;
+        const centerY = this.height / 2;
+        
+        const isCountdown = waveInfo.announcement.includes('STARTS IN');
+        const isWaveStart = waveInfo.announcement.includes('WAVE') && waveInfo.announcement.includes('INCOMING');
+        const isBossWave = waveInfo.announcement.includes('BOSS WAVE');
+        const isWaveComplete = waveInfo.announcement.includes('Complete');
+
+        if (isCountdown) {
+            // Pulsing ring effect for countdown
+            this.ctx.save();
+            this.ctx.strokeStyle = `hsla(${(time * 120) % 360}, 80%, 60%, 0.8)`;
+            this.ctx.lineWidth = 4;
+            this.ctx.beginPath();
+            const radius = 100 + Math.sin(time * 4) * 20;
+            this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            this.ctx.stroke();
+            this.ctx.restore();
+        } else if (isWaveStart) {
+            // Sparkle effects for wave start
+            this.renderSparkleEffects(centerX, centerY, time);
+        } else if (isBossWave) {
+            // Intense particle effects for boss waves
+            this.renderBossWaveEffects(centerX, centerY, time);
+        } else if (isWaveComplete) {
+            // Celebration particles for wave completion
+            this.renderCelebrationEffects(centerX, centerY, time);
+        }
+    }
+
+    renderSparkleEffects(centerX, centerY, time) {
+        // Create sparkles around the announcement
+        for (let i = 0; i < 8; i++) {
+            const angle = (time * 2 + i * Math.PI / 4) % (Math.PI * 2);
+            const distance = 80 + Math.sin(time * 3 + i) * 20;
+            const x = centerX + Math.cos(angle) * distance;
+            const y = centerY + Math.sin(angle) * distance;
+            
+            this.ctx.save();
+            this.ctx.fillStyle = `hsla(${(time * 60 + i * 45) % 360}, 90%, 80%, 0.8)`;
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, 3 + Math.sin(time * 4 + i) * 2, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.restore();
+        }
+    }
+
+    renderBossWaveEffects(centerX, centerY, time) {
+        // Intense particle effects for boss waves
+        for (let i = 0; i < 12; i++) {
+            const angle = (time * 3 + i * Math.PI / 6) % (Math.PI * 2);
+            const distance = 60 + Math.sin(time * 4 + i) * 30;
+            const x = centerX + Math.cos(angle) * distance;
+            const y = centerY + Math.sin(angle) * distance;
+            
+            this.ctx.save();
+            this.ctx.fillStyle = `hsla(${(time * 180 + i * 30) % 360}, 95%, 70%, 0.9)`;
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, 4 + Math.sin(time * 5 + i) * 3, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.restore();
+        }
+    }
+
+    renderCelebrationEffects(centerX, centerY, time) {
+        // Celebration particles for wave completion
+        for (let i = 0; i < 6; i++) {
+            const angle = (time * 1.5 + i * Math.PI / 3) % (Math.PI * 2);
+            const distance = 70 + Math.sin(time * 2 + i) * 15;
+            const x = centerX + Math.cos(angle) * distance;
+            const y = centerY + Math.sin(angle) * distance;
+            
+            this.ctx.save();
+            this.ctx.fillStyle = `hsla(${(time * 45 + i * 60) % 360}, 85%, 75%, 0.7)`;
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, 2 + Math.sin(time * 3 + i) * 1.5, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.restore();
         }
     }
 
