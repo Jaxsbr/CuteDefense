@@ -39,7 +39,7 @@ const ENEMY_TYPES = {
  */
 const WAVE_CONFIG = {
     WAVE_DURATION: 30000,  // 30 seconds
-    PREPARATION_TIME: 10000, // 10 seconds
+    PREPARATION_TIME: 15000, // 15 seconds for more suspense
     SPAWN_INTERVAL: 2000,  // 2 seconds between spawns
 
     // Difficulty scaling factors

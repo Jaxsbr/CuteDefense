@@ -217,34 +217,49 @@ class RenderSystem {
     }
 
     renderWaveInfo(waveInfo) {
-        // Render wave announcement
+        // Render wave announcement with dramatic effects
         if (waveInfo.announcement) {
-            this.ctx.fillStyle = this.colors.waveInfo;
-            this.ctx.strokeStyle = this.colors.ui;
-            this.ctx.lineWidth = 3;
-            this.ctx.font = 'bold 24px Arial';
-            this.ctx.textAlign = 'center';
-
+            const time = Date.now() / 1000;
             const textX = this.width / 2;
-            let textY = 50;
+            let textY = this.height / 2 - 50;
 
             // Split announcement into lines
             const lines = waveInfo.announcement.split('\n');
             
-            // Add pulsing effect for wave announcements
-            const time = Date.now() / 1000;
-            const pulse = Math.sin(time * 3) * 0.1 + 1;
-            this.ctx.globalAlpha = pulse;
+            // Dramatic pulsing and scaling effects
+            const pulse = Math.sin(time * 4) * 0.3 + 1; // Much more dramatic pulsing
+            const scale = Math.sin(time * 6) * 0.1 + 1; // Gentle scaling
+            const alpha = Math.sin(time * 3) * 0.2 + 0.8; // Alpha pulsing
+            
+            // Save context state
+            this.ctx.save();
+            
+            // Apply dramatic effects
+            this.ctx.globalAlpha = alpha;
+            this.ctx.scale(scale, scale);
+            
+            // Larger, more dramatic font
+            this.ctx.font = 'bold 36px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.lineWidth = 4;
 
             lines.forEach((line, index) => {
-                const y = textY + (index * 30);
+                const y = textY + (index * 50);
                 
-                // Draw text with outline
+                // Create dramatic color cycling
+                const hue = (time * 60 + index * 120) % 360;
+                this.ctx.fillStyle = `hsl(${hue}, 80%, 60%)`;
+                this.ctx.strokeStyle = '#FFFFFF';
+                
+                // Draw multiple outlines for dramatic effect
+                this.ctx.strokeText(line, textX - 2, y - 2);
+                this.ctx.strokeText(line, textX + 2, y + 2);
                 this.ctx.strokeText(line, textX, y);
                 this.ctx.fillText(line, textX, y);
             });
             
-            this.ctx.globalAlpha = 1.0; // Reset alpha
+            // Restore context state
+            this.ctx.restore();
         }
 
         // Render wave stats

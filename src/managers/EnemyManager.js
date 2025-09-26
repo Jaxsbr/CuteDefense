@@ -59,10 +59,16 @@ class EnemyManager {
     }
 
     /**
-     * Update preparation phase
+     * Update preparation phase with countdown
      */
     updatePreparation(currentTime) {
         const elapsed = currentTime - this.waveStartTime;
+        const remaining = Math.ceil((this.waveConfig.PREPARATION_TIME - elapsed) / 1000);
+        
+        // Update announcement with countdown for last 5 seconds
+        if (remaining <= 5 && remaining > 0) {
+            this.waveAnnouncement = `🚨 WAVE ${this.currentWave} STARTS IN ${remaining}! 🚨`;
+        }
 
         if (elapsed >= this.waveConfig.PREPARATION_TIME) {
             this.startSpawning();
@@ -208,20 +214,29 @@ class EnemyManager {
     }
 
     /**
-     * Create enhanced wave announcement with enemy composition
+     * Create kid-friendly wave announcement
      */
     createWaveAnnouncement() {
-        const enemyTypes = Object.keys(this.waveComposition);
         const totalEnemies = Object.values(this.waveComposition).reduce((sum, count) => sum + count, 0);
+        const enemyTypes = Object.keys(this.waveComposition);
         
-        let announcement = `Wave ${this.currentWave} - ${totalEnemies} Enemies Incoming!`;
+        // Simple, exciting announcements for kids
+        const announcements = [
+            `🎯 WAVE ${this.currentWave} INCOMING! 🎯`,
+            `⚡ ${totalEnemies} ENEMIES APPROACHING! ⚡`,
+            `🚨 GET READY TO DEFEND! 🚨`
+        ];
         
-        if (enemyTypes.length > 1) {
-            const enemyList = enemyTypes.map(type => `${this.waveComposition[type]}x ${type}`).join(', ');
-            announcement += `\n${enemyList}`;
+        // Add wave-specific excitement
+        if (this.currentWave === 1) {
+            return announcements[0] + '\n' + announcements[1];
+        } else if (this.currentWave <= 3) {
+            return announcements[0] + '\n' + announcements[2];
+        } else if (enemyTypes.includes('Strong Enemy')) {
+            return `💪 BOSS WAVE ${this.currentWave}! 💪\n` + announcements[2];
+        } else {
+            return announcements[0] + '\n' + announcements[1];
         }
-        
-        return announcement;
     }
 
     /**
