@@ -26,50 +26,63 @@ class RenderSystem {
         this.resourceSystem = resourceSystem;
     }
 
-    // Render tower HUD pane
+    // Render tower HUD pane with enhanced styling
     renderTowerHUD(selectedTower, towerManager) {
         if (!selectedTower) return;
 
-        const hudWidth = 300;
-        const hudHeight = 200;
+        const hudWidth = 320;
+        const hudHeight = 220;
         const hudX = this.width - hudWidth - 20;
         const hudY = 20;
 
-        // HUD background
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        // Enhanced HUD background with gradient
+        const gradient = this.ctx.createLinearGradient(hudX, hudY, hudX, hudY + hudHeight);
+        gradient.addColorStop(0, 'rgba(0, 0, 0, 0.9)');
+        gradient.addColorStop(1, 'rgba(20, 20, 20, 0.9)');
+        
+        this.ctx.fillStyle = gradient;
         this.ctx.fillRect(hudX, hudY, hudWidth, hudHeight);
 
-        // HUD border
+        // Enhanced HUD border with glow effect
         this.ctx.strokeStyle = '#FFD700';
-        this.ctx.lineWidth = 2;
+        this.ctx.lineWidth = 3;
         this.ctx.strokeRect(hudX, hudY, hudWidth, hudHeight);
+        
+        // Inner border for depth
+        this.ctx.strokeStyle = 'rgba(255, 215, 0, 0.5)';
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeRect(hudX + 2, hudY + 2, hudWidth - 4, hudHeight - 4);
 
-        // Tower portrait area
-        const portraitSize = 80;
+        // Tower portrait area with enhanced styling
+        const portraitSize = 90;
         const portraitX = hudX + 20;
         const portraitY = hudY + 20;
+
+        // Portrait background
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+        this.ctx.fillRect(portraitX - 5, portraitY - 5, portraitSize + 10, portraitSize + 10);
 
         // Animated tower portrait
         this.renderTowerPortrait(portraitX, portraitY, portraitSize, selectedTower);
 
-        // Tower info
+        // Enhanced tower info with better typography
         const infoX = portraitX + portraitSize + 20;
         const infoY = portraitY + 20;
 
         this.ctx.fillStyle = '#FFF';
-        this.ctx.font = 'bold 16px Arial';
+        this.ctx.font = 'bold 18px Arial';
         this.ctx.textAlign = 'left';
         this.ctx.fillText(`${selectedTower.type} Tower`, infoX, infoY);
 
-        this.ctx.font = '14px Arial';
+        this.ctx.font = '16px Arial';
         this.ctx.fillText(`Level: ${selectedTower.level}`, infoX, infoY + 25);
         this.ctx.fillText(`Damage: ${selectedTower.damage}`, infoX, infoY + 45);
         this.ctx.fillText(`Range: ${selectedTower.range}`, infoX, infoY + 65);
 
-        // Upgrade options
+        // Upgrade options with enhanced styling
         const upgradeInfo = towerManager.getTowerUpgradeInfo(selectedTower.x, selectedTower.y);
         if (upgradeInfo) {
-            this.renderUpgradeOptions(hudX + 20, hudY + 120, upgradeInfo);
+            this.renderUpgradeOptions(hudX + 20, hudY + 130, upgradeInfo);
         }
     }
 
@@ -118,26 +131,45 @@ class RenderSystem {
     }
 
     renderUpgradeOptions(x, y, upgradeInfo) {
-        const buttonWidth = 120;
-        const buttonHeight = 40;
+        const buttonWidth = 140;
+        const buttonHeight = 45;
         const buttonSpacing = 10;
 
-        // Upgrade button
+        // Enhanced upgrade button with gradient
         const canAfford = this.resourceSystem && this.resourceSystem.canAfford(upgradeInfo.cost);
-        const buttonColor = canAfford ? '#4CAF50' : '#9E9E9E';
-
-        this.ctx.fillStyle = buttonColor;
+        
+        // Button background with gradient
+        const gradient = this.ctx.createLinearGradient(x, y, x, y + buttonHeight);
+        if (canAfford) {
+            gradient.addColorStop(0, '#4CAF50');
+            gradient.addColorStop(1, '#45A049');
+        } else {
+            gradient.addColorStop(0, '#9E9E9E');
+            gradient.addColorStop(1, '#757575');
+        }
+        
+        this.ctx.fillStyle = gradient;
         this.ctx.fillRect(x, y, buttonWidth, buttonHeight);
 
-        this.ctx.strokeStyle = '#333';
+        // Enhanced button border
+        this.ctx.strokeStyle = canAfford ? '#2E7D32' : '#424242';
         this.ctx.lineWidth = 2;
         this.ctx.strokeRect(x, y, buttonWidth, buttonHeight);
+        
+        // Inner highlight
+        this.ctx.strokeStyle = canAfford ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)';
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeRect(x + 1, y + 1, buttonWidth - 2, buttonHeight - 2);
 
-        // Button text
+        // Enhanced button text
         this.ctx.fillStyle = '#FFF';
-        this.ctx.font = 'bold 14px Arial';
+        this.ctx.font = 'bold 16px Arial';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText(`Upgrade (${upgradeInfo.cost})`, x + buttonWidth/2, y + 25);
+        this.ctx.fillText(`⬆️ Upgrade`, x + buttonWidth/2, y + 20);
+        
+        // Cost text
+        this.ctx.font = '14px Arial';
+        this.ctx.fillText(`💰 ${upgradeInfo.cost}`, x + buttonWidth/2, y + 35);
 
         // Upgrade stats preview
         this.ctx.fillStyle = '#FFF';
@@ -567,18 +599,58 @@ class RenderSystem {
             this.renderWaveAnnouncementEffects(waveInfo);
         }
 
-        // Render wave stats
-        this.ctx.fillStyle = this.colors.ui;
-        this.ctx.font = '16px Arial';
+        // Render wave stats with enhanced UI
+        this.renderWaveStatsPanel(waveInfo);
+    }
+
+    renderWaveStatsPanel(waveInfo) {
+        const panelWidth = 250;
+        const panelHeight = 100;
+        const panelX = 20;
+        const panelY = this.height - panelHeight - 20;
+
+        // Panel background with gradient
+        const gradient = this.ctx.createLinearGradient(panelX, panelY, panelX, panelY + panelHeight);
+        gradient.addColorStop(0, 'rgba(0, 0, 0, 0.8)');
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 0.6)');
+        
+        this.ctx.fillStyle = gradient;
+        this.ctx.fillRect(panelX, panelY, panelWidth, panelHeight);
+
+        // Panel border
+        this.ctx.strokeStyle = '#4CAF50';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(panelX, panelY, panelWidth, panelHeight);
+
+        // Wave number
+        this.ctx.font = 'bold 20px Arial';
+        this.ctx.fillStyle = '#FFFFFF';
         this.ctx.textAlign = 'left';
+        this.ctx.fillText(`Wave ${waveInfo.currentWave}`, panelX + 15, panelY + 25);
 
-        const statsY = this.height - 60;
-        this.ctx.fillText(`Wave: ${waveInfo.currentWave}`, 20, statsY);
-        this.ctx.fillText(`Enemies: ${waveInfo.enemiesAlive}/${waveInfo.totalEnemies}`, 20, statsY + 20);
+        // Enemy count with progress bar
+        this.ctx.font = '16px Arial';
+        this.ctx.fillText(`Enemies: ${waveInfo.enemiesAlive}/${waveInfo.totalEnemies}`, panelX + 15, panelY + 50);
+        
+        // Progress bar for enemies
+        const barWidth = 200;
+        const barHeight = 8;
+        const barX = panelX + 15;
+        const barY = panelY + 60;
+        
+        // Background bar
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        this.ctx.fillRect(barX, barY, barWidth, barHeight);
+        
+        // Progress bar
+        const progress = waveInfo.totalEnemies > 0 ? (waveInfo.totalEnemies - waveInfo.enemiesAlive) / waveInfo.totalEnemies : 0;
+        this.ctx.fillStyle = '#4CAF50';
+        this.ctx.fillRect(barX, barY, barWidth * progress, barHeight);
 
-        // Wave state indicator
+        // Wave state indicator with color coding
+        this.ctx.font = '14px Arial';
         this.ctx.fillStyle = this.getWaveStateColor(waveInfo.waveState);
-        this.ctx.fillText(`State: ${waveInfo.waveState}`, 20, statsY + 40);
+        this.ctx.fillText(`Status: ${waveInfo.waveState.toUpperCase()}`, panelX + 15, panelY + 85);
     }
 
     getWaveStateColor(state) {
@@ -884,28 +956,60 @@ class RenderSystem {
         }
     }
 
-    // Render resource info
+    // Render resource info with enhanced UI
     renderResourceInfo(resourceInfo, pulseAnimation = null) {
         this.ctx.save();
+
+        // Create a nice background panel for resource info
+        const panelWidth = 200;
+        const panelHeight = 60;
+        const panelX = this.width - panelWidth - 20;
+        const panelY = 10;
+
+        // Panel background with gradient effect
+        const gradient = this.ctx.createLinearGradient(panelX, panelY, panelX, panelY + panelHeight);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+        gradient.addColorStop(1, 'rgba(240, 240, 240, 0.9)');
+        
+        this.ctx.fillStyle = gradient;
+        this.ctx.fillRect(panelX, panelY, panelWidth, panelHeight);
+
+        // Panel border
+        this.ctx.strokeStyle = '#FFD700';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(panelX, panelY, panelWidth, panelHeight);
 
         // Apply pulse animation if active
         if (pulseAnimation && pulseAnimation.active) {
             const progress = pulseAnimation.time / pulseAnimation.duration;
-            const pulseScale = 1 + Math.sin(progress * Math.PI) * 0.3; // Scale from 1.0 to 1.3 and back
-            const pulseAlpha = 1 + Math.sin(progress * Math.PI) * 0.2; // Slight brightness change
+            const pulseScale = 1 + Math.sin(progress * Math.PI) * 0.2; // Gentler scaling
+            const pulseAlpha = 1 + Math.sin(progress * Math.PI) * 0.3; // More noticeable brightness
 
             this.ctx.globalAlpha = pulseAlpha;
-            this.ctx.font = `${16 * pulseScale}px Arial`;
+            this.ctx.font = `bold ${18 * pulseScale}px Arial`;
         } else {
-            this.ctx.fillStyle = this.colors.ui;
-            this.ctx.font = '16px Arial';
+            this.ctx.font = 'bold 18px Arial';
         }
 
-        this.ctx.fillStyle = this.colors.ui;
-        this.ctx.textAlign = 'right';
+        // Coin icon and text
+        this.ctx.fillStyle = '#FFD700'; // Gold color for coins
+        this.ctx.textAlign = 'left';
+        
+        // Draw coin icon (simple circle)
+        const coinX = panelX + 15;
+        const coinY = panelY + 25;
+        this.ctx.beginPath();
+        this.ctx.arc(coinX, coinY, 12, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Coin border
+        this.ctx.strokeStyle = '#B8860B';
+        this.ctx.lineWidth = 2;
+        this.ctx.stroke();
 
-        const infoY = 20;
-        this.ctx.fillText(`Coins: ${resourceInfo.coins}`, this.width - 20, infoY);
+        // Coin text
+        this.ctx.fillStyle = '#333333';
+        this.ctx.fillText(`Coins: ${resourceInfo.coins}`, coinX + 25, coinY + 5);
 
         this.ctx.restore();
     }
