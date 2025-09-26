@@ -628,11 +628,11 @@ class RenderSystem {
         this.ctx.textAlign = 'left';
         this.ctx.fillText(`Wave ${waveInfo.currentWave}`, panelX + 15, panelY + 25);
 
-        // Enemy count with progress bar
+        // Enemy count with progress bar - show spawned vs total, not alive vs total
         this.ctx.font = '16px Arial';
-        this.ctx.fillText(`Enemies: ${waveInfo.enemiesAlive}/${waveInfo.totalEnemies}`, panelX + 15, panelY + 50);
+        this.ctx.fillText(`Enemies: ${waveInfo.enemiesSpawned}/${waveInfo.totalEnemies}`, panelX + 15, panelY + 50);
         
-        // Progress bar for enemies
+        // Progress bar for enemies - show spawning progress
         const barWidth = 200;
         const barHeight = 8;
         const barX = panelX + 15;
@@ -642,8 +642,8 @@ class RenderSystem {
         this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
         this.ctx.fillRect(barX, barY, barWidth, barHeight);
         
-        // Progress bar
-        const progress = waveInfo.totalEnemies > 0 ? (waveInfo.totalEnemies - waveInfo.enemiesAlive) / waveInfo.totalEnemies : 0;
+        // Progress bar - show how many enemies have been spawned
+        const progress = waveInfo.totalEnemies > 0 ? waveInfo.enemiesSpawned / waveInfo.totalEnemies : 0;
         this.ctx.fillStyle = '#4CAF50';
         this.ctx.fillRect(barX, barY, barWidth * progress, barHeight);
 
@@ -674,15 +674,7 @@ class RenderSystem {
         const isWaveComplete = waveInfo.announcement.includes('Complete');
 
         if (isCountdown) {
-            // Pulsing ring effect for countdown
-            this.ctx.save();
-            this.ctx.strokeStyle = `hsla(${(time * 120) % 360}, 80%, 60%, 0.8)`;
-            this.ctx.lineWidth = 4;
-            this.ctx.beginPath();
-            const radius = 100 + Math.sin(time * 4) * 20;
-            this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-            this.ctx.stroke();
-            this.ctx.restore();
+            // No pulsing ring effect for countdown - text animation is enough
         } else if (isWaveStart) {
             // Sparkle effects for wave start
             this.renderSparkleEffects(centerX, centerY, time);
