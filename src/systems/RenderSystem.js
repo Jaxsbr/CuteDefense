@@ -226,11 +226,25 @@ class RenderSystem {
             this.ctx.textAlign = 'center';
 
             const textX = this.width / 2;
-            const textY = 50;
+            let textY = 50;
 
-            // Draw text with outline
-            this.ctx.strokeText(waveInfo.announcement, textX, textY);
-            this.ctx.fillText(waveInfo.announcement, textX, textY);
+            // Split announcement into lines
+            const lines = waveInfo.announcement.split('\n');
+            
+            // Add pulsing effect for wave announcements
+            const time = Date.now() / 1000;
+            const pulse = Math.sin(time * 3) * 0.1 + 1;
+            this.ctx.globalAlpha = pulse;
+
+            lines.forEach((line, index) => {
+                const y = textY + (index * 30);
+                
+                // Draw text with outline
+                this.ctx.strokeText(line, textX, y);
+                this.ctx.fillText(line, textX, y);
+            });
+            
+            this.ctx.globalAlpha = 1.0; // Reset alpha
         }
 
         // Render wave stats
