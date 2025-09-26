@@ -59,10 +59,20 @@ class EnemyManager {
     }
 
     /**
-     * Update preparation phase
+     * Update preparation phase with countdown
      */
     updatePreparation(currentTime) {
         const elapsed = currentTime - this.waveStartTime;
+        const remaining = Math.ceil((this.waveConfig.PREPARATION_TIME - elapsed) / 1000);
+        
+        // Show simple countdown for most of preparation time
+        if (remaining > 5) {
+            this.waveAnnouncement = `Next Wave in: ${remaining}s`;
+        }
+        // Show dramatic countdown for last 5 seconds
+        else if (remaining > 0) {
+            this.waveAnnouncement = `🚨 WAVE ${this.currentWave} STARTS IN ${remaining}! 🚨`;
+        }
 
         if (elapsed >= this.waveConfig.PREPARATION_TIME) {
             this.startSpawning();
@@ -127,32 +137,107 @@ class EnemyManager {
         // Prepare wave pattern
         this.prepareWavePattern();
 
-        // Set wave announcement
-        this.waveAnnouncement = `Wave ${this.currentWave} Starting Soon!`;
+        // Set enhanced wave announcement with enemy composition
+        this.waveAnnouncement = this.createWaveAnnouncement();
         this.announcementTime = Date.now();
     }
 
     /**
-     * Prepare the wave pattern
+     * Prepare the wave pattern with progressive difficulty scaling
      */
     prepareWavePattern() {
         this.enemiesToSpawn = [];
 
-        // Get wave pattern (repeat last pattern if we exceed defined waves)
-        const waveIndex = Math.min(this.currentWave - 1, this.waveConfig.WAVE_PATTERNS.length - 1);
-        const wavePattern = this.waveConfig.WAVE_PATTERNS[waveIndex];
+        // Get base wave pattern (repeat last pattern if we exceed defined waves)
+        const waveIndex = Math.min(this.currentWave - 1, this.waveConfig.BASE_WAVE_PATTERNS.length - 1);
+        const baseWavePattern = this.waveConfig.BASE_WAVE_PATTERNS[waveIndex];
+
+        // Apply difficulty scaling
+        const scaledWavePattern = this.applyDifficultyScaling(baseWavePattern);
 
         // Convert pattern to spawn queue
-        wavePattern.enemies.forEach(enemyGroup => {
+        scaledWavePattern.enemies.forEach(enemyGroup => {
             for (let i = 0; i < enemyGroup.count; i++) {
                 this.enemiesToSpawn.push({
-                    type: this.enemyTypes[enemyGroup.type.toUpperCase()],
+                    type: this.createScaledEnemyType(enemyGroup.type),
                     spawnTime: this.waveStartTime + this.waveConfig.PREPARATION_TIME + (this.enemiesToSpawn.length * this.waveConfig.SPAWN_INTERVAL)
                 });
             }
         });
 
         this.totalEnemiesInWave = this.enemiesToSpawn.length;
+        
+        // Store wave composition for enhanced announcements
+        this.waveComposition = this.getWaveComposition(scaledWavePattern);
+    }
+
+    /**
+     * Apply difficulty scaling to wave pattern
+     */
+    applyDifficultyScaling(basePattern) {
+        const scaling = this.waveConfig.DIFFICULTY_SCALING;
+        const waveNumber = this.currentWave;
+        
+        return {
+            enemies: basePattern.enemies.map(enemyGroup => ({
+                type: enemyGroup.type,
+                count: Math.floor(enemyGroup.count * Math.pow(scaling.COUNT_MULTIPLIER, waveNumber - 1))
+            }))
+        };
+    }
+
+    /**
+     * Create scaled enemy type with progressive difficulty
+     */
+    createScaledEnemyType(enemyTypeName) {
+        const baseType = this.enemyTypes[enemyTypeName.toUpperCase()];
+        const scaling = this.waveConfig.DIFFICULTY_SCALING;
+        const waveNumber = this.currentWave;
+        
+        return {
+            ...baseType,
+            health: Math.floor(baseType.health * Math.pow(scaling.HEALTH_MULTIPLIER, waveNumber - 1)),
+            speed: baseType.speed * Math.pow(scaling.SPEED_MULTIPLIER, waveNumber - 1),
+            reward: Math.floor(baseType.reward * Math.pow(scaling.REWARD_MULTIPLIER, waveNumber - 1))
+        };
+    }
+
+    /**
+     * Get wave composition for enhanced announcements
+     */
+    getWaveComposition(wavePattern) {
+        const composition = {};
+        wavePattern.enemies.forEach(enemyGroup => {
+            const enemyType = this.enemyTypes[enemyGroup.type.toUpperCase()];
+            if (!composition[enemyType.name]) {
+                composition[enemyType.name] = 0;
+            }
+            composition[enemyType.name] += enemyGroup.count;
+        });
+        return composition;
+    }
+
+    /**
+     * Create kid-friendly wave announcement
+     */
+    createWaveAnnouncement() {
+        const totalEnemies = Object.values(this.waveComposition).reduce((sum, count) => sum + count, 0);
+        const enemyTypes = Object.keys(this.waveComposition);
+        
+        // Simple, exciting announcements for kids (no defend message)
+        const announcements = [
+            `🎯 WAVE ${this.currentWave} INCOMING! 🎯`,
+            `⚡ ${totalEnemies} ENEMIES APPROACHING! ⚡`
+        ];
+        
+        // Add wave-specific excitement
+        if (this.currentWave === 1) {
+            return announcements[0] + '\n' + announcements[1];
+        } else if (enemyTypes.includes('Strong Enemy')) {
+            return `💪 BOSS WAVE ${this.currentWave}! 💪\n` + announcements[1];
+        } else {
+            return announcements[0] + '\n' + announcements[1];
+        }
     }
 
     /**
@@ -160,7 +245,7 @@ class EnemyManager {
      */
     startSpawning() {
         this.waveState = 'spawning';
-        this.waveAnnouncement = `Wave ${this.currentWave} - Defend!`;
+        this.waveAnnouncement = ''; // No announcement during spawning
         this.announcementTime = Date.now();
         this.lastSpawnTime = Date.now();
     }

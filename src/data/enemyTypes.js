@@ -35,15 +35,23 @@ const ENEMY_TYPES = {
 
 /**
  * Wave Configuration
- * Defines wave patterns and enemy spawns
+ * Defines wave patterns and enemy spawns with progressive difficulty
  */
 const WAVE_CONFIG = {
     WAVE_DURATION: 30000,  // 30 seconds
-    PREPARATION_TIME: 10000, // 10 seconds
+    PREPARATION_TIME: 15000, // 15 seconds for more suspense
     SPAWN_INTERVAL: 2000,  // 2 seconds between spawns
 
-    // Wave patterns - enemies to spawn per wave
-    WAVE_PATTERNS: [
+    // Difficulty scaling factors
+    DIFFICULTY_SCALING: {
+        HEALTH_MULTIPLIER: 1.15,  // 15% health increase per wave
+        SPEED_MULTIPLIER: 1.05,   // 5% speed increase per wave
+        COUNT_MULTIPLIER: 1.2,    // 20% more enemies per wave
+        REWARD_MULTIPLIER: 1.1    // 10% more coins per wave
+    },
+
+    // Base wave patterns - enemies to spawn per wave (scaled dynamically)
+    BASE_WAVE_PATTERNS: [
         // Wave 1: Basic enemies only
         {
             enemies: [
