@@ -63,6 +63,12 @@ Plan and implement Sprint 7: Game Polish & Final Features
 - **Integration**: ✅ PASS - All systems integrated and working together
 - **Status**: Sprint 7 Definition of Done met
 
+### 2025-09-26 18:15:00 - Bug Fixes & Polish
+- **Action**: Fixed user feedback issues - removed pulsing circle and fixed enemy counter
+- **Files**: src/systems/RenderSystem.js
+- **Test Result**: ✅ PASS - Pulsing circle removed, enemy counter now shows spawned vs total
+- **Commit**: b33c9ef - fix(ui): remove pulsing circle from countdown and fix enemy counter to show spawned vs total
+
 ## Technical Accomplishments
 
 ### Code Changes
