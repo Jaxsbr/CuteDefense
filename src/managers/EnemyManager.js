@@ -65,8 +65,12 @@ class EnemyManager {
         const elapsed = currentTime - this.waveStartTime;
         const remaining = Math.ceil((this.waveConfig.PREPARATION_TIME - elapsed) / 1000);
         
-        // Update announcement with countdown for last 5 seconds
-        if (remaining <= 5 && remaining > 0) {
+        // Show simple countdown for most of preparation time
+        if (remaining > 5) {
+            this.waveAnnouncement = `Next Wave in: ${remaining}s`;
+        }
+        // Show dramatic countdown for last 5 seconds
+        else if (remaining > 0) {
             this.waveAnnouncement = `🚨 WAVE ${this.currentWave} STARTS IN ${remaining}! 🚨`;
         }
 
@@ -220,20 +224,17 @@ class EnemyManager {
         const totalEnemies = Object.values(this.waveComposition).reduce((sum, count) => sum + count, 0);
         const enemyTypes = Object.keys(this.waveComposition);
         
-        // Simple, exciting announcements for kids
+        // Simple, exciting announcements for kids (no defend message)
         const announcements = [
             `🎯 WAVE ${this.currentWave} INCOMING! 🎯`,
-            `⚡ ${totalEnemies} ENEMIES APPROACHING! ⚡`,
-            `🚨 GET READY TO DEFEND! 🚨`
+            `⚡ ${totalEnemies} ENEMIES APPROACHING! ⚡`
         ];
         
         // Add wave-specific excitement
         if (this.currentWave === 1) {
             return announcements[0] + '\n' + announcements[1];
-        } else if (this.currentWave <= 3) {
-            return announcements[0] + '\n' + announcements[2];
         } else if (enemyTypes.includes('Strong Enemy')) {
-            return `💪 BOSS WAVE ${this.currentWave}! 💪\n` + announcements[2];
+            return `💪 BOSS WAVE ${this.currentWave}! 💪\n` + announcements[1];
         } else {
             return announcements[0] + '\n' + announcements[1];
         }
@@ -244,7 +245,7 @@ class EnemyManager {
      */
     startSpawning() {
         this.waveState = 'spawning';
-        this.waveAnnouncement = `Wave ${this.currentWave} - Defend!`;
+        this.waveAnnouncement = ''; // No announcement during spawning
         this.announcementTime = Date.now();
         this.lastSpawnTime = Date.now();
     }

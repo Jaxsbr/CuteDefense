@@ -217,7 +217,7 @@ class RenderSystem {
     }
 
     renderWaveInfo(waveInfo) {
-        // Render wave announcement with dramatic effects
+        // Render wave announcement
         if (waveInfo.announcement) {
             const time = Date.now() / 1000;
             const textX = this.width / 2;
@@ -225,41 +225,60 @@ class RenderSystem {
 
             // Split announcement into lines
             const lines = waveInfo.announcement.split('\n');
-            
-            // Dramatic pulsing and scaling effects
-            const pulse = Math.sin(time * 4) * 0.3 + 1; // Much more dramatic pulsing
-            const scale = Math.sin(time * 6) * 0.1 + 1; // Gentle scaling
-            const alpha = Math.sin(time * 3) * 0.2 + 0.8; // Alpha pulsing
-            
-            // Save context state
-            this.ctx.save();
-            
-            // Apply dramatic effects
-            this.ctx.globalAlpha = alpha;
-            this.ctx.scale(scale, scale);
-            
-            // Larger, more dramatic font
-            this.ctx.font = 'bold 36px Arial';
-            this.ctx.textAlign = 'center';
-            this.ctx.lineWidth = 4;
 
-            lines.forEach((line, index) => {
-                const y = textY + (index * 50);
-                
-                // Create dramatic color cycling
-                const hue = (time * 60 + index * 120) % 360;
-                this.ctx.fillStyle = `hsl(${hue}, 80%, 60%)`;
-                this.ctx.strokeStyle = '#FFFFFF';
-                
-                // Draw multiple outlines for dramatic effect
-                this.ctx.strokeText(line, textX - 2, y - 2);
-                this.ctx.strokeText(line, textX + 2, y + 2);
-                this.ctx.strokeText(line, textX, y);
-                this.ctx.fillText(line, textX, y);
-            });
-            
-            // Restore context state
-            this.ctx.restore();
+            // Check if this is the dramatic countdown announcement
+            const isCountdown = waveInfo.announcement.includes('STARTS IN');
+
+            if (isCountdown) {
+                // Subtle effects only for countdown
+                const scale = Math.sin(time * 3) * 0.05 + 1; // Much gentler grow/shrink (5% max)
+                const hue = (time * 60) % 360; // Slower color cycling
+
+                // Save context state
+                this.ctx.save();
+
+                // Translate to center before scaling to keep text centered
+                this.ctx.translate(textX, textY);
+                this.ctx.scale(scale, scale);
+                this.ctx.translate(-textX, -textY);
+
+                // Larger, dramatic font for countdown
+                this.ctx.font = 'bold 36px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.lineWidth = 4;
+
+                lines.forEach((line, index) => {
+                    const y = textY + (index * 50);
+
+                    // Subtle color for countdown
+                    this.ctx.fillStyle = `hsl(${hue}, 80%, 60%)`;
+                    this.ctx.strokeStyle = '#FFFFFF';
+
+                    // Draw multiple outlines for dramatic effect
+                    this.ctx.strokeText(line, textX - 2, y - 2);
+                    this.ctx.strokeText(line, textX + 2, y + 2);
+                    this.ctx.strokeText(line, textX, y);
+                    this.ctx.fillText(line, textX, y);
+                });
+
+                // Restore context state
+                this.ctx.restore();
+            } else {
+                // Simple, non-animated text for other announcements
+                this.ctx.font = 'bold 24px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillStyle = this.colors.waveInfo;
+                this.ctx.strokeStyle = this.colors.ui;
+                this.ctx.lineWidth = 2;
+
+                lines.forEach((line, index) => {
+                    const y = textY + (index * 30);
+
+                    // Draw text with simple outline
+                    this.ctx.strokeText(line, textX, y);
+                    this.ctx.fillText(line, textX, y);
+                });
+            }
         }
 
         // Render wave stats
