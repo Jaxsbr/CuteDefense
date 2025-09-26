@@ -26,14 +26,23 @@ class RenderSystem {
         this.resourceSystem = resourceSystem;
     }
 
-    // Render tower HUD pane with enhanced styling
+    // Calculate tilemap height based on grid configuration
+    getTilemapHeight() {
+        // This should match the grid system's actual height
+        // For now, we'll calculate based on standard grid size
+        return 12 * 64; // 12 rows * 64px tile size
+    }
+
+    // Render tower HUD pane with enhanced styling - now positioned below tilemap
     renderTowerHUD(selectedTower, towerManager) {
         if (!selectedTower) return;
 
-        const hudWidth = 320;
-        const hudHeight = 220;
-        const hudX = this.width - hudWidth - 20;
-        const hudY = 20;
+        // Calculate HUD area below tilemap
+        const tilemapHeight = this.getTilemapHeight();
+        const hudHeight = 120; // Fixed height for HUD
+        const hudY = tilemapHeight + 10; // 10px gap below tilemap
+        const hudWidth = this.width - 20; // Full width minus margins
+        const hudX = 10; // 10px margin from left
 
         // Enhanced HUD background with gradient
         const gradient = this.ctx.createLinearGradient(hudX, hudY, hudX, hudY + hudHeight);
@@ -53,37 +62,66 @@ class RenderSystem {
         this.ctx.lineWidth = 1;
         this.ctx.strokeRect(hudX + 2, hudY + 2, hudWidth - 4, hudHeight - 4);
 
-        // Tower portrait area with enhanced styling
-        const portraitSize = 90;
-        const portraitX = hudX + 20;
-        const portraitY = hudY + 20;
+        // Implement flexible layout: fill | portrait | info | upgrade | fill
+        this.renderFlexibleHUDLayout(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager);
+    }
 
-        // Portrait background
-        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-        this.ctx.fillRect(portraitX - 5, portraitY - 5, portraitSize + 10, portraitSize + 10);
+    // Render flexible HUD layout: fill | portrait | info | upgrade | fill
+    renderFlexibleHUDLayout(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager) {
+        const padding = 15;
+        const contentHeight = hudHeight - (padding * 2);
+        const contentY = hudY + padding;
 
-        // Animated tower portrait
+        // Calculate flexible layout sections
+        const portraitSize = 80;
+        const infoWidth = 200;
+        const upgradeWidth = 180;
+        const fillWidth = (hudWidth - portraitSize - infoWidth - upgradeWidth - (padding * 4)) / 2;
+
+        // Section 1: Fill (left)
+        const fill1X = hudX + padding;
+        const fill1Width = fillWidth;
+
+        // Section 2: Portrait
+        const portraitX = fill1X + fill1Width + padding;
+        const portraitY = contentY + (contentHeight - portraitSize) / 2;
+
+        // Section 3: Info
+        const infoX = portraitX + portraitSize + padding;
+        const infoY = contentY + 10;
+
+        // Section 4: Upgrade
+        const upgradeX = infoX + infoWidth + padding;
+        const upgradeY = contentY + 10;
+
+        // Section 5: Fill (right)
+        const fill2X = upgradeX + upgradeWidth + padding;
+        const fill2Width = fillWidth;
+
+        // Render portrait
         this.renderTowerPortrait(portraitX, portraitY, portraitSize, selectedTower);
 
-        // Enhanced tower info with better typography
-        const infoX = portraitX + portraitSize + 20;
-        const infoY = portraitY + 20;
+        // Render tower info
+        this.renderTowerInfo(infoX, infoY, selectedTower);
 
+        // Render upgrade options
+        const upgradeInfo = towerManager.getTowerUpgradeInfo(selectedTower.x, selectedTower.y);
+        if (upgradeInfo) {
+            this.renderUpgradeOptions(upgradeX, upgradeY, upgradeInfo);
+        }
+    }
+
+    // Render tower information section
+    renderTowerInfo(x, y, tower) {
         this.ctx.fillStyle = '#FFF';
         this.ctx.font = 'bold 18px Arial';
         this.ctx.textAlign = 'left';
-        this.ctx.fillText(`${selectedTower.type} Tower`, infoX, infoY);
+        this.ctx.fillText(`${tower.type} Tower`, x, y);
 
         this.ctx.font = '16px Arial';
-        this.ctx.fillText(`Level: ${selectedTower.level}`, infoX, infoY + 25);
-        this.ctx.fillText(`Damage: ${selectedTower.damage}`, infoX, infoY + 45);
-        this.ctx.fillText(`Range: ${selectedTower.range}`, infoX, infoY + 65);
-
-        // Upgrade options with enhanced styling
-        const upgradeInfo = towerManager.getTowerUpgradeInfo(selectedTower.x, selectedTower.y);
-        if (upgradeInfo) {
-            this.renderUpgradeOptions(hudX + 20, hudY + 130, upgradeInfo);
-        }
+        this.ctx.fillText(`Level: ${tower.level}`, x, y + 25);
+        this.ctx.fillText(`Damage: ${tower.damage}`, x, y + 45);
+        this.ctx.fillText(`Range: ${tower.range}`, x, y + 65);
     }
 
     renderTowerPortrait(x, y, size, tower) {
@@ -242,7 +280,7 @@ class RenderSystem {
         const maxRadius = tileSize * 0.4; // 40% of tile size to prevent overlap
         const towerRadius = Math.min(tower.size || tileSize * 0.3, maxRadius);
 
-        // Draw level rings (visual indicator for tower level)
+        // Draw level rings (visual indicator for tower level) - no pulsing
         this.renderTowerLevelRings(centerX, centerY, towerRadius, tower.level);
 
         // Draw tower as a circle with tower-specific color
@@ -251,9 +289,9 @@ class RenderSystem {
         this.ctx.arc(centerX, centerY, towerRadius, 0, Math.PI * 2);
         this.ctx.fill();
 
-        // Draw tower border (thicker if selected)
-        this.ctx.strokeStyle = isSelected ? '#FFD700' : '#333';
-        this.ctx.lineWidth = isSelected ? 3 : 2;
+        // Draw tower border (thicker if selected, darker for better contrast)
+        this.ctx.strokeStyle = isSelected ? '#2C3E50' : '#1A1A1A'; // Darker colors for better contrast
+        this.ctx.lineWidth = isSelected ? 4 : 2;
         this.ctx.stroke();
 
         // Draw tower type indicator
@@ -267,21 +305,21 @@ class RenderSystem {
             this.renderRankBadge(centerX, centerY - towerRadius - 8, tower.level);
         }
 
-        // Draw selection indicator if selected
+        // Draw selection indicator if selected (only for selected towers)
         if (isSelected) {
             this.renderSelectionIndicator(centerX, centerY, towerRadius);
         }
     }
 
     renderTowerLevelRings(centerX, centerY, radius, level) {
-        // Draw concentric rings to indicate tower level
+        // Draw concentric rings to indicate tower level - no pulsing, better contrast
         for (let i = 1; i < level; i++) {
             const ringRadius = radius + (i * 3);
-            const alpha = 0.3 + (i * 0.1);
+            const alpha = 0.4 + (i * 0.15); // Slightly more visible
             
             this.ctx.save();
             this.ctx.globalAlpha = alpha;
-            this.ctx.strokeStyle = '#FFD700';
+            this.ctx.strokeStyle = '#34495E'; // Darker color for better contrast with grass
             this.ctx.lineWidth = 2;
             this.ctx.beginPath();
             this.ctx.arc(centerX, centerY, ringRadius, 0, Math.PI * 2);
@@ -313,15 +351,15 @@ class RenderSystem {
     }
 
     renderSelectionIndicator(centerX, centerY, radius) {
-        // Draw pulsing selection ring
+        // Draw darker, more subtle selection ring for better contrast
         const time = Date.now() / 1000;
-        const pulseRadius = radius + 8 + Math.sin(time * 4) * 3;
-        const alpha = 0.5 + Math.sin(time * 4) * 0.3;
+        const pulseRadius = radius + 6 + Math.sin(time * 2) * 2; // Slower, smaller pulse
+        const alpha = 0.7 + Math.sin(time * 2) * 0.2; // More subtle alpha change
 
         this.ctx.save();
         this.ctx.globalAlpha = alpha;
-        this.ctx.strokeStyle = '#FFD700';
-        this.ctx.lineWidth = 3;
+        this.ctx.strokeStyle = '#2C3E50'; // Darker color for better contrast with grass
+        this.ctx.lineWidth = 4; // Thicker for better visibility
         this.ctx.beginPath();
         this.ctx.arc(centerX, centerY, pulseRadius, 0, Math.PI * 2);
         this.ctx.stroke();
@@ -946,6 +984,75 @@ class RenderSystem {
             this.ctx.textAlign = 'center';
             this.ctx.fillText('$', coin.x, bounceY + 6);  // Adjusted position
         }
+    }
+
+    // Render tower placement popup
+    renderTowerPlacementPopup(popupInfo) {
+        if (!popupInfo) return;
+
+        const { x, y, tileSize } = popupInfo;
+        const popupSize = 60;
+        const popupX = x * tileSize + (tileSize - popupSize) / 2;
+        const popupY = y * tileSize + (tileSize - popupSize) / 2;
+
+        // Popup background
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        this.ctx.fillRect(popupX, popupY, popupSize, popupSize);
+
+        // Popup border
+        this.ctx.strokeStyle = '#FFD700';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(popupX, popupY, popupSize, popupSize);
+
+        // + button (place tower)
+        const plusButtonSize = 20;
+        const plusButtonX = popupX + 10;
+        const plusButtonY = popupY + 10;
+        
+        this.ctx.fillStyle = '#4CAF50';
+        this.ctx.fillRect(plusButtonX, plusButtonY, plusButtonSize, plusButtonSize);
+        this.ctx.strokeStyle = '#2E7D32';
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeRect(plusButtonX, plusButtonY, plusButtonSize, plusButtonSize);
+        
+        // + symbol
+        this.ctx.fillStyle = '#FFF';
+        this.ctx.font = 'bold 16px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('+', plusButtonX + plusButtonSize/2, plusButtonY + plusButtonSize/2 + 5);
+
+        // X button (cancel)
+        const xButtonSize = 20;
+        const xButtonX = popupX + 30;
+        const xButtonY = popupY + 10;
+        
+        this.ctx.fillStyle = '#F44336';
+        this.ctx.fillRect(xButtonX, xButtonY, xButtonSize, xButtonSize);
+        this.ctx.strokeStyle = '#D32F2F';
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeRect(xButtonX, xButtonY, xButtonSize, xButtonSize);
+        
+        // X symbol
+        this.ctx.fillStyle = '#FFF';
+        this.ctx.font = 'bold 16px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('×', xButtonX + xButtonSize/2, xButtonY + xButtonSize/2 + 5);
+
+        // Store button bounds for click detection
+        this.placementPopupBounds = {
+            plus: {
+                x: plusButtonX,
+                y: plusButtonY,
+                width: plusButtonSize,
+                height: plusButtonSize
+            },
+            cancel: {
+                x: xButtonX,
+                y: xButtonY,
+                width: xButtonSize,
+                height: xButtonSize
+            }
+        };
     }
 
     // Render resource info with enhanced UI
