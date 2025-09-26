@@ -93,9 +93,9 @@ class TowerManager {
     }
 
     // Update tower manager
-    update(deltaTime, enemies) {
-        // Update tower system
-        this.towerSystem.update(deltaTime, enemies);
+    update(deltaTime, enemies, enemySystem) {
+        // Update tower system with damage system integration
+        this.towerSystem.update(deltaTime, enemies, enemySystem, this.resourceSystem);
     }
 
     // Get towers for rendering
@@ -116,5 +116,42 @@ class TowerManager {
     // Get tower at position
     getTowerAt(x, y) {
         return this.towerSystem.getTowerAt(x, y);
+    }
+
+    // Try to upgrade a tower at the given position
+    tryUpgradeTower(x, y) {
+        const tower = this.towerSystem.getTowerAt(x, y);
+        if (!tower) {
+            console.log(`No tower found at (${x}, ${y}) for upgrade`);
+            return false;
+        }
+
+        // Check if upgrade is available
+        const upgradeInfo = this.towerSystem.getTowerUpgradeInfo(tower.id);
+        if (!upgradeInfo) {
+            console.log(`No upgrade available for tower at (${x}, ${y})`);
+            return false;
+        }
+
+        // Try to upgrade the tower
+        const success = this.towerSystem.upgradeTower(tower.id, this.resourceSystem);
+        if (success) {
+            console.log(`Tower upgraded successfully at (${x}, ${y})`);
+        }
+        return success;
+    }
+
+    // Get upgrade info for tower at position
+    getTowerUpgradeInfo(x, y) {
+        const tower = this.towerSystem.getTowerAt(x, y);
+        if (!tower) return null;
+        return this.towerSystem.getTowerUpgradeInfo(tower.id);
+    }
+
+    // Check if tower can be upgraded at position
+    canUpgradeTower(x, y) {
+        const upgradeInfo = this.getTowerUpgradeInfo(x, y);
+        if (!upgradeInfo) return false;
+        return this.resourceSystem.canAfford(upgradeInfo.cost);
     }
 }

@@ -28,8 +28,67 @@ class TowerSystem {
         return tower;
     }
 
+    // Upgrade a tower
+    upgradeTower(towerId, resourceSystem) {
+        const tower = this.towers.find(t => t.id === towerId);
+        if (!tower) {
+            console.log(`Tower ${towerId} not found for upgrade`);
+            return false;
+        }
+
+        const upgradeKey = `level${tower.level + 1}`;
+        const upgradeConfig = TOWER_UPGRADES[tower.type]?.[upgradeKey];
+        
+        if (!upgradeConfig) {
+            console.log(`No upgrade available for ${tower.type} level ${tower.level + 1}`);
+            return false;
+        }
+
+        // Check if player can afford upgrade
+        if (!resourceSystem.canAfford(upgradeConfig.cost)) {
+            console.log(`Not enough coins for upgrade (cost: ${upgradeConfig.cost}, have: ${resourceSystem.getCoins()})`);
+            return false;
+        }
+
+        // Apply upgrade
+        tower.level += 1;
+        tower.damage += upgradeConfig.damage;
+        tower.range += upgradeConfig.range;
+        tower.fireRate = Math.max(100, tower.fireRate - upgradeConfig.fireRate); // Faster firing
+        tower.color = upgradeConfig.color;
+        tower.size = Math.min(80, tower.size + 8); // Slightly larger
+
+        // Deduct cost
+        resourceSystem.spend(upgradeConfig.cost);
+
+        console.log(`Tower upgraded to level ${tower.level}: ${tower.type} at (${tower.x}, ${tower.y})`);
+        return true;
+    }
+
+    // Get upgrade info for a tower
+    getTowerUpgradeInfo(towerId) {
+        const tower = this.towers.find(t => t.id === towerId);
+        if (!tower) return null;
+
+        const upgradeKey = `level${tower.level + 1}`;
+        const upgradeConfig = TOWER_UPGRADES[tower.type]?.[upgradeKey];
+        
+        if (!upgradeConfig) return null;
+
+        return {
+            towerId: towerId,
+            currentLevel: tower.level,
+            nextLevel: tower.level + 1,
+            cost: upgradeConfig.cost,
+            damageIncrease: upgradeConfig.damage,
+            rangeIncrease: upgradeConfig.range,
+            fireRateImprovement: upgradeConfig.fireRate,
+            newColor: upgradeConfig.color
+        };
+    }
+
     // Update all towers
-    update(deltaTime, enemies) {
+    update(deltaTime, enemies, enemySystem, resourceSystem) {
         this.lastUpdateTime += deltaTime;
 
         // Debug: Check if enemies are being passed
@@ -42,8 +101,8 @@ class TowerSystem {
             this.updateTower(tower, enemies, deltaTime);
         });
 
-        // Update projectiles
-        this.updateProjectiles(deltaTime);
+        // Update projectiles with damage system
+        this.updateProjectiles(deltaTime, enemySystem, resourceSystem);
     }
 
     // Update individual tower
@@ -100,15 +159,15 @@ class TowerSystem {
     shoot(tower, target) {
         const projectile = {
             id: Date.now() + Math.random(),
-            x: tower.x * 32 + 16, // Center of tower (screen coordinates)
-            y: tower.y * 32 + 16,
-            targetX: target.x * 32 + 16, // Convert enemy grid position to screen coordinates
-            targetY: target.y * 32 + 16,
+            x: tower.x * 64 + 32, // Center of tower (screen coordinates) - updated for 64px tiles
+            y: tower.y * 64 + 32,
+            targetX: target.x * 64 + 32, // Convert enemy grid position to screen coordinates - updated for 64px tiles
+            targetY: target.y * 64 + 32,
             targetId: target.id,
             speed: tower.projectileSpeed,
             damage: tower.damage,
             color: tower.color,
-            size: 4
+            size: 8  // Increased projectile size for better visibility
         };
 
         this.projectiles.push(projectile);
@@ -118,7 +177,7 @@ class TowerSystem {
     }
 
     // Update all projectiles
-    updateProjectiles(deltaTime) {
+    updateProjectiles(deltaTime, enemySystem, resourceSystem) {
         this.projectiles = this.projectiles.filter(projectile => {
             // Move projectile towards target
             const dx = projectile.targetX - projectile.x;
@@ -126,7 +185,20 @@ class TowerSystem {
             const distance = Math.sqrt(dx * dx + dy * dy);
 
             if (distance < 5) {
-                // Hit target - remove projectile
+                // Find the enemy to get its current position before dealing damage
+                const aliveEnemies = enemySystem.getEnemiesForRendering();
+                const targetEnemy = aliveEnemies.find(e => e.id === projectile.targetId);
+
+                // Deal damage and check if enemy dies
+                const coinsEarned = enemySystem.damageEnemy(projectile.targetId, projectile.damage);
+                if (coinsEarned > 0 && targetEnemy) {
+                    // Spawn coin at enemy's current grid position (convert to screen coordinates)
+                    const coinX = targetEnemy.x * 64 + 32;
+                    const coinY = targetEnemy.y * 64 + 32;
+                    resourceSystem.spawnCoin(coinX, coinY, coinsEarned);
+                    console.log(`Enemy killed! Earned ${coinsEarned} coins at (${coinX}, ${coinY})`);
+                }
+                // Remove projectile after hit
                 return false;
             }
 

@@ -9,24 +9,24 @@ const TOWER_TYPES = {
         id: 'basic',
         name: 'Basic Tower',
         cost: 10,
-        damage: 1,
+        damage: 25,  // Increased from 1 to 25 for easier testing
         range: 5,
         fireRate: 1000, // milliseconds between shots
         projectileSpeed: 200, // pixels per second
         color: '#FF6B6B', // Red
-        size: 24,
+        size: 48,  // Increased from 24 to 48 for better visibility
         description: 'Simple tower that shoots at nearby enemies'
     },
     STRONG: {
         id: 'strong',
         name: 'Strong Tower',
         cost: 25,
-        damage: 3,
+        damage: 60,  // Increased from 3 to 60 for easier testing
         range: 2,
         fireRate: 2000, // milliseconds between shots
         projectileSpeed: 150, // pixels per second
         color: '#4ECDC4', // Teal
-        size: 28,
+        size: 56,  // Increased from 28 to 56 for better visibility
         description: 'Powerful tower with high damage but slower firing'
     }
 };
