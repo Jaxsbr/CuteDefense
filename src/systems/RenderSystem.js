@@ -38,10 +38,8 @@ class RenderSystem {
             }
         }
 
-        // Render towers
-        gridSystem.getTowers().forEach(tower => {
-            this.renderTower(tower, tileSize);
-        });
+        // Towers are now rendered separately in the main game loop
+        // This method only handles grid rendering
 
         // Render debug elements (work independently)
         if (debug.showGrid) {
@@ -81,16 +79,22 @@ class RenderSystem {
         const centerX = screenX + tileSize / 2;
         const centerY = screenY + tileSize / 2;
 
-        // Draw tower as a circle
-        this.ctx.fillStyle = this.colors.tower;
+        // Draw tower as a circle with tower-specific color
+        this.ctx.fillStyle = tower.color || this.colors.tower;
         this.ctx.beginPath();
-        this.ctx.arc(centerX, centerY, tileSize * 0.3, 0, Math.PI * 2);
+        this.ctx.arc(centerX, centerY, (tower.size || tileSize * 0.3), 0, Math.PI * 2);
         this.ctx.fill();
 
         // Draw tower border
         this.ctx.strokeStyle = '#333';
         this.ctx.lineWidth = 2;
         this.ctx.stroke();
+
+        // Draw tower type indicator
+        this.ctx.fillStyle = '#FFF';
+        this.ctx.font = 'bold 12px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText(tower.type.charAt(0), centerX, centerY + 4);
     }
 
     renderGridLines(gridSystem) {
@@ -288,5 +292,73 @@ class RenderSystem {
         this.ctx.fillText('P - Toggle enemy path', 20, currentY);
         currentY += lineHeight;
         this.ctx.fillText('C - Toggle collision areas', 20, currentY);
+    }
+
+    // Render towers from tower system
+    renderTowers(towers, tileSize) {
+        towers.forEach(tower => {
+            this.renderTower(tower, tileSize);
+        });
+    }
+
+    // Render projectiles
+    renderProjectiles(projectiles) {
+        projectiles.forEach(projectile => {
+            this.renderProjectile(projectile);
+        });
+    }
+
+    // Render individual projectile
+    renderProjectile(projectile) {
+        this.ctx.fillStyle = projectile.color;
+        this.ctx.beginPath();
+        this.ctx.arc(projectile.x, projectile.y, projectile.size, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Add sparkle effect
+        this.ctx.strokeStyle = '#FFF';
+        this.ctx.lineWidth = 1;
+        this.ctx.stroke();
+    }
+
+    // Render coins
+    renderCoins(coins) {
+        coins.forEach(coin => {
+            this.renderCoin(coin);
+        });
+    }
+
+    // Render individual coin
+    renderCoin(coin) {
+        const bounceY = coin.y + coin.bounceHeight;
+
+        // Draw coin
+        this.ctx.fillStyle = '#FFD700';
+        this.ctx.beginPath();
+        this.ctx.arc(coin.x, bounceY, 8, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Draw coin border
+        this.ctx.strokeStyle = '#FFA500';
+        this.ctx.lineWidth = 2;
+        this.ctx.stroke();
+
+        // Draw sparkle effect
+        if (coin.sparkleTime % 200 < 100) {
+            this.ctx.fillStyle = '#FFF';
+            this.ctx.font = '12px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText('$', coin.x, bounceY + 4);
+        }
+    }
+
+    // Render resource info
+    renderResourceInfo(resourceInfo) {
+        this.ctx.fillStyle = this.colors.ui;
+        this.ctx.font = '16px Arial';
+        this.ctx.textAlign = 'right';
+
+        const infoY = 20;
+        this.ctx.fillText(`Coins: ${resourceInfo.coins}`, this.width - 20, infoY);
     }
 }

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,15 +16,17 @@
             min-height: 100vh;
             font-family: Arial, sans-serif;
         }
+
         canvas {
             border: 2px solid #333;
             background: #98FB98;
         }
+
         #debug-info {
             position: absolute;
             top: 10px;
             left: 10px;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0, 0, 0, 0.7);
             color: white;
             padding: 10px;
             border-radius: 5px;
@@ -31,6 +34,7 @@
         }
     </style>
 </head>
+
 <body>
     <div id="debug-info">
         <div>Debug: D</div>
@@ -45,6 +49,11 @@
     <script src="src/data/enemyTypes.js"></script>
     <script src="src/systems/EnemySystem.js"></script>
     <script src="src/managers/EnemyManager.js"></script>
-    <script src="src/game.js"></script>
+    <script src="src/data/towerTypes.js"></script>
+    <script src="src/systems/TowerSystem.js"></script>
+    <script src="src/systems/ResourceSystem.js"></script>
+    <script src="src/managers/TowerManager.js"></script>
+    <script src="src/game.js?v=2"></script>
 </body>
+
 </html>

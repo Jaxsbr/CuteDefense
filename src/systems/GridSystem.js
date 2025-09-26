@@ -9,11 +9,11 @@ class GridSystem {
         this.tiles = [];
         this.towers = [];
         this.enemyPath = [];
-        
+
         this.initializeGrid();
         this.generateEnemyPath();
     }
-    
+
     initializeGrid() {
         // Initialize empty grid
         for (let y = 0; y < this.rows; y++) {
@@ -28,94 +28,101 @@ class GridSystem {
             }
         }
     }
-    
+
     generateEnemyPath() {
         // Simple path generation - start from left, go to right
         this.enemyPath = [];
-        
+
         // Start from left side
         const startY = Math.floor(this.rows / 2);
         this.enemyPath.push({ x: 0, y: startY });
-        
+
         // Add some turns for variety
         let currentX = 0;
         let currentY = startY;
-        
+
         while (currentX < this.cols - 1) {
             // Mark path tiles as non-buildable
             this.tiles[currentY][currentX].type = 'path';
             this.tiles[currentY][currentX].buildable = false;
-            
+
             // Move forward
             currentX++;
-            
+
             // Add to path
             this.enemyPath.push({ x: currentX, y: currentY });
         }
-        
+
         // Mark final tile
         this.tiles[currentY][currentX].type = 'path';
         this.tiles[currentY][currentX].buildable = false;
     }
-    
+
     screenToGrid(screenX, screenY) {
         return {
             x: Math.floor(screenX / this.tileSize),
             y: Math.floor(screenY / this.tileSize)
         };
     }
-    
+
     gridToScreen(gridX, gridY) {
         return {
             x: gridX * this.tileSize,
             y: gridY * this.tileSize
         };
     }
-    
+
     canPlaceTower(gridX, gridY) {
         // Check bounds
         if (gridX < 0 || gridX >= this.cols || gridY < 0 || gridY >= this.rows) {
             return false;
         }
-        
+
         // Check if tile is buildable
         if (!this.tiles[gridY][gridX].buildable) {
             return false;
         }
-        
+
         // Check if tower already exists
         return !this.hasTowerAt(gridX, gridY);
     }
-    
+
     hasTowerAt(gridX, gridY) {
-        return this.towers.some(tower => tower.x === gridX && tower.y === gridY);
+        // This method is now handled by TowerManager
+        // Keep for backward compatibility but delegate to external system
+        return false;
     }
     
     placeTower(gridX, gridY) {
-        if (this.canPlaceTower(gridX, gridY)) {
-            this.towers.push({
-                x: gridX,
-                y: gridY,
-                type: 'basic',
-                level: 1
-            });
-            return true;
-        }
+        // This method is now handled by TowerManager
+        // Keep for backward compatibility but delegate to external system
         return false;
     }
     
     getTowers() {
-        return this.towers;
+        // This method is now handled by TowerManager
+        // Return empty array for backward compatibility
+        return [];
     }
-    
+
     getEnemyPath() {
         return this.enemyPath;
     }
-    
+
     getTile(gridX, gridY) {
         if (gridX < 0 || gridX >= this.cols || gridY < 0 || gridY >= this.rows) {
             return null;
         }
         return this.tiles[gridY][gridX];
+    }
+
+    // Check if position is valid
+    isValidPosition(x, y) {
+        return x >= 0 && x < this.cols && y >= 0 && y < this.rows;
+    }
+
+    // Check if position is on enemy path
+    isOnEnemyPath(x, y) {
+        return this.enemyPath.some(point => point.x === x && point.y === y);
     }
 }
