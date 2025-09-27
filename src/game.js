@@ -6,7 +6,7 @@
 // Game configuration
 const CONFIG = {
     CANVAS_WIDTH: 1024,
-    CANVAS_HEIGHT: 768,
+    CANVAS_HEIGHT: 900,  // Increased to accommodate HUD below tilemap
     GRID_SIZE: 64,  // Doubled from 32 to 64 for better visibility
     GRID_COLS: 16,  // Halved from 32 to 16
     GRID_ROWS: 12,  // Halved from 24 to 12
@@ -31,7 +31,8 @@ let gameState = {
     towerManager: null,
     resourceSystem: null,
     gameStateManager: null, // Track game state (win/lose/restart)
-    selectedTower: null // Track selected tower for HUD
+    selectedTower: null, // Track selected tower for HUD
+    towerPlacementPopup: null // Track tower placement popup state
 };
 
 // Initialize game
@@ -118,7 +119,7 @@ function update() {
     // Update tower systems with damage integration
     gameState.towerManager.update(deltaTime, gameState.enemySystem.getEnemiesForRendering(), gameState.enemySystem);
     gameState.resourceSystem.update(deltaTime);
-    
+
     // Update game state management
     gameState.gameStateManager.update(gameState.enemyManager, gameState.resourceSystem);
 }
@@ -146,23 +147,32 @@ function render() {
     // Render collection effects
     gameState.renderer.renderCollectionEffects(gameState.resourceSystem.getCollectionEffectsForRendering());
 
-    // Render resource info with pulse animation
-    gameState.renderer.renderResourceInfo(
-        gameState.resourceSystem.getResourceInfo(),
-        gameState.resourceSystem.getCoinTotalPulse()
-    );
+    // Render resource info with pulse animation (only when no tower selected)
+    if (!gameState.selectedTower) {
+        gameState.renderer.renderResourceInfo(
+            gameState.resourceSystem.getResourceInfo(),
+            gameState.resourceSystem.getCoinTotalPulse()
+        );
+
+        // Render wave info (only when no tower selected)
+        gameState.renderer.renderWaveInfo(gameState.enemyManager.getWaveInfo());
+    }
 
     // Render debug info
     if (gameState.debug.enabled) {
         gameState.renderer.renderDebugInfo(gameState.debug);
     }
 
-    // Render wave info
-    gameState.renderer.renderWaveInfo(gameState.enemyManager.getWaveInfo());
-
     // Render tower HUD if tower is selected
     if (gameState.selectedTower) {
-        gameState.renderer.renderTowerHUD(gameState.selectedTower, gameState.towerManager);
+        const waveInfo = gameState.enemyManager.getWaveInfo();
+        const resourceInfo = gameState.resourceSystem.getResourceInfo();
+        gameState.renderer.renderTowerHUD(gameState.selectedTower, gameState.towerManager, waveInfo, resourceInfo);
+    }
+
+    // Render tower placement popup if active
+    if (gameState.towerPlacementPopup) {
+        gameState.renderer.renderTowerPlacementPopup(gameState.towerPlacementPopup);
     }
 
     // Render game state overlay (game over, victory, etc.)
@@ -173,34 +183,91 @@ function render() {
 function handleHUDClick(clickX, clickY) {
     if (!gameState.selectedTower) return false;
 
-    const hudWidth = 300;
-    const hudHeight = 200;
-    const hudX = CONFIG.CANVAS_WIDTH - hudWidth - 20;
-    const hudY = 20;
+    // Calculate HUD area below tilemap
+    const tilemapHeight = 12 * 64; // 12 rows * 64px tile size
+    const hudHeight = 120;
+    const hudY = tilemapHeight + 10;
+    const hudWidth = CONFIG.CANVAS_WIDTH - 20;
+    const hudX = 10;
 
     // Check if click is within HUD bounds
-    if (clickX >= hudX && clickX <= hudX + hudWidth && 
+    if (clickX >= hudX && clickX <= hudX + hudWidth &&
         clickY >= hudY && clickY <= hudY + hudHeight) {
-        
-        // Check if clicking upgrade button
-        const upgradeButtonX = hudX + 20;
-        const upgradeButtonY = hudY + 120;
-        const upgradeButtonWidth = 120;
-        const upgradeButtonHeight = 40;
+
+        // Check if clicking upgrade button (positioned in upgrade section)
+        // Use same calculation as RenderSystem's flexible layout
+        const padding = 15;
+        const contentHeight = hudHeight - (padding * 2);
+        const contentY = hudY + padding;
+
+        const portraitSize = 80;
+        const infoWidth = 200;
+        const upgradeWidth = 140; // Reduced from 180
+        const fillWidth = (hudWidth - portraitSize - infoWidth - upgradeWidth - (padding * 4)) / 2;
+
+        const fill1X = hudX + padding; // Restore margin
+        const fill1Width = fillWidth;
+        const portraitX = fill1X + fill1Width + padding;
+        const infoX = portraitX + portraitSize + padding;
+        const upgradeX = infoX + infoWidth + (padding / 2); // Reduced spacing
+        const upgradeY = contentY + 10;
+
+        const upgradeButtonX = upgradeX;
+        const upgradeButtonY = upgradeY;
+        const upgradeButtonWidth = 120; // Reduced to match new layout
+        const upgradeButtonHeight = 45;
 
         if (clickX >= upgradeButtonX && clickX <= upgradeButtonX + upgradeButtonWidth &&
             clickY >= upgradeButtonY && clickY <= upgradeButtonY + upgradeButtonHeight) {
-            
             // Try to upgrade the selected tower
             const success = gameState.towerManager.tryUpgradeTower(gameState.selectedTower.x, gameState.selectedTower.y);
             if (success) {
                 console.log(`⬆️ Tower upgraded via HUD!`);
                 // Update selected tower reference
-                gameState.selectedTower = gameState.towerManager.getTowerAt(gameState.selectedTower.x, gameState.selectedTower.y);
+                const updatedTower = gameState.towerManager.getTowerAt(gameState.selectedTower.x, gameState.selectedTower.y);
+                gameState.selectedTower = updatedTower;
             }
             return true;
         }
     }
+    return false;
+}
+
+// Handle tower placement popup clicks
+function handleTowerPlacementPopupClick(clickX, clickY) {
+    if (!gameState.renderer.placementPopupBounds) return false;
+
+    const bounds = gameState.renderer.placementPopupBounds;
+
+    // Check + button (place tower)
+    if (clickX >= bounds.plus.x && clickX <= bounds.plus.x + bounds.plus.width &&
+        clickY >= bounds.plus.y && clickY <= bounds.plus.y + bounds.plus.height) {
+
+        console.log('🏗️ Place tower button clicked!');
+        const gridPos = gameState.towerPlacementPopup;
+        const placementSuccess = gameState.towerManager.tryPlaceTower(gridPos.x, gridPos.y);
+        if (placementSuccess) {
+            console.log(`🏗️ Tower placed at (${gridPos.x}, ${gridPos.y})`);
+
+            // Select the newly placed tower
+            const newTower = gameState.towerManager.getTowerAt(gridPos.x, gridPos.y);
+            gameState.selectedTower = newTower;
+        }
+        // Clear popup
+        gameState.towerPlacementPopup = null;
+        return true;
+    }
+
+    // Check X button (cancel)
+    if (clickX >= bounds.cancel.x && clickX <= bounds.cancel.x + bounds.cancel.width &&
+        clickY >= bounds.cancel.y && clickY <= bounds.cancel.y + bounds.cancel.height) {
+
+        console.log('❌ Cancel tower placement');
+        // Clear popup
+        gameState.towerPlacementPopup = null;
+        return true;
+    }
+
     return false;
 }
 
@@ -211,7 +278,7 @@ function handleRestartButtonClick(clickX, clickY) {
     const bounds = gameState.renderer.restartButtonBounds;
     if (clickX >= bounds.x && clickX <= bounds.x + bounds.width &&
         clickY >= bounds.y && clickY <= bounds.y + bounds.height) {
-        
+
         console.log('🔄 Restart button clicked!');
         restartGame();
         return true;
@@ -222,25 +289,25 @@ function handleRestartButtonClick(clickX, clickY) {
 // Restart the game
 function restartGame() {
     console.log('🔄 Restarting game...');
-    
+
     // Reset game state manager
     gameState.gameStateManager.reset();
-    
+
     // Clear all enemies
     gameState.enemySystem.clearAllEnemies();
-    
+
     // Clear all towers
     gameState.towerManager.clearAllTowers();
-    
+
     // Reset resource system
     gameState.resourceSystem.reset();
-    
+
     // Clear tower selection
     gameState.selectedTower = null;
-    
+
     // Restart wave system
     gameState.enemyManager.startWaveSystem();
-    
+
     console.log('✅ Game restarted successfully!');
 }
 
@@ -272,7 +339,13 @@ function handleInput() {
 
         // Check if clicking on HUD upgrade button
         if (gameState.selectedTower && handleHUDClick(clickPos.x, clickPos.y)) {
+            console.log('🎯 HUD click handled - tower should remain selected');
             return; // HUD click handled
+        }
+
+        // Check if clicking on tower placement popup
+        if (gameState.towerPlacementPopup && handleTowerPlacementPopupClick(clickPos.x, clickPos.y)) {
+            return; // Popup click handled
         }
 
         // If no coin was collected, check for tower upgrade or placement
@@ -289,24 +362,31 @@ function handleInput() {
 
         // Check if there's a tower at this position
         const towerAtPosition = gameState.towerManager.getTowerAt(gridPos.x, gridPos.y);
-        
+
         if (towerAtPosition) {
             // Tower exists - select it for HUD display
             gameState.selectedTower = towerAtPosition;
             console.log(`🎯 Tower selected at (${gridPos.x}, ${gridPos.y}) - Level ${towerAtPosition.level}`);
+            // Clear any popup
+            gameState.towerPlacementPopup = null;
             return;
         }
 
-        // No tower at position - try to place a new tower
-        const placementSuccess = gameState.towerManager.tryPlaceTower(gridPos.x, gridPos.y);
-        if (placementSuccess) {
-            console.log(`🏗️ Tower placed at (${gridPos.x}, ${gridPos.y})`);
-            // Select the newly placed tower
-            gameState.selectedTower = gameState.towerManager.getTowerAt(gridPos.x, gridPos.y);
-        } else {
-            console.log(`❌ Cannot place tower at (${gridPos.x}, ${gridPos.y})`);
-            // Clear selection if clicking empty space
+        // No tower at position - show placement popup if buildable
+        if (gameState.grid.canPlaceTower(gridPos.x, gridPos.y)) {
+            // Clear any existing tower selection when showing placement popup
             gameState.selectedTower = null;
+            gameState.towerPlacementPopup = {
+                x: gridPos.x,
+                y: gridPos.y,
+                tileSize: CONFIG.TILE_SIZE
+            };
+            console.log(`🏗️ Show placement popup at (${gridPos.x}, ${gridPos.y}) - cleared tower selection`);
+        } else {
+            console.log(`❌ Cannot build at (${gridPos.x}, ${gridPos.y})`);
+            // Clear selection and popup if clicking non-buildable space
+            gameState.selectedTower = null;
+            gameState.towerPlacementPopup = null;
         }
     }
 }
