@@ -7,10 +7,10 @@
 const CONFIG = {
     CANVAS_WIDTH: 1024,
     CANVAS_HEIGHT: 900,  // Increased to accommodate HUD below tilemap
-    GRID_SIZE: 64,  // Doubled from 32 to 64 for better visibility
-    GRID_COLS: 16,  // Halved from 32 to 16
-    GRID_ROWS: 12,  // Halved from 24 to 12
-    TILE_SIZE: 64   // Doubled from 32 to 64
+    GRID_SIZE: 64,  // Back to 64 for proper collision and HUD
+    GRID_COLS: 16,  // Back to 16 columns
+    GRID_ROWS: 12,  // Back to 12 rows
+    TILE_SIZE: 64   // Back to 64px tiles
 };
 
 // Game state

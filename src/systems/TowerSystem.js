@@ -58,9 +58,8 @@ class TowerSystem {
         tower.color = upgradeConfig.color;
         tower.size = Math.min(80, tower.size + 8); // Slightly larger
 
-        // Increase projectile speed per level (small increase for basic tower)
-        const speedIncrease = tower.type === 'BASIC' ? 10 : 20; // 10 for basic, 20 for strong
-        tower.projectileSpeed += speedIncrease;
+        // Keep projectile speed consistent across all towers and levels for guaranteed hits
+        // No speed increase - all projectiles maintain 800 pixels/second for consistent hit rate
 
         // Add upgrade particle effect
         tower.upgradeParticles = this.createUpgradeParticles(tower);

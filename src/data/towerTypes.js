@@ -10,8 +10,8 @@ const TOWER_TYPES = {
         cost: 10,
         damage: 25,  // Increased from 1 to 25 for easier testing
         range: 5,
-        fireRate: 1000, // milliseconds between shots
-        projectileSpeed: 200, // pixels per second
+        fireRate: 1500, // milliseconds between shots (slower for balance with guaranteed hits)
+        projectileSpeed: 800, // pixels per second (very fast for guaranteed hits)
         color: '#FF6B6B', // Red
         size: 48,  // Increased from 24 to 48 for better visibility
         description: 'Simple tower that shoots at nearby enemies'
@@ -21,8 +21,8 @@ const TOWER_TYPES = {
         cost: 25,
         damage: 60,  // Increased from 3 to 60 for easier testing
         range: 2,
-        fireRate: 2000, // milliseconds between shots
-        projectileSpeed: 150, // pixels per second
+        fireRate: 2500, // milliseconds between shots (even slower for balance with guaranteed hits)
+        projectileSpeed: 800, // pixels per second (same as basic for guaranteed hits)
         color: '#4ECDC4', // Teal
         size: 56,  // Increased from 28 to 56 for better visibility
         description: 'Powerful tower with high damage but slower firing'
