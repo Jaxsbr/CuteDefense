@@ -38,7 +38,7 @@ class TowerSystem {
 
         const upgradeKey = `level${tower.level + 1}`;
         const upgradeConfig = TOWER_UPGRADES[tower.type]?.[upgradeKey];
-        
+
         if (!upgradeConfig) {
             console.log(`No upgrade available for ${tower.type} level ${tower.level + 1}`);
             return false;
@@ -72,7 +72,7 @@ class TowerSystem {
 
         const upgradeKey = `level${tower.level + 1}`;
         const upgradeConfig = TOWER_UPGRADES[tower.type]?.[upgradeKey];
-        
+
         if (!upgradeConfig) return null;
 
         return {

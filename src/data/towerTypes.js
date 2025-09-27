@@ -6,7 +6,6 @@
 // Tower type configurations
 const TOWER_TYPES = {
     BASIC: {
-        id: 'basic',
         name: 'Basic Tower',
         cost: 10,
         damage: 25,  // Increased from 1 to 25 for easier testing
@@ -18,7 +17,6 @@ const TOWER_TYPES = {
         description: 'Simple tower that shoots at nearby enemies'
     },
     STRONG: {
-        id: 'strong',
         name: 'Strong Tower',
         cost: 25,
         damage: 60,  // Increased from 3 to 60 for easier testing
