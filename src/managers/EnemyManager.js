@@ -64,7 +64,7 @@ class EnemyManager {
     updatePreparation(currentTime) {
         const elapsed = currentTime - this.waveStartTime;
         const remaining = Math.ceil((this.waveConfig.PREPARATION_TIME - elapsed) / 1000);
-        
+
         // Show simple countdown for most of preparation time
         if (remaining > 5) {
             this.waveAnnouncement = `Next Wave in: ${remaining}s`;
@@ -80,11 +80,16 @@ class EnemyManager {
     }
 
     /**
-     * Update spawning phase
+     * Update spawning phase with dynamic spawn intervals
      */
     updateSpawning(currentTime) {
-        // Spawn enemies at intervals
-        if (currentTime - this.lastSpawnTime >= this.waveConfig.SPAWN_INTERVAL) {
+        // Calculate dynamic spawn interval based on wave number
+        const scaling = this.waveConfig.DIFFICULTY_SCALING;
+        const effectiveWaveNumber = Math.min(this.currentWave, scaling.MAX_SCALING_WAVES);
+        const dynamicSpawnInterval = this.waveConfig.SPAWN_INTERVAL * Math.pow(scaling.WAVE_INTERVAL_REDUCTION, effectiveWaveNumber - 1);
+
+        // Spawn enemies at dynamic intervals
+        if (currentTime - this.lastSpawnTime >= dynamicSpawnInterval) {
             this.spawnNextEnemy();
             this.lastSpawnTime = currentTime;
         }
@@ -166,39 +171,53 @@ class EnemyManager {
         });
 
         this.totalEnemiesInWave = this.enemiesToSpawn.length;
-        
+
         // Store wave composition for enhanced announcements
         this.waveComposition = this.getWaveComposition(scaledWavePattern);
     }
 
     /**
-     * Apply difficulty scaling to wave pattern
+     * Apply enhanced difficulty scaling to wave pattern
      */
     applyDifficultyScaling(basePattern) {
         const scaling = this.waveConfig.DIFFICULTY_SCALING;
         const waveNumber = this.currentWave;
-        
+
+        // Cap scaling to prevent impossible difficulty
+        const effectiveWaveNumber = Math.min(waveNumber, scaling.MAX_SCALING_WAVES);
+
+        // Check if this is a boss wave (every 5 waves)
+        const isBossWave = waveNumber % 5 === 0;
+        const bossMultiplier = isBossWave ? scaling.BOSS_WAVE_MULTIPLIER : 1.0;
+
         return {
             enemies: basePattern.enemies.map(enemyGroup => ({
                 type: enemyGroup.type,
-                count: Math.floor(enemyGroup.count * Math.pow(scaling.COUNT_MULTIPLIER, waveNumber - 1))
+                count: Math.floor(enemyGroup.count * Math.pow(scaling.COUNT_MULTIPLIER, effectiveWaveNumber - 1) * bossMultiplier)
             }))
         };
     }
 
     /**
-     * Create scaled enemy type with progressive difficulty
+     * Create scaled enemy type with enhanced progressive difficulty
      */
     createScaledEnemyType(enemyTypeName) {
         const baseType = this.enemyTypes[enemyTypeName.toUpperCase()];
         const scaling = this.waveConfig.DIFFICULTY_SCALING;
         const waveNumber = this.currentWave;
-        
+
+        // Cap scaling to prevent impossible difficulty
+        const effectiveWaveNumber = Math.min(waveNumber, scaling.MAX_SCALING_WAVES);
+
+        // Check if this is a boss wave (every 5 waves)
+        const isBossWave = waveNumber % 5 === 0;
+        const bossMultiplier = isBossWave ? scaling.BOSS_WAVE_MULTIPLIER : 1.0;
+
         return {
             ...baseType,
-            health: Math.floor(baseType.health * Math.pow(scaling.HEALTH_MULTIPLIER, waveNumber - 1)),
-            speed: baseType.speed * Math.pow(scaling.SPEED_MULTIPLIER, waveNumber - 1),
-            reward: Math.floor(baseType.reward * Math.pow(scaling.REWARD_MULTIPLIER, waveNumber - 1))
+            health: Math.floor(baseType.health * Math.pow(scaling.HEALTH_MULTIPLIER, effectiveWaveNumber - 1) * bossMultiplier),
+            speed: baseType.speed * Math.pow(scaling.SPEED_MULTIPLIER, effectiveWaveNumber - 1),
+            reward: Math.floor(baseType.reward * Math.pow(scaling.REWARD_MULTIPLIER, effectiveWaveNumber - 1) * bossMultiplier)
         };
     }
 
@@ -218,26 +237,32 @@ class EnemyManager {
     }
 
     /**
-     * Create kid-friendly wave announcement
+     * Create enhanced kid-friendly wave announcement
      */
     createWaveAnnouncement() {
         const totalEnemies = Object.values(this.waveComposition).reduce((sum, count) => sum + count, 0);
         const enemyTypes = Object.keys(this.waveComposition);
-        
-        // Simple, exciting announcements for kids (no defend message)
-        const announcements = [
-            `🎯 WAVE ${this.currentWave} INCOMING! 🎯`,
-            `⚡ ${totalEnemies} ENEMIES APPROACHING! ⚡`
-        ];
-        
-        // Add wave-specific excitement
-        if (this.currentWave === 1) {
-            return announcements[0] + '\n' + announcements[1];
-        } else if (enemyTypes.includes('Strong Enemy')) {
-            return `💪 BOSS WAVE ${this.currentWave}! 💪\n` + announcements[1];
+        const scaling = this.waveConfig.DIFFICULTY_SCALING;
+
+        // Check if this is a boss wave
+        const isBossWave = this.currentWave % 5 === 0;
+
+        // Simple, exciting announcements for kids
+        let announcement = '';
+
+        if (isBossWave) {
+            announcement = `💪 BOSS WAVE ${this.currentWave}! 💪\n⚡ ${totalEnemies} POWERFUL ENEMIES! ⚡`;
+        } else if (this.currentWave === 1) {
+            announcement = `🎯 WAVE ${this.currentWave} INCOMING! 🎯\n⚡ ${totalEnemies} ENEMIES APPROACHING! ⚡`;
+        } else if (this.currentWave <= 3) {
+            announcement = `🎯 WAVE ${this.currentWave} INCOMING! 🎯\n⚡ ${totalEnemies} ENEMIES APPROACHING! ⚡`;
+        } else if (this.currentWave <= 6) {
+            announcement = `🔥 WAVE ${this.currentWave} - GETTING TOUGH! 🔥\n⚡ ${totalEnemies} ENEMIES APPROACHING! ⚡`;
         } else {
-            return announcements[0] + '\n' + announcements[1];
+            announcement = `🚨 WAVE ${this.currentWave} - ULTIMATE CHALLENGE! 🚨\n⚡ ${totalEnemies} ENEMIES APPROACHING! ⚡`;
         }
+
+        return announcement;
     }
 
     /**

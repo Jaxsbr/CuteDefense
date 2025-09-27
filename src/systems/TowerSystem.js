@@ -58,10 +58,17 @@ class TowerSystem {
         tower.color = upgradeConfig.color;
         tower.size = Math.min(80, tower.size + 8); // Slightly larger
 
+        // Increase projectile speed per level (small increase for basic tower)
+        const speedIncrease = tower.type === 'BASIC' ? 10 : 20; // 10 for basic, 20 for strong
+        tower.projectileSpeed += speedIncrease;
+
+        // Add upgrade particle effect
+        tower.upgradeParticles = this.createUpgradeParticles(tower);
+
         // Deduct cost
         resourceSystem.spend(upgradeConfig.cost);
 
-        console.log(`Tower upgraded to level ${tower.level}: ${tower.type} at (${tower.x}, ${tower.y})`);
+        console.log(`Tower upgraded to level ${tower.level}: ${tower.type} at (${tower.x}, ${tower.y}) - projectile speed: ${tower.projectileSpeed}`);
         return true;
     }
 
@@ -99,6 +106,7 @@ class TowerSystem {
         // Update each tower
         this.towers.forEach(tower => {
             this.updateTower(tower, enemies, deltaTime);
+            this.updateUpgradeParticles(tower, deltaTime);
         });
 
         // Update projectiles with damage system
@@ -121,20 +129,54 @@ class TowerSystem {
         }
     }
 
-    // Find best target for tower
+    // Find best target for tower with improved targeting logic
     findTarget(tower, enemies) {
         let bestTarget = null;
-        let bestDistance = tower.range; // Grid range
+        let bestScore = -1;
 
         enemies.forEach(enemy => {
             const distance = this.getDistance(tower, enemy);
-            if (distance <= bestDistance) {
-                bestTarget = enemy;
-                bestDistance = distance;
+            if (distance <= tower.range) {
+                // Calculate targeting score based on multiple factors
+                const score = this.calculateTargetScore(tower, enemy, distance);
+                if (score > bestScore) {
+                    bestTarget = enemy;
+                    bestScore = score;
+                }
             }
         });
 
         return bestTarget;
+    }
+
+    // Calculate targeting score for enemy prioritization
+    calculateTargetScore(tower, enemy, distance) {
+        let score = 0;
+
+        // Distance factor (closer enemies get higher score)
+        const distanceScore = (tower.range - distance) / tower.range;
+        score += distanceScore * 0.3;
+
+        // Health factor (lower health enemies get higher score for quick kills)
+        const healthScore = 1 - (enemy.health / enemy.maxHealth);
+        score += healthScore * 0.4;
+
+        // Enemy type factor (prioritize fast enemies, then strong, then basic)
+        let typeScore = 0;
+        switch (enemy.type.id) {
+            case 'fast':
+                typeScore = 0.8; // High priority for fast enemies
+                break;
+            case 'strong':
+                typeScore = 0.6; // Medium priority for strong enemies
+                break;
+            case 'basic':
+                typeScore = 0.4; // Lower priority for basic enemies
+                break;
+        }
+        score += typeScore * 0.3;
+
+        return score;
     }
 
     // Check if target is still valid
@@ -157,58 +199,92 @@ class TowerSystem {
 
     // Shoot at target
     shoot(tower, target) {
+        // Calculate direction vector for projectile
+        const startX = tower.x * 64 + 32;
+        const startY = tower.y * 64 + 32;
+        const targetX = target.x * 64 + 32;
+        const targetY = target.y * 64 + 32;
+
+        const dx = targetX - startX;
+        const dy = targetY - startY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        // Normalize direction vector
+        const dirX = dx / distance;
+        const dirY = dy / distance;
+
         const projectile = {
             id: Date.now() + Math.random(),
-            x: tower.x * 64 + 32, // Center of tower (screen coordinates) - updated for 64px tiles
-            y: tower.y * 64 + 32,
-            targetX: target.x * 64 + 32, // Convert enemy grid position to screen coordinates - updated for 64px tiles
-            targetY: target.y * 64 + 32,
-            targetId: target.id,
+            x: startX,
+            y: startY,
+            // Direction-based movement instead of target-based
+            dirX: dirX,
+            dirY: dirY,
             speed: tower.projectileSpeed,
             damage: tower.damage,
             color: tower.color,
-            size: 8  // Increased projectile size for better visibility
+            size: 8, // Balanced size for good visibility without being too large
+            // TTL (Time To Live) in milliseconds
+            ttl: 3000, // 3 seconds max flight time
+            maxDistance: tower.range * 64 * 1.5, // Max distance based on tower range
+            distanceTraveled: 0,
+            // Visual effects
+            trail: [], // Trail effect for better visibility
+            maxTrailLength: 5
         };
 
         this.projectiles.push(projectile);
         tower.lastShot = this.lastUpdateTime;
 
-        console.log(`Tower ${tower.type} shoots at enemy ${target.id}`);
+        console.log(`Tower ${tower.type} shoots projectile with direction (${dirX.toFixed(2)}, ${dirY.toFixed(2)})`);
     }
 
-    // Update all projectiles
+    // Update all projectiles with TTL and collision detection
     updateProjectiles(deltaTime, enemySystem, resourceSystem) {
         this.projectiles = this.projectiles.filter(projectile => {
-            // Move projectile towards target
-            const dx = projectile.targetX - projectile.x;
-            const dy = projectile.targetY - projectile.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
+            // Update TTL
+            projectile.ttl -= deltaTime;
 
-            if (distance < 5) {
-                // Find the enemy to get its current position before dealing damage
-                const aliveEnemies = enemySystem.getEnemiesForRendering();
-                const targetEnemy = aliveEnemies.find(e => e.id === projectile.targetId);
-
-                // Deal damage and check if enemy dies
-                const coinsEarned = enemySystem.damageEnemy(projectile.targetId, projectile.damage);
-                if (coinsEarned > 0 && targetEnemy) {
-                    // Spawn coin at enemy's current grid position (convert to screen coordinates)
-                    const coinX = targetEnemy.x * 64 + 32;
-                    const coinY = targetEnemy.y * 64 + 32;
-                    resourceSystem.spawnCoin(coinX, coinY, coinsEarned);
-                    console.log(`Enemy killed! Earned ${coinsEarned} coins at (${coinX}, ${coinY})`);
-                }
-                // Remove projectile after hit
+            // Remove projectile if TTL expired
+            if (projectile.ttl <= 0) {
                 return false;
             }
 
-            // Move projectile
+            // Move projectile in its direction (speed is already in pixels per second)
             const moveDistance = projectile.speed * (deltaTime / 1000);
-            const moveX = (dx / distance) * moveDistance;
-            const moveY = (dy / distance) * moveDistance;
 
-            projectile.x += moveX;
-            projectile.y += moveY;
+            // Add current position to trail
+            projectile.trail.push({ x: projectile.x, y: projectile.y });
+            if (projectile.trail.length > projectile.maxTrailLength) {
+                projectile.trail.shift();
+            }
+
+            projectile.x += projectile.dirX * moveDistance;
+            projectile.y += projectile.dirY * moveDistance;
+            projectile.distanceTraveled += moveDistance;
+
+            // Remove projectile if it has traveled too far
+            if (projectile.distanceTraveled >= projectile.maxDistance) {
+                return false;
+            }
+
+            // Check collision with all alive enemies
+            const aliveEnemies = enemySystem.getEnemiesForRendering();
+            for (const enemy of aliveEnemies) {
+                if (this.checkProjectileCollision(projectile, enemy)) {
+                    // Deal damage and check if enemy dies
+                    const coinsEarned = enemySystem.damageEnemy(enemy.id, projectile.damage);
+                    if (coinsEarned > 0) {
+                        // Spawn coin at enemy's current position
+                        const coinX = enemy.x * 64 + 32;
+                        const coinY = enemy.y * 64 + 32;
+                        resourceSystem.spawnCoin(coinX, coinY, coinsEarned);
+                        console.log(`Enemy killed! Earned ${coinsEarned} coins at (${coinX}, ${coinY})`);
+                    }
+                    // Remove projectile after hit
+                    return false;
+                }
+            }
 
             return true;
         });
@@ -219,6 +295,84 @@ class TowerSystem {
         const dx = tower.x - target.x;
         const dy = tower.y - target.y;
         return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    // Enhanced collision detection for projectiles
+    checkProjectileCollision(projectile, enemy) {
+        // Convert enemy position to screen coordinates
+        const enemyScreenX = enemy.x * 64 + 32;
+        const enemyScreenY = enemy.y * 64 + 32;
+
+        const dx = projectile.x - enemyScreenX;
+        const dy = projectile.y - enemyScreenY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        // Use enemy size for collision radius, with some tolerance for fast enemies
+        const collisionRadius = (64 * enemy.size) / 2 + 8; // Add 8px tolerance for better hit detection
+
+        return distance <= collisionRadius;
+    }
+
+    // Get collision bounds for tower range visualization
+    getTowerRangeBounds(tower, tileSize) {
+        const centerX = tower.x * tileSize + tileSize / 2;
+        const centerY = tower.y * tileSize + tileSize / 2;
+        const rangePixels = tower.range * tileSize;
+
+        return {
+            centerX: centerX,
+            centerY: centerY,
+            radius: rangePixels
+        };
+    }
+
+    // Create upgrade particle effect
+    createUpgradeParticles(tower) {
+        const particles = [];
+        const centerX = tower.x * 64 + 32;
+        const centerY = tower.y * 64 + 32;
+
+        // Create 12 particles in a circle around the tower
+        for (let i = 0; i < 12; i++) {
+            const angle = (i / 12) * Math.PI * 2;
+            const particle = {
+                x: centerX,
+                y: centerY,
+                vx: Math.cos(angle) * 2, // Velocity in X direction
+                vy: Math.sin(angle) * 2, // Velocity in Y direction
+                life: 1.0, // Life remaining (0-1)
+                maxLife: 1.0,
+                size: 4 + Math.random() * 4, // Random size between 4-8
+                color: tower.color,
+                alpha: 1.0
+            };
+            particles.push(particle);
+        }
+
+        return particles;
+    }
+
+    // Update upgrade particles
+    updateUpgradeParticles(tower, deltaTime) {
+        if (!tower.upgradeParticles) return;
+
+        tower.upgradeParticles = tower.upgradeParticles.filter(particle => {
+            // Update particle position
+            particle.x += particle.vx * (deltaTime / 16.67); // Normalize to 60fps
+            particle.y += particle.vy * (deltaTime / 16.67);
+
+            // Update particle life
+            particle.life -= (deltaTime / 1000); // Decrease life over time
+            particle.alpha = particle.life;
+
+            // Remove dead particles
+            return particle.life > 0;
+        });
+
+        // Remove particle system if all particles are dead
+        if (tower.upgradeParticles.length === 0) {
+            tower.upgradeParticles = null;
+        }
     }
 
     // Get towers for rendering

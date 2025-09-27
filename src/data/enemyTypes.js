@@ -11,7 +11,14 @@ const ENEMY_TYPES = {
         health: 100,
         color: '#FF6B6B',  // Red
         size: 0.6,         // Relative to tile size
-        reward: 10         // Coins when defeated
+        reward: 10,        // Coins when defeated
+        // Visual enhancements
+        shape: 'circle',   // Shape for rendering
+        borderColor: '#FF4444', // Border color
+        borderWidth: 2,    // Border thickness
+        glowColor: '#FFAAAA',   // Glow effect color
+        animationSpeed: 1.0,    // Animation speed multiplier
+        description: 'A basic enemy with balanced stats'
     },
     FAST: {
         id: 'fast',
@@ -20,7 +27,14 @@ const ENEMY_TYPES = {
         health: 50,
         color: '#4ECDC4',  // Teal
         size: 0.5,         // Relative to tile size
-        reward: 15         // Coins when defeated
+        reward: 15,        // Coins when defeated
+        // Visual enhancements
+        shape: 'diamond',  // Shape for rendering
+        borderColor: '#2E8B8B', // Border color
+        borderWidth: 2,    // Border thickness
+        glowColor: '#7EDDDD',   // Glow effect color
+        animationSpeed: 1.5,    // Animation speed multiplier
+        description: 'A fast enemy that moves quickly but has low health'
     },
     STRONG: {
         id: 'strong',
@@ -29,7 +43,14 @@ const ENEMY_TYPES = {
         health: 200,
         color: '#45B7D1',  // Blue
         size: 0.8,         // Relative to tile size
-        reward: 25         // Coins when defeated
+        reward: 25,        // Coins when defeated
+        // Visual enhancements
+        shape: 'square',   // Shape for rendering
+        borderColor: '#2E5B7D', // Border color
+        borderWidth: 3,    // Border thickness
+        glowColor: '#7DB8D1',   // Glow effect color
+        animationSpeed: 0.7,    // Animation speed multiplier
+        description: 'A strong enemy with high health but moves slowly'
     }
 };
 
@@ -42,12 +63,16 @@ const WAVE_CONFIG = {
     PREPARATION_TIME: 15000, // 15 seconds for more suspense
     SPAWN_INTERVAL: 2000,  // 2 seconds between spawns
 
-    // Difficulty scaling factors
+    // Enhanced difficulty scaling factors
     DIFFICULTY_SCALING: {
-        HEALTH_MULTIPLIER: 1.15,  // 15% health increase per wave
-        SPEED_MULTIPLIER: 1.05,   // 5% speed increase per wave
-        COUNT_MULTIPLIER: 1.2,    // 20% more enemies per wave
-        REWARD_MULTIPLIER: 1.1    // 10% more coins per wave
+        HEALTH_MULTIPLIER: 1.12,  // 12% health increase per wave (reduced for better balance)
+        SPEED_MULTIPLIER: 1.03,   // 3% speed increase per wave (reduced for better balance)
+        COUNT_MULTIPLIER: 1.15,   // 15% more enemies per wave (reduced for better balance)
+        REWARD_MULTIPLIER: 1.08,  // 8% more coins per wave (reduced for better balance)
+        // New scaling factors
+        WAVE_INTERVAL_REDUCTION: 0.95, // 5% faster spawn intervals per wave
+        BOSS_WAVE_MULTIPLIER: 1.5,     // 50% boost for boss waves (every 5 waves)
+        MAX_SCALING_WAVES: 10          // Stop scaling after 10 waves to prevent impossible difficulty
     },
 
     // Base wave patterns - enemies to spawn per wave (scaled dynamically)
@@ -87,6 +112,46 @@ const WAVE_CONFIG = {
                 { type: 'basic', count: 8 },
                 { type: 'fast', count: 6 },
                 { type: 'strong', count: 3 }
+            ]
+        },
+        // Wave 6: Escalating difficulty
+        {
+            enemies: [
+                { type: 'basic', count: 10 },
+                { type: 'fast', count: 8 },
+                { type: 'strong', count: 4 }
+            ]
+        },
+        // Wave 7: More fast enemies
+        {
+            enemies: [
+                { type: 'basic', count: 6 },
+                { type: 'fast', count: 12 },
+                { type: 'strong', count: 2 }
+            ]
+        },
+        // Wave 8: Balanced challenge
+        {
+            enemies: [
+                { type: 'basic', count: 12 },
+                { type: 'fast', count: 8 },
+                { type: 'strong', count: 6 }
+            ]
+        },
+        // Wave 9: Strong enemy focus
+        {
+            enemies: [
+                { type: 'basic', count: 8 },
+                { type: 'fast', count: 6 },
+                { type: 'strong', count: 8 }
+            ]
+        },
+        // Wave 10: Ultimate challenge
+        {
+            enemies: [
+                { type: 'basic', count: 15 },
+                { type: 'fast', count: 12 },
+                { type: 'strong', count: 8 }
             ]
         }
     ]

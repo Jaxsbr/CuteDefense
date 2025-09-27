@@ -463,11 +463,92 @@ class RenderSystem {
         const centerY = screenY + tileSize / 2;
         const radius = (tileSize * enemy.size) / 2;
 
-        // Draw enemy as a circle
+        // Save context state
+        this.ctx.save();
+
+        // Apply damage flash effect
+        if (enemy.isFlashing) {
+            this.ctx.globalAlpha = 0.7;
+        }
+
+        // Draw glow effect
+        if (enemy.glowColor) {
+            this.ctx.shadowColor = enemy.glowColor;
+            this.ctx.shadowBlur = 8;
+        }
+
+        // Draw enemy based on shape
         this.ctx.fillStyle = enemy.color;
         this.ctx.beginPath();
-        this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+
+        switch (enemy.shape) {
+            case 'circle':
+                this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                break;
+            case 'diamond':
+                this.drawDiamond(centerX, centerY, radius);
+                break;
+            case 'square':
+                this.drawSquare(centerX, centerY, radius);
+                break;
+            default:
+                this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        }
+
         this.ctx.fill();
+
+        // Draw border
+        if (enemy.borderColor && enemy.borderWidth) {
+            this.ctx.strokeStyle = enemy.borderColor;
+            this.ctx.lineWidth = enemy.borderWidth;
+            this.ctx.stroke();
+        }
+
+        // Draw health bar for damaged enemies
+        if (enemy.health < enemy.maxHealth) {
+            this.renderEnemyHealthBar(enemy, centerX, centerY, radius, tileSize);
+        }
+
+        // Restore context state
+        this.ctx.restore();
+    }
+
+    drawDiamond(centerX, centerY, radius) {
+        this.ctx.moveTo(centerX, centerY - radius);
+        this.ctx.lineTo(centerX + radius, centerY);
+        this.ctx.lineTo(centerX, centerY + radius);
+        this.ctx.lineTo(centerX - radius, centerY);
+        this.ctx.closePath();
+    }
+
+    drawSquare(centerX, centerY, radius) {
+        const halfSize = radius * 0.8; // Slightly smaller for better visual balance
+        this.ctx.rect(centerX - halfSize, centerY - halfSize, halfSize * 2, halfSize * 2);
+    }
+
+    renderEnemyHealthBar(enemy, centerX, centerY, radius, tileSize) {
+        const barWidth = radius * 2;
+        const barHeight = 4;
+        const barY = centerY - radius - 8;
+
+        // Background
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        this.ctx.fillRect(centerX - barWidth / 2, barY, barWidth, barHeight);
+
+        // Health
+        const healthPercent = enemy.health / enemy.maxHealth;
+        const healthWidth = barWidth * healthPercent;
+
+        // Color based on health percentage
+        if (healthPercent > 0.6) {
+            this.ctx.fillStyle = '#4CAF50'; // Green
+        } else if (healthPercent > 0.3) {
+            this.ctx.fillStyle = '#FF9800'; // Orange
+        } else {
+            this.ctx.fillStyle = '#F44336'; // Red
+        }
+
+        this.ctx.fillRect(centerX - barWidth / 2, barY, healthWidth, barHeight);
 
         // Draw enemy border
         this.ctx.strokeStyle = '#333';
@@ -924,6 +1005,11 @@ class RenderSystem {
             }
             const isSelected = selectedTower && selectedTower.id === tower.id;
             this.renderTower(tower, tileSize, upgradeInfo, isSelected);
+
+            // Render upgrade particles if they exist
+            if (tower.upgradeParticles) {
+                this.renderUpgradeParticles(tower.upgradeParticles);
+            }
         });
     }
 
@@ -934,17 +1020,76 @@ class RenderSystem {
         });
     }
 
-    // Render individual projectile
+    // Render individual projectile with trail effect
     renderProjectile(projectile) {
+        // Save context state
+        this.ctx.save();
+
+        // Render trail effect
+        if (projectile.trail && projectile.trail.length > 1) {
+            this.ctx.strokeStyle = projectile.color;
+            this.ctx.lineWidth = 3;
+            this.ctx.globalAlpha = 0.6;
+            this.ctx.beginPath();
+            this.ctx.moveTo(projectile.trail[0].x, projectile.trail[0].y);
+            for (let i = 1; i < projectile.trail.length; i++) {
+                this.ctx.lineTo(projectile.trail[i].x, projectile.trail[i].y);
+            }
+            this.ctx.stroke();
+        }
+
+        // Reset alpha for main projectile
+        this.ctx.globalAlpha = 1.0;
+
+        // Render main projectile with glow effect
+        this.ctx.shadowColor = projectile.color;
+        this.ctx.shadowBlur = 8;
+
         this.ctx.fillStyle = projectile.color;
         this.ctx.beginPath();
         this.ctx.arc(projectile.x, projectile.y, projectile.size, 0, Math.PI * 2);
         this.ctx.fill();
 
-        // Add sparkle effect
+        // Add bright center
+        this.ctx.fillStyle = '#FFF';
+        this.ctx.beginPath();
+        this.ctx.arc(projectile.x, projectile.y, projectile.size * 0.4, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Add border
         this.ctx.strokeStyle = '#FFF';
-        this.ctx.lineWidth = 1;
+        this.ctx.lineWidth = 2;
         this.ctx.stroke();
+
+        // Restore context state
+        this.ctx.restore();
+    }
+
+    // Render upgrade particles
+    renderUpgradeParticles(particles) {
+        particles.forEach(particle => {
+            this.ctx.save();
+
+            // Set alpha for fading effect
+            this.ctx.globalAlpha = particle.alpha;
+
+            // Draw particle with glow effect
+            this.ctx.shadowColor = particle.color;
+            this.ctx.shadowBlur = 6;
+
+            this.ctx.fillStyle = particle.color;
+            this.ctx.beginPath();
+            this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Add bright center
+            this.ctx.fillStyle = '#FFF';
+            this.ctx.beginPath();
+            this.ctx.arc(particle.x, particle.y, particle.size * 0.5, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            this.ctx.restore();
+        });
     }
 
     // Render coins

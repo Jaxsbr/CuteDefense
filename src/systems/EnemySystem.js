@@ -6,7 +6,7 @@ class EnemySystem {
         this.enemies = [];
         this.removedEnemies = [];
     }
-    
+
     /**
      * Create a new enemy instance
      */
@@ -26,13 +26,26 @@ class EnemySystem {
             size: type.size,
             reward: type.reward,
             isAlive: true,
-            reachedGoal: false
+            reachedGoal: false,
+            // Animation and visual enhancements
+            animationTime: 0, // For animation effects
+            lastDamageTime: 0, // For damage flash effect
+            isFlashing: false, // Damage flash state
+            movementSmoothing: 0.1, // Smoothing factor for movement
+            targetX: startX, // Target position for smooth movement
+            targetY: startY, // Target position for smooth movement
+            // Visual properties from type
+            shape: type.shape || 'circle',
+            borderColor: type.borderColor || type.color,
+            borderWidth: type.borderWidth || 2,
+            glowColor: type.glowColor || type.color,
+            animationSpeed: type.animationSpeed || 1.0
         };
-        
+
         this.enemies.push(enemy);
         return enemy;
     }
-    
+
     /**
      * Update all enemies
      */
@@ -40,15 +53,17 @@ class EnemySystem {
         this.enemies.forEach(enemy => {
             if (enemy.isAlive && !enemy.reachedGoal) {
                 this.updateEnemyMovement(enemy, deltaTime);
+                this.updateEnemyAnimations(enemy, deltaTime);
+                this.updateEnemyEffects(enemy, deltaTime);
             }
         });
-        
+
         // Remove dead enemies
         this.cleanupDeadEnemies();
     }
-    
+
     /**
-     * Update individual enemy movement along path
+     * Update individual enemy movement along path with improved smoothing
      */
     updateEnemyMovement(enemy, deltaTime) {
         if (enemy.pathIndex >= enemy.path.length - 1) {
@@ -56,41 +71,77 @@ class EnemySystem {
             enemy.reachedGoal = true;
             return;
         }
-        
+
         // Calculate movement for this frame
         const movement = enemy.speed * deltaTime / 1000; // Convert to tiles
         enemy.progress += movement;
-        
+
         // Check if we've moved to the next path segment
         if (enemy.progress >= 1.0) {
             enemy.pathIndex++;
             enemy.progress = 0;
-            
+
             // Update enemy position to next path point
             if (enemy.pathIndex < enemy.path.length) {
                 const nextPoint = enemy.path[enemy.pathIndex];
-                enemy.x = nextPoint.x;
-                enemy.y = nextPoint.y;
+                enemy.targetX = nextPoint.x;
+                enemy.targetY = nextPoint.y;
             }
         } else {
             // Interpolate position between current and next path points
             if (enemy.pathIndex < enemy.path.length - 1) {
                 const currentPoint = enemy.path[enemy.pathIndex];
                 const nextPoint = enemy.path[enemy.pathIndex + 1];
-                
-                enemy.x = currentPoint.x + (nextPoint.x - currentPoint.x) * enemy.progress;
-                enemy.y = currentPoint.y + (nextPoint.y - currentPoint.y) * enemy.progress;
+
+                enemy.targetX = currentPoint.x + (nextPoint.x - currentPoint.x) * enemy.progress;
+                enemy.targetY = currentPoint.y + (nextPoint.y - currentPoint.y) * enemy.progress;
+            }
+        }
+
+        // Apply smooth movement interpolation
+        const smoothingFactor = enemy.movementSmoothing * deltaTime / 16.67; // Normalize to 60fps
+        enemy.x += (enemy.targetX - enemy.x) * smoothingFactor;
+        enemy.y += (enemy.targetY - enemy.y) * smoothingFactor;
+    }
+
+    /**
+     * Update enemy animations
+     */
+    updateEnemyAnimations(enemy, deltaTime) {
+        // Update animation time
+        enemy.animationTime += deltaTime * enemy.animationSpeed;
+
+        // Keep animation time within reasonable bounds
+        if (enemy.animationTime > 10000) {
+            enemy.animationTime = 0;
+        }
+    }
+
+    /**
+     * Update enemy visual effects
+     */
+    updateEnemyEffects(enemy, deltaTime) {
+        const currentTime = Date.now();
+
+        // Handle damage flash effect
+        if (enemy.isFlashing) {
+            const flashDuration = 200; // 200ms flash
+            if (currentTime - enemy.lastDamageTime > flashDuration) {
+                enemy.isFlashing = false;
             }
         }
     }
-    
+
     /**
-     * Damage an enemy
+     * Damage an enemy with visual feedback
      */
     damageEnemy(enemyId, damage) {
         const enemy = this.enemies.find(e => e.id === enemyId);
         if (enemy && enemy.isAlive) {
             enemy.health -= damage;
+            enemy.lastDamageTime = Date.now();
+            enemy.isFlashing = true;
+
             if (enemy.health <= 0) {
                 enemy.isAlive = false;
                 return enemy.reward; // Return coins earned
@@ -98,21 +149,21 @@ class EnemySystem {
         }
         return 0;
     }
-    
+
     /**
      * Get all alive enemies
      */
     getAliveEnemies() {
         return this.enemies.filter(enemy => enemy.isAlive && !enemy.reachedGoal);
     }
-    
+
     /**
      * Get all enemies that reached the goal
      */
     getEnemiesReachedGoal() {
         return this.enemies.filter(enemy => enemy.reachedGoal);
     }
-    
+
     /**
      * Remove dead enemies from the system
      */
@@ -120,14 +171,14 @@ class EnemySystem {
         this.removedEnemies = this.enemies.filter(enemy => !enemy.isAlive || enemy.reachedGoal);
         this.enemies = this.enemies.filter(enemy => enemy.isAlive && !enemy.reachedGoal);
     }
-    
+
     /**
      * Get total enemies count
      */
     getEnemyCount() {
         return this.enemies.length;
     }
-    
+
     /**
      * Clear all enemies (for wave reset)
      */
@@ -135,7 +186,7 @@ class EnemySystem {
         this.enemies = [];
         this.removedEnemies = [];
     }
-    
+
     /**
      * Get enemies for rendering
      */
