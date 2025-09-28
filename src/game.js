@@ -74,6 +74,7 @@ function initGame() {
     gameState.towerSystem.setAudioManager(gameState.audioManager);
     gameState.enemySystem.setAudioManager(gameState.audioManager);
     gameState.enemyManager.setAudioManager(gameState.audioManager);
+    gameState.resourceSystem.setAudioManager(gameState.audioManager);
 
     // Set up input handlers
     setupInputHandlers();

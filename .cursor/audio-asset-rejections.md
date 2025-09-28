@@ -28,6 +28,10 @@
 - **Accepted**: `impactGeneric_light_000.ogg` - Light impact for countdown thuds
 - **Note**: Light impact works well for countdown beats
 
+### Coin Expiration Sounds
+- **Accepted**: `error_002.ogg` - Error sound for coin expiration
+- **Note**: Error sound appropriate for negative player feedback
+
 ## Notes
 - Engine sounds from sci-fi pack are too mechanical for pleasant background music
 - Digital audio pack sounds are too techy for fantasy tower defense

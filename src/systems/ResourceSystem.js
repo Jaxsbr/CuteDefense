@@ -10,6 +10,12 @@ class ResourceSystem {
         this.lastCoinSpawn = 0;
         this.collectionEffects = []; // Particle effects for coin collection
         this.coinTotalPulse = { active: false, time: 0, duration: 1000 }; // Pulse animation for coin total
+        this.audioManager = null; // Audio manager reference
+    }
+
+    // Set audio manager reference
+    setAudioManager(audioManager) {
+        this.audioManager = audioManager;
     }
 
     // Add coins to player's total
@@ -182,6 +188,10 @@ class ResourceSystem {
                 coin.expired = true;
                 coin.expirationTime = 0;
                 this.createExpirationEffect(coin.x, coin.y, coin.value);
+                // Play coin expiration sound
+                if (this.audioManager) {
+                    this.audioManager.playSound('coin_expire');
+                }
                 console.log(`Coin expired at (${coin.x}, ${coin.y}) with value ${coin.value}`);
             }
 
