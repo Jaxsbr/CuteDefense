@@ -108,12 +108,12 @@ class RenderSystem {
             this.dayNightSystem.phaseChangeEffect.type = targetPhase === 'night' ? 'flash' : 'fade';
         }
 
-        // Smooth transition over time (5 seconds for countdown transition)
+        // Smooth transition over time (4 seconds for countdown transition)
         if (this.dayNightSystem.transitionProgress < 1.0) {
             // Calculate transition speed based on target phase
             const isNightTransition = targetPhase === 'night';
-            // 5 seconds at 60fps = 300 frames, so 1/300 = 0.0033 per frame
-            const transitionSpeed = isNightTransition ? 0.0033 : 0.01; // 5s for night transition, slower for day transition
+            // 4 seconds at 60fps = 240 frames, so 1/240 = 0.0042 per frame
+            const transitionSpeed = isNightTransition ? 0.0042 : 0.01; // 4s for night transition, slower for day transition
             this.dayNightSystem.transitionProgress = Math.min(1.0, this.dayNightSystem.transitionProgress + transitionSpeed);
         }
 
