@@ -1026,6 +1026,15 @@ class RenderSystem {
         // Save context state
         this.ctx.save();
 
+        // Apply death animation if dying
+        if (enemy.isDying && enemy.deathAnimation) {
+            this.ctx.translate(centerX, centerY);
+            this.ctx.rotate(enemy.deathAnimation.rotation);
+            this.ctx.scale(enemy.deathAnimation.scale, enemy.deathAnimation.scale);
+            this.ctx.globalAlpha = enemy.deathAnimation.alpha;
+            this.ctx.translate(-centerX, -centerY);
+        }
+
         // Apply damage flash effect
         if (enemy.isFlashing) {
             this.ctx.globalAlpha = 0.7;
@@ -2149,5 +2158,30 @@ class RenderSystem {
         }
 
         this.ctx.restore();
+    }
+
+    // Render damage indicators floating above enemies
+    renderDamageIndicators(indicators) {
+        indicators.forEach(indicator => {
+            this.ctx.save();
+            this.ctx.globalAlpha = indicator.alpha;
+            
+            // Render damage text with enhanced contrast
+            this.ctx.fillStyle = indicator.color;
+            this.ctx.strokeStyle = '#000000';
+            this.ctx.lineWidth = 2;
+            this.ctx.font = `bold ${indicator.size}px Arial`;
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            
+            // Add glow effect
+            this.ctx.shadowColor = indicator.color;
+            this.ctx.shadowBlur = 4;
+            
+            this.ctx.strokeText(indicator.text, indicator.x, indicator.y);
+            this.ctx.fillText(indicator.text, indicator.x, indicator.y);
+            
+            this.ctx.restore();
+        });
     }
 }

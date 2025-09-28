@@ -34,6 +34,11 @@ class EnemySystem {
             movementSmoothing: 0.1, // Smoothing factor for movement
             targetX: startX, // Target position for smooth movement
             targetY: startY, // Target position for smooth movement
+            // Enhanced visual effects
+            damageIndicators: [], // Floating damage numbers
+            deathAnimation: null, // Death animation state
+            isDying: false, // Death animation flag
+            visualEffects: [], // General visual effects array
             // Visual properties from type
             shape: type.shape || 'circle',
             borderColor: type.borderColor || type.color,
@@ -192,5 +197,88 @@ class EnemySystem {
      */
     getEnemiesForRendering() {
         return this.enemies;
+    }
+
+    /**
+     * Add damage indicator to enemy
+     */
+    addDamageIndicator(enemy, damage) {
+        const indicator = {
+            x: enemy.x,
+            y: enemy.y - 20,
+            text: `-${damage}`,
+            life: 1.0,
+            maxLife: 1.0,
+            velocityY: -30,
+            color: '#FF4444',
+            size: 16,
+            alpha: 1.0
+        };
+        
+        if (!enemy.damageIndicators) {
+            enemy.damageIndicators = [];
+        }
+        enemy.damageIndicators.push(indicator);
+    }
+
+    /**
+     * Start death animation for enemy
+     */
+    startDeathAnimation(enemy) {
+        enemy.isDying = true;
+        enemy.deathAnimation = {
+            time: 0,
+            duration: 0.5,
+            scale: 1.0,
+            rotation: 0,
+            alpha: 1.0
+        };
+    }
+
+    /**
+     * Update enemy visual effects
+     */
+    updateEnemyVisualEffects(enemy, deltaTime) {
+        // Update damage indicators
+        if (enemy.damageIndicators) {
+            for (let i = enemy.damageIndicators.length - 1; i >= 0; i--) {
+                const indicator = enemy.damageIndicators[i];
+                indicator.life -= deltaTime * 2;
+                indicator.y += indicator.velocityY * deltaTime;
+                indicator.velocityY += 50 * deltaTime; // Gravity
+                indicator.alpha = indicator.life;
+                
+                if (indicator.life <= 0) {
+                    enemy.damageIndicators.splice(i, 1);
+                }
+            }
+        }
+
+        // Update death animation
+        if (enemy.deathAnimation) {
+            enemy.deathAnimation.time += deltaTime;
+            const progress = enemy.deathAnimation.time / enemy.deathAnimation.duration;
+            
+            if (progress >= 1) {
+                enemy.isAlive = false;
+            } else {
+                enemy.deathAnimation.scale = 1 - progress * 0.5;
+                enemy.deathAnimation.rotation = progress * Math.PI * 2;
+                enemy.deathAnimation.alpha = 1 - progress;
+            }
+        }
+    }
+
+    /**
+     * Get damage indicators for rendering
+     */
+    getDamageIndicatorsForRendering() {
+        const indicators = [];
+        this.enemies.forEach(enemy => {
+            if (enemy.damageIndicators) {
+                indicators.push(...enemy.damageIndicators);
+            }
+        });
+        return indicators;
     }
 }

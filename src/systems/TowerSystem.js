@@ -279,9 +279,15 @@ class TowerSystem {
                     // Create impact effect at collision point
                     this.createImpactEffect(projectile.x, projectile.y, projectile.damage, projectile.color);
 
+                    // Add damage indicator to enemy
+                    enemySystem.addDamageIndicator(enemy, projectile.damage);
+                    
                     // Deal damage and check if enemy dies
                     const coinsEarned = enemySystem.damageEnemy(enemy.id, projectile.damage);
                     if (coinsEarned > 0) {
+                        // Start death animation
+                        enemySystem.startDeathAnimation(enemy);
+                        
                         // Spawn coin at enemy's current position
                         const coinX = enemy.x * 64 + 32;
                         const coinY = enemy.y * 64 + 32;

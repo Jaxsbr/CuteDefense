@@ -150,6 +150,9 @@ function render() {
     // Render collection effects
     gameState.renderer.renderCollectionEffects(gameState.resourceSystem.getCollectionEffectsForRendering());
 
+    // Render damage indicators
+    gameState.renderer.renderDamageIndicators(gameState.enemyManager.getDamageIndicatorsForRendering());
+
     // Render debug info
     if (gameState.debug.enabled) {
         gameState.renderer.renderDebugInfo(gameState.debug);
