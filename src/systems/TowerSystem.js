@@ -9,6 +9,7 @@ class TowerSystem {
         this.projectiles = [];
         this.impactEffects = []; // Store impact effect particles
         this.lastUpdateTime = 0;
+        this.audioManager = null; // Audio manager reference
     }
 
     // Add a new tower
@@ -201,8 +202,18 @@ class TowerSystem {
         return (this.lastUpdateTime - tower.lastShot) >= tower.fireRate;
     }
 
+    // Set audio manager reference
+    setAudioManager(audioManager) {
+        this.audioManager = audioManager;
+    }
+
     // Shoot at target
     shoot(tower, target) {
+        // Play projectile fire sound
+        if (this.audioManager) {
+            this.audioManager.playSound('projectile_fire');
+        }
+        
         // Calculate direction vector for projectile
         const startX = tower.x * 64 + 32;
         const startY = tower.y * 64 + 32;
@@ -276,6 +287,11 @@ class TowerSystem {
             const aliveEnemies = enemySystem.getEnemiesForRendering();
             for (const enemy of aliveEnemies) {
                 if (this.checkProjectileCollision(projectile, enemy)) {
+                    // Play enemy hit sound
+                    if (this.audioManager) {
+                        this.audioManager.playSound('enemy_hit');
+                    }
+                    
                     // Create impact effect at collision point
                     this.createImpactEffect(projectile.x, projectile.y, projectile.damage, projectile.color);
 

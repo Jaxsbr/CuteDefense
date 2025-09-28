@@ -32,7 +32,8 @@ let gameState = {
     resourceSystem: null,
     gameStateManager: null, // Track game state (win/lose/restart)
     selectedTower: null, // Track selected tower for HUD
-    towerPlacementPopup: null // Track tower placement popup state
+    towerPlacementPopup: null, // Track tower placement popup state
+    audioManager: null // Audio system for sound effects and music
 };
 
 // Initialize game
@@ -63,15 +64,25 @@ function initGame() {
     console.log('Tower manager initialized');
     gameState.gameStateManager = new GameStateManager();
     console.log('Game state manager initialized');
+    gameState.audioManager = new SimpleAudioManager();
+    console.log('Audio manager initialized');
 
     // Set resource system reference in render system
     gameState.renderer.setResourceSystem(gameState.resourceSystem);
+
+    // Set audio manager references in systems
+    gameState.towerSystem.setAudioManager(gameState.audioManager);
+    gameState.enemySystem.setAudioManager(gameState.audioManager);
+    gameState.enemyManager.setAudioManager(gameState.audioManager);
 
     // Set up input handlers
     setupInputHandlers();
 
     // Start wave system
     gameState.enemyManager.startWaveSystem();
+
+    // Start background music
+    gameState.audioManager.startPreparationMusic();
 
     // Start game loop
     gameState.isRunning = true;
@@ -223,6 +234,8 @@ function handleHUDClick(clickX, clickY) {
                 const success = gameState.towerManager.tryUpgradeTower(gameState.selectedTower.x, gameState.selectedTower.y);
                 if (success) {
                     console.log(`⬆️ Tower upgraded via HUD!`);
+                    // Play upgrade sound
+                    gameState.audioManager.playSound('tower_upgrade');
                     // Update selected tower reference
                     const updatedTower = gameState.towerManager.getTowerAt(gameState.selectedTower.x, gameState.selectedTower.y);
                     gameState.selectedTower = updatedTower;
@@ -254,6 +267,8 @@ function handleTowerPlacementPopupClick(clickX, clickY) {
         const placementSuccess = gameState.towerManager.tryPlaceTower(gridPos.x, gridPos.y);
         if (placementSuccess) {
             console.log(`🏗️ Tower placed at (${gridPos.x}, ${gridPos.y})`);
+            // Play tower placement sound
+            gameState.audioManager.playSound('tower_place');
 
             // Select the newly placed tower
             const newTower = gameState.towerManager.getTowerAt(gridPos.x, gridPos.y);
@@ -340,6 +355,8 @@ function handleInput() {
         // First, try to collect a coin (coins take priority over tower placement)
         if (gameState.resourceSystem.tryCollectCoin(clickPos.x, clickPos.y)) {
             console.log('💰 Coin collected!');
+            // Play coin collection sound
+            gameState.audioManager.playSound('coin_collect');
             return; // Don't try to place tower if coin was collected
         }
 
@@ -417,6 +434,10 @@ function setupInputHandlers() {
             case 'c':
                 gameState.debug.showCollision = !gameState.debug.showCollision;
                 console.log('Collision display:', gameState.debug.showCollision);
+                break;
+            case 'm':
+                const muted = gameState.audioManager.toggleMute();
+                console.log('Audio muted:', muted);
                 break;
         }
     });

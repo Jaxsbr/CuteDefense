@@ -5,6 +5,7 @@ class EnemySystem {
     constructor() {
         this.enemies = [];
         this.removedEnemies = [];
+        this.audioManager = null; // Audio manager reference
     }
 
     /**
@@ -81,6 +82,10 @@ class EnemySystem {
         if (enemy.pathIndex >= enemy.path.length - 1) {
             // Reached the end of the path
             enemy.reachedGoal = true;
+            // Play enemy reach end sound
+            if (this.audioManager) {
+                this.audioManager.playSound('enemy_reach_end');
+            }
             // Start end reached animation
             this.startEndReachedAnimation(enemy);
             return;
@@ -147,6 +152,13 @@ class EnemySystem {
     }
 
     /**
+     * Set audio manager reference
+     */
+    setAudioManager(audioManager) {
+        this.audioManager = audioManager;
+    }
+
+    /**
      * Damage an enemy with visual feedback
      */
     damageEnemy(enemyId, damage) {
@@ -158,6 +170,10 @@ class EnemySystem {
 
             if (enemy.health <= 0) {
                 enemy.isAlive = false;
+                // Play enemy death sound
+                if (this.audioManager) {
+                    this.audioManager.playSound('enemy_death');
+                }
                 return enemy.reward; // Return coins earned
             }
         }

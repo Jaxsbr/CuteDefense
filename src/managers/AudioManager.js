@@ -1,0 +1,169 @@
+/**
+ * SimpleAudioManager - Basic audio system using HTML5 Audio elements
+ * Handles sound effects and background music with simple, reliable playback
+ */
+class SimpleAudioManager {
+    constructor() {
+        this.sounds = {};
+        this.music = null;
+        this.muted = false;
+        this.audioPath = 'assets/audio/';
+        
+        // Initialize audio system
+        this.initializeAudio();
+    }
+    
+    /**
+     * Initialize the audio system and load all sound effects
+     */
+    initializeAudio() {
+        // Load all sound effects
+        this.loadSound('tower_place', 'sounds/tower_place.wav');
+        this.loadSound('tower_upgrade', 'sounds/tower_upgrade.wav');
+        this.loadSound('coin_collect', 'sounds/coin_collect.wav');
+        this.loadSound('projectile_fire', 'sounds/projectile_fire.wav');
+        this.loadSound('enemy_hit', 'sounds/enemy_hit.wav');
+        this.loadSound('enemy_death', 'sounds/enemy_death.wav');
+        this.loadSound('enemy_spawn', 'sounds/enemy_spawn.wav');
+        this.loadSound('enemy_reach_end', 'sounds/enemy_reach_end.wav');
+        this.loadSound('wave_start', 'sounds/wave_start.wav');
+        this.loadSound('button_click', 'sounds/button_click.wav');
+        
+        console.log('Audio system initialized');
+    }
+    
+    /**
+     * Load a sound effect file
+     * @param {string} name - Name identifier for the sound
+     * @param {string} file - Path to the audio file
+     */
+    loadSound(name, file) {
+        try {
+            this.sounds[name] = new Audio(this.audioPath + file);
+            this.sounds[name].preload = 'auto';
+            this.sounds[name].volume = 0.7; // Default volume for sound effects
+        } catch (error) {
+            console.warn(`Failed to load sound: ${name} (${file})`, error);
+        }
+    }
+    
+    /**
+     * Play a sound effect
+     * @param {string} name - Name of the sound to play
+     */
+    playSound(name) {
+        if (this.muted) return;
+        
+        if (this.sounds[name]) {
+            try {
+                // Reset to beginning and play
+                this.sounds[name].currentTime = 0;
+                this.sounds[name].play().catch(error => {
+                    // Ignore autoplay errors silently
+                    console.debug(`Audio play failed for ${name}:`, error.message);
+                });
+            } catch (error) {
+                console.warn(`Error playing sound ${name}:`, error);
+            }
+        } else {
+            console.warn(`Sound not found: ${name}`);
+        }
+    }
+    
+    /**
+     * Play background music
+     * @param {string} file - Path to the music file
+     * @param {boolean} loop - Whether to loop the music
+     */
+    playMusic(file, loop = true) {
+        if (this.muted) return;
+        
+        try {
+            // Stop current music
+            this.stopMusic();
+            
+            // Load and play new music
+            this.music = new Audio(this.audioPath + file);
+            this.music.loop = loop;
+            this.music.volume = 0.5; // Lower volume for background music
+            this.music.play().catch(error => {
+                console.debug('Background music play failed:', error.message);
+            });
+        } catch (error) {
+            console.warn('Error playing background music:', error);
+        }
+    }
+    
+    /**
+     * Stop background music
+     */
+    stopMusic() {
+        if (this.music) {
+            this.music.pause();
+            this.music.currentTime = 0;
+        }
+    }
+    
+    /**
+     * Toggle mute state
+     */
+    toggleMute() {
+        this.muted = !this.muted;
+        
+        if (this.muted) {
+            this.stopMusic();
+        } else {
+            // Resume music if it was playing
+            this.playMusic('music/background_music.wav');
+        }
+        
+        console.log(`Audio ${this.muted ? 'muted' : 'unmuted'}`);
+        return this.muted;
+    }
+    
+    /**
+     * Set mute state
+     * @param {boolean} muted - Whether to mute audio
+     */
+    setMuted(muted) {
+        this.muted = muted;
+        
+        if (muted) {
+            this.stopMusic();
+        }
+    }
+    
+    /**
+     * Check if audio is muted
+     * @returns {boolean} Mute state
+     */
+    isMuted() {
+        return this.muted;
+    }
+    
+    /**
+     * Play background music for preparation phase
+     */
+    startPreparationMusic() {
+        this.playMusic('music/background_music.wav');
+    }
+    
+    /**
+     * Stop music during enemy waves (silent combat)
+     */
+    startWaveMusic() {
+        this.stopMusic();
+    }
+    
+    /**
+     * Resume music after wave completion
+     */
+    endWaveMusic() {
+        this.startPreparationMusic();
+    }
+}
+
+// Export for use in other modules
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = SimpleAudioManager;
+}

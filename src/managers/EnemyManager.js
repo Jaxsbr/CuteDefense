@@ -5,6 +5,7 @@ class EnemyManager {
     constructor(enemySystem, gridSystem) {
         this.enemySystem = enemySystem;
         this.gridSystem = gridSystem;
+        this.audioManager = null; // Audio manager reference
 
         // Wave state
         this.currentWave = 0;
@@ -75,6 +76,12 @@ class EnemyManager {
         }
 
         if (elapsed >= this.waveConfig.PREPARATION_TIME) {
+            // Play wave start sound
+            if (this.audioManager) {
+                this.audioManager.playSound('wave_start');
+                // Stop background music during waves (silent combat)
+                this.audioManager.startWaveMusic();
+            }
             this.startSpawning();
         }
     }
@@ -111,6 +118,10 @@ class EnemyManager {
             this.waveState = 'complete';
             this.waveAnnouncement = `Wave ${this.currentWave} Complete!`;
             this.announcementTime = currentTime;
+            // Resume background music after wave completion
+            if (this.audioManager) {
+                this.audioManager.endWaveMusic();
+            }
         }
     }
 
@@ -277,6 +288,13 @@ class EnemyManager {
     }
 
     /**
+     * Set audio manager reference
+     */
+    setAudioManager(audioManager) {
+        this.audioManager = audioManager;
+    }
+
+    /**
      * Spawn the next enemy in the queue
      */
     spawnNextEnemy() {
@@ -293,6 +311,11 @@ class EnemyManager {
                     spawnPoint.y,
                     path
                 );
+
+                // Play enemy spawn sound
+                if (this.audioManager) {
+                    this.audioManager.playSound('enemy_spawn');
+                }
 
                 this.enemiesSpawned++;
             }
