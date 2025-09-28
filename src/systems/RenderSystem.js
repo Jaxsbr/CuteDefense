@@ -47,12 +47,12 @@ class RenderSystem {
         this.ctx.beginPath();
         this.ctx.roundRect(hudX, hudY, hudWidth, hudHeight, 15); // Rounded corners
         this.ctx.clip();
-        
+
         // Static gradient background (no pulsing)
         const gradient = this.ctx.createLinearGradient(hudX, hudY, hudX, hudY + hudHeight);
         gradient.addColorStop(0, 'rgba(40, 40, 40, 0.95)');
         gradient.addColorStop(1, 'rgba(20, 20, 20, 0.9)');
-        
+
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(hudX, hudY, hudWidth, hudHeight);
         this.ctx.restore();
@@ -146,7 +146,7 @@ class RenderSystem {
         this.ctx.font = 'bold 16px Arial';
         this.ctx.textAlign = 'center';
         this.ctx.fillText('🌊 Wave Info', x + width / 2, y + 20);
-        
+
         // Display wave data (no pulsing)
         this.ctx.font = '14px Arial';
         this.ctx.globalAlpha = 1.0;
@@ -197,13 +197,13 @@ class RenderSystem {
         this.ctx.font = 'bold 16px Arial';
         this.ctx.textAlign = 'center';
         this.ctx.fillText('🎯 Selection', x + width / 2, y + 20);
-        
+
         if (selectedTower) {
             // Render tower portrait (no animation)
             const portraitSize = Math.min(width - 20, height - 40, 60);
             const portraitX = x + (width - portraitSize) / 2;
             const portraitY = y + 30;
-            
+
             this.renderTowerPortrait(portraitX, portraitY, portraitSize, selectedTower);
         } else {
             // Show clean empty selection
@@ -349,7 +349,7 @@ class RenderSystem {
         this.ctx.font = 'bold 16px Arial';
         this.ctx.textAlign = 'center';
         this.ctx.fillText('💰 Coins', x + width / 2, y + 20);
-        
+
         // Display coin count (no pulsing)
         this.ctx.font = 'bold 18px Arial';
         const coinCount = resourceInfo ? (resourceInfo.coins || 0) : 0;
@@ -360,7 +360,7 @@ class RenderSystem {
         // Static coin icon (no rotation or bounce)
         const coinX = x + width / 2;
         const coinY = y + 70;
-        
+
         this.ctx.save();
         this.ctx.translate(coinX, coinY);
 
@@ -633,7 +633,13 @@ class RenderSystem {
         const screenY = gridY * tileSize;
 
         // Set tile color based on type
-        if (tile.type === 'path') {
+        if (tile.type === 'start') {
+            // Bright green for start tile
+            this.ctx.fillStyle = '#00FF00';
+        } else if (tile.type === 'end') {
+            // Bright red for end tile
+            this.ctx.fillStyle = '#FF0000';
+        } else if (tile.type === 'path') {
             this.ctx.fillStyle = this.colors.path;
         } else {
             this.ctx.fillStyle = this.colors.grid;
@@ -642,10 +648,23 @@ class RenderSystem {
         // Draw tile
         this.ctx.fillRect(screenX, screenY, tileSize, tileSize);
 
-        // Draw border
-        this.ctx.strokeStyle = '#333';
-        this.ctx.lineWidth = 1;
-        this.ctx.strokeRect(screenX, screenY, tileSize, tileSize);
+        // Draw border with special highlighting for start/end tiles
+        if (tile.type === 'start' || tile.type === 'end') {
+            // Thick, bright border for start/end tiles
+            this.ctx.strokeStyle = '#FFFFFF';
+            this.ctx.lineWidth = 3;
+            this.ctx.strokeRect(screenX, screenY, tileSize, tileSize);
+
+            // Add inner border for extra emphasis
+            this.ctx.strokeStyle = '#000000';
+            this.ctx.lineWidth = 1;
+            this.ctx.strokeRect(screenX + 2, screenY + 2, tileSize - 4, tileSize - 4);
+        } else {
+            // Normal border for other tiles
+            this.ctx.strokeStyle = '#333';
+            this.ctx.lineWidth = 1;
+            this.ctx.strokeRect(screenX, screenY, tileSize, tileSize);
+        }
     }
 
     renderTower(tower, tileSize, upgradeInfo = null, isSelected = false) {
