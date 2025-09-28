@@ -34,7 +34,8 @@ let gameState = {
     selectedTower: null, // Track selected tower for HUD
     towerPlacementPopup: null, // Track tower placement popup state
     audioManager: null, // Audio system for sound effects and music
-    logger: null // System logger for centralized logging
+    logger: null, // System logger for centralized logging
+    lastDebugSecond: 0 // Debug timing for wave state logging
 };
 
 // Initialize game
@@ -168,6 +169,11 @@ function update() {
 function render() {
     // Update day/night phase based on wave state
     const currentWaveInfo = gameState.enemyManager.getWaveInfo();
+    // Debug: Log wave state every 60 frames (1 second at 60fps)
+    if (Math.floor(Date.now() / 1000) !== gameState.lastDebugSecond) {
+        gameState.lastDebugSecond = Math.floor(Date.now() / 1000);
+        console.log(`🌊 Wave State: ${currentWaveInfo.waveState}, Current Wave: ${currentWaveInfo.currentWave}`);
+    }
     gameState.renderer.updateDayNightPhase(currentWaveInfo.waveState);
 
     // Clear canvas

@@ -69,6 +69,11 @@ class RenderSystem {
             targetPhase = 'day';
         }
         
+        // Debug logging
+        if (this.dayNightSystem.currentPhase !== targetPhase) {
+            console.log(`🌅🌙 Phase change: ${this.dayNightSystem.currentPhase} → ${targetPhase} (waveState: ${waveState})`);
+        }
+        
         if (this.dayNightSystem.currentPhase !== targetPhase) {
             this.dayNightSystem.currentPhase = targetPhase;
             this.dayNightSystem.transitionProgress = 0;
