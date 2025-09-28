@@ -22,8 +22,9 @@ class RenderSystem {
 
         // Day/night cycle system
         this.dayNightSystem = {
-            currentPhase: 'day', // 'day' or 'night'
+            currentPhase: 'night', // Start as night, will change to day on first update
             transitionProgress: 0, // 0-1 for smooth transitions
+            initialized: false, // Track if system has been initialized
             phaseChangeEffect: {
                 active: false,
                 duration: 1000, // 1 second
@@ -72,6 +73,17 @@ class RenderSystem {
             targetPhase = 'night';
         } else if (waveState === 'complete') {
             targetPhase = 'day';
+        }
+        
+        // Force initial phase change on first update
+        if (!this.dayNightSystem.initialized) {
+            this.dayNightSystem.initialized = true;
+            this.dayNightSystem.currentPhase = targetPhase;
+            this.dayNightSystem.transitionProgress = 1.0; // Start fully transitioned
+            if (this.logger) {
+                this.logger.info(`🌅🌙 Initial phase: ${targetPhase} (waveState: ${waveState})`);
+            }
+            return;
         }
         
         // Debug logging
