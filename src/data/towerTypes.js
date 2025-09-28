@@ -12,7 +12,7 @@ const TOWER_TYPES = {
         range: 5,
         fireRate: 1500, // milliseconds between shots (slower for balance with guaranteed hits)
         projectileSpeed: 800, // pixels per second (very fast for guaranteed hits)
-        color: '#FF6B6B', // Red
+        color: '#4A90E2', // Blue (from color palette)
         size: 48,  // Increased from 24 to 48 for better visibility
         description: 'Simple tower that shoots at nearby enemies'
     },
