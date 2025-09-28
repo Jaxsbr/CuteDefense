@@ -57,10 +57,8 @@ class RenderSystem {
         this.ctx.fillRect(hudX, hudY, hudWidth, hudHeight);
         this.ctx.restore();
 
-        // Clean border with subtle glow
+        // Clean border without glow
         this.ctx.save();
-        this.ctx.shadowColor = '#FFD700';
-        this.ctx.shadowBlur = 4;
         this.ctx.strokeStyle = '#FFD700';
         this.ctx.lineWidth = 3;
         this.ctx.beginPath();
@@ -77,37 +75,13 @@ class RenderSystem {
         this.ctx.stroke();
         this.ctx.restore();
 
-        // Subtle sparkle effects (reduced)
-        const time = Date.now() / 1000;
-        this.renderHUDSparkles(hudX, hudY, hudWidth, hudHeight, time);
+        // No sparkle effects for clean appearance
 
         // Render the five HUD sections
         this.renderHUDSections(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager, waveInfo, resourceInfo);
     }
 
-    // Render subtle sparkle effects around HUD
-    renderHUDSparkles(hudX, hudY, hudWidth, hudHeight, time) {
-        this.ctx.save();
-        
-        // Create subtle sparkles (reduced count and intensity)
-        for (let i = 0; i < 4; i++) {
-            const angle = (time * 0.2 + i * Math.PI / 2) % (Math.PI * 2);
-            const distance = 20 + Math.sin(time * 0.5 + i) * 3;
-            const sparkleX = hudX + hudWidth / 2 + Math.cos(angle) * (hudWidth / 2 + distance);
-            const sparkleY = hudY + hudHeight / 2 + Math.sin(angle) * (hudHeight / 2 + distance);
-            
-            const sparkleSize = 1 + Math.sin(time * 1 + i) * 0.5;
-            const sparkleAlpha = Math.sin(time * 0.5 + i) * 0.3 + 0.2;
-            
-            this.ctx.globalAlpha = sparkleAlpha;
-            this.ctx.fillStyle = '#FFD700';
-            this.ctx.beginPath();
-            this.ctx.arc(sparkleX, sparkleY, sparkleSize, 0, Math.PI * 2);
-            this.ctx.fill();
-        }
-        
-        this.ctx.restore();
-    }
+    // Removed sparkle effects for clean HUD appearance
 
     // Render the five HUD sections: Wave Info, Selection Portrait, Selection Info, Selection Actions, Coin Info
     renderHUDSections(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager, waveInfo, resourceInfo) {
@@ -158,12 +132,10 @@ class RenderSystem {
         this.ctx.fillRect(x, y, width, height);
         this.ctx.restore();
 
-        // Cartoony border with glow
+        // Clean border without glow
         this.ctx.save();
-        this.ctx.shadowColor = '#4CAF50';
-        this.ctx.shadowBlur = 4;
         this.ctx.strokeStyle = '#4CAF50';
-        this.ctx.lineWidth = 3;
+        this.ctx.lineWidth = 2;
         this.ctx.beginPath();
         this.ctx.roundRect(x, y, width, height, 8);
         this.ctx.stroke();
@@ -211,12 +183,10 @@ class RenderSystem {
         this.ctx.fillRect(x, y, width, height);
         this.ctx.restore();
 
-        // Cartoony border with glow
+        // Clean border without glow
         this.ctx.save();
-        this.ctx.shadowColor = '#FF9800';
-        this.ctx.shadowBlur = 4;
         this.ctx.strokeStyle = '#FF9800';
-        this.ctx.lineWidth = 3;
+        this.ctx.lineWidth = 2;
         this.ctx.beginPath();
         this.ctx.roundRect(x, y, width, height, 8);
         this.ctx.stroke();
@@ -360,12 +330,10 @@ class RenderSystem {
         this.ctx.fillRect(x, y, width, height);
         this.ctx.restore();
 
-        // Cartoony border with glow
+        // Clean border without glow
         this.ctx.save();
-        this.ctx.shadowColor = '#FFD700';
-        this.ctx.shadowBlur = 6;
         this.ctx.strokeStyle = '#FFD700';
-        this.ctx.lineWidth = 3;
+        this.ctx.lineWidth = 2;
         this.ctx.beginPath();
         this.ctx.roundRect(x, y, width, height, 8);
         this.ctx.stroke();
@@ -391,9 +359,7 @@ class RenderSystem {
         this.ctx.save();
         this.ctx.translate(coinX, coinY);
 
-        // Coin with glow effect
-        this.ctx.shadowColor = '#FFD700';
-        this.ctx.shadowBlur = 8;
+        // Coin without glow effect
         this.ctx.fillStyle = '#FFD700';
         this.ctx.beginPath();
         this.ctx.arc(0, 0, 12, 0, Math.PI * 2);
