@@ -65,7 +65,7 @@ class RenderSystem {
     // Update day/night phase based on wave state
     updateDayNightPhase(waveState, waveInfo = null) {
         let targetPhase = 'day'; // Default to day
-        
+
         // Determine target phase based on wave state
         if (waveState === 'preparation') {
             // Check if we're in the last 5 seconds of countdown
@@ -79,7 +79,7 @@ class RenderSystem {
         } else if (waveState === 'complete') {
             targetPhase = 'day';
         }
-        
+
         // Force initial phase change on first update
         if (!this.dayNightSystem.initialized) {
             this.dayNightSystem.initialized = true;
@@ -90,32 +90,33 @@ class RenderSystem {
             }
             return;
         }
-        
+
         // Debug logging
         if (this.dayNightSystem.currentPhase !== targetPhase) {
             if (this.logger) {
                 this.logger.info(`🌅🌙 Phase change: ${this.dayNightSystem.currentPhase} → ${targetPhase} (waveState: ${waveState})`);
             }
         }
-        
+
         if (this.dayNightSystem.currentPhase !== targetPhase) {
             this.dayNightSystem.currentPhase = targetPhase;
             this.dayNightSystem.transitionProgress = 0;
-            
+
             // Trigger phase change effect
             this.dayNightSystem.phaseChangeEffect.active = true;
             this.dayNightSystem.phaseChangeEffect.startTime = Date.now();
             this.dayNightSystem.phaseChangeEffect.type = targetPhase === 'night' ? 'flash' : 'fade';
         }
-        
+
         // Smooth transition over time (5 seconds for countdown transition)
         if (this.dayNightSystem.transitionProgress < 1.0) {
             // Calculate transition speed based on target phase
             const isNightTransition = targetPhase === 'night';
-            const transitionSpeed = isNightTransition ? 0.02 : 0.01; // Faster for night transition (5s), slower for day transition
+            // 5 seconds at 60fps = 300 frames, so 1/300 = 0.0033 per frame
+            const transitionSpeed = isNightTransition ? 0.0033 : 0.01; // 5s for night transition, slower for day transition
             this.dayNightSystem.transitionProgress = Math.min(1.0, this.dayNightSystem.transitionProgress + transitionSpeed);
         }
-        
+
         // Update phase change effect
         this.updatePhaseChangeEffect();
     }
@@ -128,7 +129,7 @@ class RenderSystem {
 
         // Determine which phase we're transitioning to
         const targetPhase = this.dayNightSystem.currentPhase;
-        
+
         // If we're in day phase, show day colors (progress = 0 means day, progress = 1 means night)
         // If we're in night phase, show night colors
         const isNightPhase = targetPhase === 'night';
@@ -149,29 +150,29 @@ class RenderSystem {
     interpolateColor(color1, color2, progress) {
         const hex1 = color1.replace('#', '');
         const hex2 = color2.replace('#', '');
-        
+
         const r1 = parseInt(hex1.substr(0, 2), 16);
         const g1 = parseInt(hex1.substr(2, 2), 16);
         const b1 = parseInt(hex1.substr(4, 2), 16);
-        
+
         const r2 = parseInt(hex2.substr(0, 2), 16);
         const g2 = parseInt(hex2.substr(2, 2), 16);
         const b2 = parseInt(hex2.substr(4, 2), 16);
-        
+
         const r = Math.round(r1 + (r2 - r1) * progress);
         const g = Math.round(g1 + (g2 - g1) * progress);
         const b = Math.round(b1 + (b2 - b1) * progress);
-        
+
         return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
     }
 
     // Update phase change effect
     updatePhaseChangeEffect() {
         if (!this.dayNightSystem.phaseChangeEffect.active) return;
-        
+
         const elapsed = Date.now() - this.dayNightSystem.phaseChangeEffect.startTime;
         const progress = Math.min(1.0, elapsed / this.dayNightSystem.phaseChangeEffect.duration);
-        
+
         if (progress >= 1.0) {
             this.dayNightSystem.phaseChangeEffect.active = false;
         }
@@ -1179,7 +1180,7 @@ class RenderSystem {
         // Add small rivets at line intersections
         const rivetRadius = lineWidth * 0.8;
         this.ctx.fillStyle = armorDarkColor;
-        
+
         // Rivets at line intersections
         const rivetPositions = [
             { x: centerX - lineLength / 2, y: centerY - lineSpacing },
@@ -1202,7 +1203,7 @@ class RenderSystem {
         const barHeight = 10;    // Increased from 8
         const barSpacing = 3;    // Increased from 2
         const barPadding = 3;    // Increased from 2
-        
+
         // Calculate total width needed for all bars with spacing
         const totalWidth = (level * barWidth) + ((level - 1) * barSpacing) + (2 * barPadding);
         const startX = centerX - totalWidth / 2;
@@ -2485,7 +2486,7 @@ class RenderSystem {
         indicators.forEach(indicator => {
             this.ctx.save();
             this.ctx.globalAlpha = indicator.alpha;
-            
+
             // Render damage text with enhanced contrast
             this.ctx.fillStyle = indicator.color;
             this.ctx.strokeStyle = '#000000';
@@ -2493,14 +2494,14 @@ class RenderSystem {
             this.ctx.font = `bold ${indicator.size}px Arial`;
             this.ctx.textAlign = 'center';
             this.ctx.textBaseline = 'middle';
-            
+
             // Add glow effect
             this.ctx.shadowColor = indicator.color;
             this.ctx.shadowBlur = 4;
-            
+
             this.ctx.strokeText(indicator.text, indicator.x, indicator.y);
             this.ctx.fillText(indicator.text, indicator.x, indicator.y);
-            
+
             this.ctx.restore();
         });
     }
@@ -2508,17 +2509,17 @@ class RenderSystem {
     // Render spawn animation with circle ripples
     renderSpawnAnimation(centerX, centerY, spawnAnimation) {
         this.ctx.save();
-        
+
         const progress = spawnAnimation.time / spawnAnimation.duration;
         const currentRadius = progress * spawnAnimation.maxRadius;
         const alpha = spawnAnimation.alpha * (1 - progress);
-        
+
         // Create expanding circle ripples
         for (let i = 0; i < 3; i++) {
             const rippleProgress = Math.max(0, progress - (i * 0.2));
             const rippleRadius = rippleProgress * spawnAnimation.maxRadius;
             const rippleAlpha = alpha * (1 - rippleProgress) * 0.6;
-            
+
             if (rippleAlpha > 0) {
                 this.ctx.globalAlpha = rippleAlpha;
                 this.ctx.strokeStyle = '#FF6B6B';
@@ -2528,24 +2529,24 @@ class RenderSystem {
                 this.ctx.stroke();
             }
         }
-        
+
         this.ctx.restore();
     }
 
     // Render end reached animation with negative effect
     renderEndReachedAnimation(centerX, centerY, endReachedAnimation) {
         this.ctx.save();
-        
+
         const progress = endReachedAnimation.time / endReachedAnimation.duration;
         const currentRadius = progress * endReachedAnimation.maxRadius;
         const alpha = endReachedAnimation.alpha * (1 - progress);
-        
+
         // Create expanding red circle with negative effect
         for (let i = 0; i < 4; i++) {
             const rippleProgress = Math.max(0, progress - (i * 0.15));
             const rippleRadius = rippleProgress * endReachedAnimation.maxRadius;
             const rippleAlpha = alpha * (1 - rippleProgress) * 0.8;
-            
+
             if (rippleAlpha > 0) {
                 this.ctx.globalAlpha = rippleAlpha;
                 this.ctx.strokeStyle = '#FF0000';
@@ -2553,7 +2554,7 @@ class RenderSystem {
                 this.ctx.beginPath();
                 this.ctx.arc(centerX, centerY, rippleRadius, 0, Math.PI * 2);
                 this.ctx.stroke();
-                
+
                 // Add inner dark circle for negative effect
                 this.ctx.globalAlpha = rippleAlpha * 0.5;
                 this.ctx.fillStyle = '#8B0000';
@@ -2562,7 +2563,7 @@ class RenderSystem {
                 this.ctx.fill();
             }
         }
-        
+
         this.ctx.restore();
     }
 
@@ -2570,23 +2571,23 @@ class RenderSystem {
     renderDayNightTileLighting() {
         const currentColors = this.getCurrentColors();
         const ambientLight = currentColors.ambientLight;
-        
+
         // Only apply lighting effects if not at full brightness (day)
         if (ambientLight < 1.0) {
             this.ctx.save();
-            
+
             // Create ambient lighting overlay only over tilemap area
             const tilemapHeight = this.getTilemapHeight();
             const overlayAlpha = 1.0 - ambientLight;
             this.ctx.fillStyle = `rgba(0, 0, 0, ${overlayAlpha})`;
             this.ctx.fillRect(0, 0, this.width, tilemapHeight);
-            
+
             // Add subtle blue tint for night atmosphere
             if (this.dayNightSystem.currentPhase === 'night') {
                 this.ctx.fillStyle = `rgba(0, 50, 100, ${overlayAlpha * 0.3})`;
                 this.ctx.fillRect(0, 0, this.width, tilemapHeight);
             }
-            
+
             this.ctx.restore();
         }
     }
@@ -2594,13 +2595,13 @@ class RenderSystem {
     // Render phase change transition effect (full screen)
     renderPhaseChangeEffect() {
         if (!this.dayNightSystem.phaseChangeEffect.active) return;
-        
+
         const elapsed = Date.now() - this.dayNightSystem.phaseChangeEffect.startTime;
         const progress = Math.min(1.0, elapsed / this.dayNightSystem.phaseChangeEffect.duration);
         const effect = this.dayNightSystem.phaseChangeEffect;
-        
+
         this.ctx.save();
-        
+
         if (effect.type === 'flash') {
             // Flash effect for night transition
             const flashAlpha = Math.sin(progress * Math.PI) * 0.3;
@@ -2612,14 +2613,14 @@ class RenderSystem {
             this.ctx.fillStyle = `rgba(0, 0, 0, ${fadeAlpha})`;
             this.ctx.fillRect(0, 0, this.width, this.height);
         }
-        
+
         this.ctx.restore();
     }
 
     // Render start and end tiles on layer 3 (after day/night lighting)
     renderStartEndTiles(gridSystem) {
         const tileSize = gridSystem.tileSize;
-        
+
         // Render start and end tiles with enhanced visibility
         for (let y = 0; y < gridSystem.rows; y++) {
             for (let x = 0; x < gridSystem.cols; x++) {
