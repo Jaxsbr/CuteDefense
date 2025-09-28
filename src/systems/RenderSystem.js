@@ -879,11 +879,7 @@ class RenderSystem {
         // Draw organic growth details (spikes/knobs) based on tower level
         this.renderTowerOrganicDetails(centerX, centerY, towerRadius, tower.level, tower.type);
 
-        // Draw tower type indicator
-        this.ctx.fillStyle = '#FFF';
-        this.ctx.font = 'bold 12px Arial';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText(tower.type.charAt(0), centerX, centerY + 4);
+        // Tower type indicator removed - replaced with 3D dome effect in organic details
 
         // Draw rank badge above tower (within tile bounds)
         if (tower.level > 1) {
@@ -915,9 +911,12 @@ class RenderSystem {
 
     renderTowerOrganicDetails(centerX, centerY, radius, level, towerType) {
         // Add visual details ON the tower face that are visible at small scale
-        if (level === 1) return; // Level 1 towers are smooth, no details
-
         this.ctx.save();
+
+        // Level 1: Add small center detail
+        if (level === 1) {
+            this.renderTowerLevel1Detail(centerX, centerY, radius);
+        }
 
         // Level 2: Add small circular knobs/ports on the face
         if (level >= 2) {
@@ -930,6 +929,34 @@ class RenderSystem {
         }
 
         this.ctx.restore();
+    }
+
+    renderTowerLevel1Detail(centerX, centerY, radius) {
+        // Draw a small 3D dome effect in the center for Level 1 towers
+        const domeRadius = radius * 0.25;
+        const domeColor = GENERIC_ACCENT_COLORS.metal;
+        const domeHighlight = GENERIC_ACCENT_COLORS.metalLight;
+        const domeShadow = GENERIC_ACCENT_COLORS.metalDark;
+
+        // Create gradient for 3D dome effect
+        const gradient = this.ctx.createRadialGradient(
+            centerX - domeRadius * 0.3, centerY - domeRadius * 0.3, 0,
+            centerX, centerY, domeRadius
+        );
+        gradient.addColorStop(0, domeHighlight);
+        gradient.addColorStop(0.7, domeColor);
+        gradient.addColorStop(1, domeShadow);
+
+        // Draw dome
+        this.ctx.fillStyle = gradient;
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY, domeRadius, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Add subtle border
+        this.ctx.strokeStyle = domeShadow;
+        this.ctx.lineWidth = 1;
+        this.ctx.stroke();
     }
 
     renderTowerFaceKnobs(centerX, centerY, radius, level) {
