@@ -326,4 +326,11 @@ class EnemyManager {
     getEnemiesReachedGoal() {
         return this.enemySystem.getEnemiesReachedGoal();
     }
+
+    /**
+     * Get damage indicators for rendering
+     */
+    getDamageIndicatorsForRendering() {
+        return this.enemySystem.getDamageIndicatorsForRendering();
+    }
 }
