@@ -145,7 +145,8 @@ class SimpleAudioManager {
      * Play background music for preparation phase
      */
     startPreparationMusic() {
-        this.playMusic('music/background_music.ogg');
+        // Background music disabled - not sounding good
+        console.log('Background music disabled');
     }
     
     /**
