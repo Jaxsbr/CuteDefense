@@ -15,6 +15,7 @@ class EnemyManager {
         this.enemiesToSpawn = [];
         this.enemiesSpawned = 0;
         this.totalEnemiesInWave = 0;
+        this.lastCountdownSecond = 0; // Track countdown for thud sounds
 
         // Wave configuration
         this.waveConfig = window.WAVE_CONFIG;
@@ -73,6 +74,14 @@ class EnemyManager {
         // Show dramatic countdown for last 5 seconds
         else if (remaining > 0) {
             this.waveAnnouncement = `WAVE ${this.currentWave} STARTS IN ${remaining}!`;
+            
+            // Play countdown thud for last 5 seconds
+            if (remaining <= 5 && remaining !== this.lastCountdownSecond) {
+                this.lastCountdownSecond = remaining;
+                if (this.audioManager) {
+                    this.audioManager.playSound('countdown_thud');
+                }
+            }
         }
 
         if (elapsed >= this.waveConfig.PREPARATION_TIME) {
@@ -118,7 +127,10 @@ class EnemyManager {
             this.waveState = 'complete';
             this.waveAnnouncement = `Wave ${this.currentWave} Complete!`;
             this.announcementTime = currentTime;
-            // Music will resume when next preparation phase starts
+            // Play wave completion sound
+            if (this.audioManager) {
+                this.audioManager.playSound('wave_complete');
+            }
         }
     }
 
@@ -154,6 +166,9 @@ class EnemyManager {
         if (this.audioManager) {
             this.audioManager.startPreparationMusic();
         }
+
+        // Reset countdown tracker for new wave
+        this.lastCountdownSecond = 0;
 
         // Don't set initial announcement here - let updatePreparation() handle it
         // This prevents the flash of the initial announcement before countdown

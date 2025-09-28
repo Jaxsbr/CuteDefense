@@ -27,6 +27,8 @@ class SimpleAudioManager {
         this.loadSound('enemy_spawn', 'sounds/enemy_spawn.ogg');
         this.loadSound('enemy_reach_end', 'sounds/enemy_reach_end.ogg');
         this.loadSound('wave_start', 'sounds/wave_start.ogg');
+        this.loadSound('wave_complete', 'sounds/wave_complete.ogg');
+        this.loadSound('countdown_thud', 'sounds/countdown_thud.ogg');
         this.loadSound('button_click', 'sounds/button_click.ogg');
         
         console.log('Audio system initialized');
