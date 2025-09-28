@@ -876,6 +876,9 @@ class RenderSystem {
         this.ctx.lineWidth = isSelected ? 4 : 2;
         this.ctx.stroke();
 
+        // Draw organic growth details (spikes/knobs) based on tower level
+        this.renderTowerOrganicDetails(centerX, centerY, towerRadius, tower.level, tower.type);
+
         // Draw tower type indicator
         this.ctx.fillStyle = '#FFF';
         this.ctx.font = 'bold 12px Arial';
@@ -905,6 +908,51 @@ class RenderSystem {
             this.ctx.lineWidth = 2;
             this.ctx.beginPath();
             this.ctx.arc(centerX, centerY, ringRadius, 0, Math.PI * 2);
+            this.ctx.stroke();
+            this.ctx.restore();
+        }
+    }
+
+    renderTowerOrganicDetails(centerX, centerY, radius, level, towerType) {
+        // Add organic growth details (spikes/knobs) that increase with tower level
+        if (level === 1) return; // Level 1 towers are smooth, no details
+
+        // Determine number of spikes/knobs based on level
+        const numSpikes = Math.min(level * 2, 8); // 2, 4, 6, 8 spikes for levels 2, 3, 4, 5+
+        const spikeLength = level * 3; // Spike length increases with level
+        const spikeWidth = level * 1.5; // Spike width increases with level
+
+        // Use generic accent colors for spikes
+        const spikeColor = GENERIC_ACCENT_COLORS.metal;
+        const spikeDarkColor = GENERIC_ACCENT_COLORS.metalDark;
+
+        for (let i = 0; i < numSpikes; i++) {
+            const angle = (i / numSpikes) * Math.PI * 2;
+            const spikeX = centerX + Math.cos(angle) * (radius + spikeLength / 2);
+            const spikeY = centerY + Math.sin(angle) * (radius + spikeLength / 2);
+
+            // Draw spike as a small triangle/knob
+            this.ctx.save();
+            this.ctx.fillStyle = spikeColor;
+            this.ctx.strokeStyle = spikeDarkColor;
+            this.ctx.lineWidth = 1;
+
+            this.ctx.beginPath();
+            // Create a small triangular spike pointing outward
+            const spikePoints = 3;
+            for (let j = 0; j < spikePoints; j++) {
+                const spikeAngle = angle + (j / spikePoints) * (Math.PI / 4); // Small spread
+                const spikePointX = spikeX + Math.cos(spikeAngle) * (spikeLength / 2);
+                const spikePointY = spikeY + Math.sin(spikeAngle) * (spikeLength / 2);
+                
+                if (j === 0) {
+                    this.ctx.moveTo(spikePointX, spikePointY);
+                } else {
+                    this.ctx.lineTo(spikePointX, spikePointY);
+                }
+            }
+            this.ctx.closePath();
+            this.ctx.fill();
             this.ctx.stroke();
             this.ctx.restore();
         }
