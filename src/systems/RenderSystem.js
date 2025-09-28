@@ -913,10 +913,8 @@ class RenderSystem {
         // Add visual details ON the tower face that are visible at small scale
         this.ctx.save();
 
-        // Level 1: Add small center detail
-        if (level === 1) {
-            this.renderTowerLevel1Detail(centerX, centerY, radius);
-        }
+        // All levels: Add 3D dome effect in center
+        this.renderTowerLevel1Detail(centerX, centerY, radius);
 
         // Level 2: Add small circular knobs/ports on the face
         if (level >= 2) {
