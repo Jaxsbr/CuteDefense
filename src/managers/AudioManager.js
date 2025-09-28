@@ -18,16 +18,16 @@ class SimpleAudioManager {
      */
     initializeAudio() {
         // Load all sound effects
-        this.loadSound('tower_place', 'sounds/tower_place.wav');
-        this.loadSound('tower_upgrade', 'sounds/tower_upgrade.wav');
-        this.loadSound('coin_collect', 'sounds/coin_collect.wav');
-        this.loadSound('projectile_fire', 'sounds/projectile_fire.wav');
-        this.loadSound('enemy_hit', 'sounds/enemy_hit.wav');
-        this.loadSound('enemy_death', 'sounds/enemy_death.wav');
-        this.loadSound('enemy_spawn', 'sounds/enemy_spawn.wav');
-        this.loadSound('enemy_reach_end', 'sounds/enemy_reach_end.wav');
-        this.loadSound('wave_start', 'sounds/wave_start.wav');
-        this.loadSound('button_click', 'sounds/button_click.wav');
+        this.loadSound('tower_place', 'sounds/tower_place.ogg');
+        this.loadSound('tower_upgrade', 'sounds/tower_upgrade.ogg');
+        this.loadSound('coin_collect', 'sounds/coin_collect.ogg');
+        this.loadSound('projectile_fire', 'sounds/projectile_fire.ogg');
+        this.loadSound('enemy_hit', 'sounds/enemy_hit.ogg');
+        this.loadSound('enemy_death', 'sounds/enemy_death.ogg');
+        this.loadSound('enemy_spawn', 'sounds/enemy_spawn.ogg');
+        this.loadSound('enemy_reach_end', 'sounds/enemy_reach_end.ogg');
+        this.loadSound('wave_start', 'sounds/wave_start.ogg');
+        this.loadSound('button_click', 'sounds/button_click.ogg');
         
         console.log('Audio system initialized');
     }
@@ -145,7 +145,7 @@ class SimpleAudioManager {
      * Play background music for preparation phase
      */
     startPreparationMusic() {
-        this.playMusic('music/background_music.wav');
+        this.playMusic('music/background_music.ogg');
     }
     
     /**
