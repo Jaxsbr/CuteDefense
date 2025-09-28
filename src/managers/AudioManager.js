@@ -10,11 +10,11 @@ class SimpleAudioManager {
         this.audioPath = 'assets/audio/';
         this.audioUnlocked = false;
         this.logger = null; // Logger reference
-        
+
         // Initialize audio system
         this.initializeAudio();
     }
-    
+
     /**
      * Initialize the audio system and load all sound effects
      */
@@ -33,14 +33,14 @@ class SimpleAudioManager {
         this.loadSound('wave_complete', 'sounds/wave_complete.ogg');
         this.loadSound('countdown_thud', 'sounds/countdown_thud.ogg');
         this.loadSound('button_click', 'sounds/button_click.ogg');
-        
+
         // Try to unlock audio system by playing a silent sound
         this.unlockAudio();
-        
+
         // Note: Logger not available in AudioManager constructor
         console.log('Audio system initialized');
     }
-    
+
     /**
      * Load a sound effect file
      * @param {string} name - Name identifier for the sound
@@ -55,17 +55,17 @@ class SimpleAudioManager {
             if (this.logger) this.logger.warn(`Failed to load sound: ${name} (${file})`, error);
         }
     }
-    
+
     /**
      * Play a sound effect
      * @param {string} name - Name of the sound to play
      */
     playSound(name) {
         if (this.muted) return;
-        
+
         // Try to unlock audio on first sound attempt
         this.checkAndUnlockAudio();
-        
+
         if (this.sounds[name]) {
             try {
                 // Reset to beginning and play
@@ -81,7 +81,7 @@ class SimpleAudioManager {
             if (this.logger) this.logger.warn(`Sound not found: ${name}`);
         }
     }
-    
+
     /**
      * Play background music
      * @param {string} file - Path to the music file
@@ -89,11 +89,11 @@ class SimpleAudioManager {
      */
     playMusic(file, loop = true) {
         if (this.muted) return;
-        
+
         try {
             // Stop current music
             this.stopMusic();
-            
+
             // Load and play new music
             this.music = new Audio(this.audioPath + file);
             this.music.loop = loop;
@@ -105,7 +105,7 @@ class SimpleAudioManager {
             if (this.logger) this.logger.warn('Error playing background music:', error);
         }
     }
-    
+
     /**
      * Stop background music
      */
@@ -115,36 +115,36 @@ class SimpleAudioManager {
             this.music.currentTime = 0;
         }
     }
-    
+
     /**
      * Toggle mute state
      */
     toggleMute() {
         this.muted = !this.muted;
-        
+
         if (this.muted) {
             this.stopMusic();
         } else {
             // Resume music if it was playing
             this.playMusic('music/background_music.wav');
         }
-        
+
         if (this.logger) this.logger.info(`Audio ${this.muted ? 'muted' : 'unmuted'}`);
         return this.muted;
     }
-    
+
     /**
      * Set mute state
      * @param {boolean} muted - Whether to mute audio
      */
     setMuted(muted) {
         this.muted = muted;
-        
+
         if (muted) {
             this.stopMusic();
         }
     }
-    
+
     /**
      * Check if audio is muted
      * @returns {boolean} Mute state
@@ -152,7 +152,7 @@ class SimpleAudioManager {
     isMuted() {
         return this.muted;
     }
-    
+
     /**
      * Play background music for preparation phase
      */
@@ -160,14 +160,14 @@ class SimpleAudioManager {
         // Background music disabled - not sounding good
         if (this.logger) this.logger.info('Background music disabled');
     }
-    
+
     /**
      * Stop music during enemy waves (silent combat)
      */
     startWaveMusic() {
         this.stopMusic();
     }
-    
+
     /**
      * Resume music after wave completion
      */
@@ -176,7 +176,7 @@ class SimpleAudioManager {
         // The music will resume when the next preparation phase starts
         if (this.logger) this.logger.info('Wave complete - music will resume during next preparation phase');
     }
-    
+
     /**
      * Try to unlock audio system by playing a very quiet sound
      * This helps bypass browser autoplay restrictions
@@ -202,7 +202,7 @@ class SimpleAudioManager {
             }
         }
     }
-    
+
     /**
      * Set logger reference
      */

@@ -67,6 +67,13 @@ function initGame() {
     gameState.logger.info('Tower manager initialized');
     gameState.gameStateManager = new GameStateManager();
     gameState.logger.info('Game state manager initialized');
+    
+    // Debug: Check if GameStateManager was created properly
+    if (!gameState.gameStateManager) {
+        gameState.logger.error('GameStateManager failed to initialize!');
+    } else {
+        gameState.logger.info('GameStateManager created successfully');
+    }
     gameState.audioManager = new SimpleAudioManager();
     gameState.logger.info('Audio manager initialized');
 
@@ -85,7 +92,14 @@ function initGame() {
     gameState.resourceSystem.setLogger(gameState.logger);
     gameState.towerManager.setLogger(gameState.logger);
     gameState.gridSystem.setLogger(gameState.logger);
-    gameState.gameStateManager.setLogger(gameState.logger);
+    
+    // Safety check for GameStateManager
+    if (gameState.gameStateManager && typeof gameState.gameStateManager.setLogger === 'function') {
+        gameState.gameStateManager.setLogger(gameState.logger);
+        gameState.logger.info('GameStateManager logger set successfully');
+    } else {
+        gameState.logger.error('GameStateManager or setLogger method not available!');
+    }
 
     // Set up input handlers
     setupInputHandlers();
@@ -366,18 +380,18 @@ function showAudioHintIfNeeded() {
 function handleInput() {
     if (gameState.input.wasClicked()) {
         gameState.logger.info('🎯 Click detected!');
-        
+
         // Hide audio hint on first click
         const audioHint = document.getElementById('audio-hint');
         if (audioHint) {
             audioHint.style.display = 'none';
         }
-        
+
         // Try to unlock audio on first interaction
         if (gameState.audioManager) {
             gameState.audioManager.checkAndUnlockAudio();
         }
-        
+
         const clickPos = gameState.input.getClickPosition();
 
         gameState.logger.info(`📍 Clicked at screen (${clickPos.x}, ${clickPos.y})`);

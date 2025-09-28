@@ -219,7 +219,7 @@ class TowerSystem {
         if (this.audioManager) {
             this.audioManager.playSound('projectile_fire');
         }
-        
+
         // Calculate direction vector for projectile
         const startX = tower.x * 64 + 32;
         const startY = tower.y * 64 + 32;
@@ -297,19 +297,19 @@ class TowerSystem {
                     if (this.audioManager) {
                         this.audioManager.playSound('enemy_hit');
                     }
-                    
+
                     // Create impact effect at collision point
                     this.createImpactEffect(projectile.x, projectile.y, projectile.damage, projectile.color);
 
                     // Add damage indicator to enemy
                     enemySystem.addDamageIndicator(enemy, projectile.damage);
-                    
+
                     // Deal damage and check if enemy dies
                     const coinsEarned = enemySystem.damageEnemy(enemy.id, projectile.damage);
                     if (coinsEarned > 0) {
                         // Start death animation
                         enemySystem.startDeathAnimation(enemy);
-                        
+
                         // Spawn coin at enemy's current position
                         const coinX = enemy.x * 64 + 32;
                         const coinY = enemy.y * 64 + 32;
