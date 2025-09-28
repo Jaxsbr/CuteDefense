@@ -219,6 +219,9 @@ function render() {
 
     // Render game state overlay (game over, victory, etc.)
     gameState.renderer.renderGameStateOverlay(gameState.gameStateManager.getGameStateInfo());
+
+    // Render day/night lighting effects
+    gameState.renderer.renderDayNightLighting();
 }
 
 // Handle HUD clicks

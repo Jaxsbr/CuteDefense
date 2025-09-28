@@ -24,6 +24,12 @@ class RenderSystem {
         this.dayNightSystem = {
             currentPhase: 'day', // 'day' or 'night'
             transitionProgress: 0, // 0-1 for smooth transitions
+            phaseChangeEffect: {
+                active: false,
+                duration: 1000, // 1 second
+                startTime: 0,
+                type: 'fade' // 'fade' or 'flash'
+            },
             phaseColors: {
                 day: {
                     background: '#98FB98',
@@ -57,12 +63,20 @@ class RenderSystem {
         if (this.dayNightSystem.currentPhase !== targetPhase) {
             this.dayNightSystem.currentPhase = targetPhase;
             this.dayNightSystem.transitionProgress = 0;
+            
+            // Trigger phase change effect
+            this.dayNightSystem.phaseChangeEffect.active = true;
+            this.dayNightSystem.phaseChangeEffect.startTime = Date.now();
+            this.dayNightSystem.phaseChangeEffect.type = targetPhase === 'night' ? 'flash' : 'fade';
         }
         
         // Smooth transition over time
         if (this.dayNightSystem.transitionProgress < 1.0) {
             this.dayNightSystem.transitionProgress = Math.min(1.0, this.dayNightSystem.transitionProgress + 0.02); // 2% per frame
         }
+        
+        // Update phase change effect
+        this.updatePhaseChangeEffect();
     }
 
     // Get current colors based on day/night phase
@@ -100,6 +114,43 @@ class RenderSystem {
         const b = Math.round(b1 + (b2 - b1) * progress);
         
         return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+    }
+
+    // Update phase change effect
+    updatePhaseChangeEffect() {
+        if (!this.dayNightSystem.phaseChangeEffect.active) return;
+        
+        const elapsed = Date.now() - this.dayNightSystem.phaseChangeEffect.startTime;
+        const progress = Math.min(1.0, elapsed / this.dayNightSystem.phaseChangeEffect.duration);
+        
+        if (progress >= 1.0) {
+            this.dayNightSystem.phaseChangeEffect.active = false;
+        }
+    }
+
+    // Render phase change transition effect
+    renderPhaseChangeEffect() {
+        if (!this.dayNightSystem.phaseChangeEffect.active) return;
+        
+        const elapsed = Date.now() - this.dayNightSystem.phaseChangeEffect.startTime;
+        const progress = Math.min(1.0, elapsed / this.dayNightSystem.phaseChangeEffect.duration);
+        const effect = this.dayNightSystem.phaseChangeEffect;
+        
+        this.ctx.save();
+        
+        if (effect.type === 'flash') {
+            // Flash effect for night transition
+            const flashAlpha = Math.sin(progress * Math.PI) * 0.3;
+            this.ctx.fillStyle = `rgba(255, 255, 255, ${flashAlpha})`;
+            this.ctx.fillRect(0, 0, this.width, this.height);
+        } else if (effect.type === 'fade') {
+            // Fade effect for day transition
+            const fadeAlpha = (1.0 - progress) * 0.5;
+            this.ctx.fillStyle = `rgba(0, 0, 0, ${fadeAlpha})`;
+            this.ctx.fillRect(0, 0, this.width, this.height);
+        }
+        
+        this.ctx.restore();
     }
 
     // Calculate tilemap height based on grid configuration
@@ -2488,5 +2539,32 @@ class RenderSystem {
         }
         
         this.ctx.restore();
+    }
+
+    // Render day/night lighting effects
+    renderDayNightLighting() {
+        const currentColors = this.getCurrentColors();
+        const ambientLight = currentColors.ambientLight;
+        
+        // Only apply lighting effects if not at full brightness (day)
+        if (ambientLight < 1.0) {
+            this.ctx.save();
+            
+            // Create ambient lighting overlay
+            const overlayAlpha = 1.0 - ambientLight;
+            this.ctx.fillStyle = `rgba(0, 0, 0, ${overlayAlpha})`;
+            this.ctx.fillRect(0, 0, this.width, this.height);
+            
+            // Add subtle blue tint for night atmosphere
+            if (this.dayNightSystem.currentPhase === 'night') {
+                this.ctx.fillStyle = `rgba(0, 50, 100, ${overlayAlpha * 0.3})`;
+                this.ctx.fillRect(0, 0, this.width, this.height);
+            }
+            
+            this.ctx.restore();
+        }
+        
+        // Render phase change transition effect
+        this.renderPhaseChangeEffect();
     }
 }
