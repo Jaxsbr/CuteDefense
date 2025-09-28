@@ -914,48 +914,108 @@ class RenderSystem {
     }
 
     renderTowerOrganicDetails(centerX, centerY, radius, level, towerType) {
-        // Add organic growth details (spikes/knobs) that increase with tower level
+        // Add visual details ON the tower face that are visible at small scale
         if (level === 1) return; // Level 1 towers are smooth, no details
 
-        // Determine number of spikes/knobs based on level
-        const numSpikes = Math.min(level * 2, 8); // 2, 4, 6, 8 spikes for levels 2, 3, 4, 5+
-        const spikeLength = level * 3; // Spike length increases with level
-        const spikeWidth = level * 1.5; // Spike width increases with level
+        this.ctx.save();
 
-        // Use generic accent colors for spikes
-        const spikeColor = GENERIC_ACCENT_COLORS.metal;
-        const spikeDarkColor = GENERIC_ACCENT_COLORS.metalDark;
-
-        for (let i = 0; i < numSpikes; i++) {
-            const angle = (i / numSpikes) * Math.PI * 2;
-            const spikeX = centerX + Math.cos(angle) * (radius + spikeLength / 2);
-            const spikeY = centerY + Math.sin(angle) * (radius + spikeLength / 2);
-
-            // Draw spike as a small triangle/knob
-            this.ctx.save();
-            this.ctx.fillStyle = spikeColor;
-            this.ctx.strokeStyle = spikeDarkColor;
-            this.ctx.lineWidth = 1;
-
-            this.ctx.beginPath();
-            // Create a small triangular spike pointing outward
-            const spikePoints = 3;
-            for (let j = 0; j < spikePoints; j++) {
-                const spikeAngle = angle + (j / spikePoints) * (Math.PI / 4); // Small spread
-                const spikePointX = spikeX + Math.cos(spikeAngle) * (spikeLength / 2);
-                const spikePointY = spikeY + Math.sin(spikeAngle) * (spikeLength / 2);
-                
-                if (j === 0) {
-                    this.ctx.moveTo(spikePointX, spikePointY);
-                } else {
-                    this.ctx.lineTo(spikePointX, spikePointY);
-                }
-            }
-            this.ctx.closePath();
-            this.ctx.fill();
-            this.ctx.stroke();
-            this.ctx.restore();
+        // Level 2: Add small circular knobs/ports on the face
+        if (level >= 2) {
+            this.renderTowerFaceKnobs(centerX, centerY, radius, 2);
         }
+
+        // Level 3: Add armor plating lines across the face
+        if (level >= 3) {
+            this.renderTowerFaceArmor(centerX, centerY, radius, 3);
+        }
+
+        this.ctx.restore();
+    }
+
+    renderTowerFaceKnobs(centerX, centerY, radius, level) {
+        // Draw small circular knobs/ports on the tower face
+        const knobRadius = Math.max(2, radius * 0.15); // Scale with tower size
+        const knobColor = GENERIC_ACCENT_COLORS.metal;
+        const knobDarkColor = GENERIC_ACCENT_COLORS.metalDark;
+
+        // Position knobs in a cross pattern on the face
+        const knobPositions = [
+            { x: centerX - radius * 0.4, y: centerY - radius * 0.3 }, // Top-left
+            { x: centerX + radius * 0.4, y: centerY - radius * 0.3 }, // Top-right
+            { x: centerX - radius * 0.4, y: centerY + radius * 0.3 }, // Bottom-left
+            { x: centerX + radius * 0.4, y: centerY + radius * 0.3 }  // Bottom-right
+        ];
+
+        knobPositions.forEach(pos => {
+            // Draw knob
+            this.ctx.fillStyle = knobColor;
+            this.ctx.beginPath();
+            this.ctx.arc(pos.x, pos.y, knobRadius, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Draw knob border
+            this.ctx.strokeStyle = knobDarkColor;
+            this.ctx.lineWidth = 1;
+            this.ctx.stroke();
+
+            // Draw small highlight dot
+            this.ctx.fillStyle = GENERIC_ACCENT_COLORS.metalLight;
+            this.ctx.beginPath();
+            this.ctx.arc(pos.x - knobRadius * 0.3, pos.y - knobRadius * 0.3, knobRadius * 0.3, 0, Math.PI * 2);
+            this.ctx.fill();
+        });
+    }
+
+    renderTowerFaceArmor(centerX, centerY, radius, level) {
+        // Draw armor plating lines across the tower face
+        const armorColor = GENERIC_ACCENT_COLORS.metal;
+        const armorDarkColor = GENERIC_ACCENT_COLORS.metalDark;
+        const lineWidth = Math.max(2, radius * 0.08);
+
+        this.ctx.strokeStyle = armorColor;
+        this.ctx.lineWidth = lineWidth;
+        this.ctx.lineCap = 'round';
+
+        // Draw horizontal armor lines
+        const lineSpacing = radius * 0.4;
+        const lineLength = radius * 0.6;
+
+        // Top armor line
+        this.ctx.beginPath();
+        this.ctx.moveTo(centerX - lineLength / 2, centerY - lineSpacing);
+        this.ctx.lineTo(centerX + lineLength / 2, centerY - lineSpacing);
+        this.ctx.stroke();
+
+        // Bottom armor line
+        this.ctx.beginPath();
+        this.ctx.moveTo(centerX - lineLength / 2, centerY + lineSpacing);
+        this.ctx.lineTo(centerX + lineLength / 2, centerY + lineSpacing);
+        this.ctx.stroke();
+
+        // Draw vertical center line for more aggressive look
+        this.ctx.beginPath();
+        this.ctx.moveTo(centerX, centerY - radius * 0.5);
+        this.ctx.lineTo(centerX, centerY + radius * 0.5);
+        this.ctx.stroke();
+
+        // Add small rivets at line intersections
+        const rivetRadius = lineWidth * 0.8;
+        this.ctx.fillStyle = armorDarkColor;
+        
+        // Rivets at line intersections
+        const rivetPositions = [
+            { x: centerX - lineLength / 2, y: centerY - lineSpacing },
+            { x: centerX + lineLength / 2, y: centerY - lineSpacing },
+            { x: centerX - lineLength / 2, y: centerY + lineSpacing },
+            { x: centerX + lineLength / 2, y: centerY + lineSpacing },
+            { x: centerX, y: centerY } // Center rivet
+        ];
+
+        rivetPositions.forEach(pos => {
+            this.ctx.beginPath();
+            this.ctx.arc(pos.x, pos.y, rivetRadius, 0, Math.PI * 2);
+            this.ctx.fill();
+        });
     }
 
     renderRankBadge(centerX, badgeY, level) {
