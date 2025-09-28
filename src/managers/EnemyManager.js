@@ -247,19 +247,19 @@ class EnemyManager {
         // Check if this is a boss wave
         const isBossWave = this.currentWave % 5 === 0;
 
-        // Simple, exciting announcements for kids
+        // Enhanced, exciting announcements for kids with more visual flair
         let announcement = '';
 
         if (isBossWave) {
-            announcement = `💪 BOSS WAVE ${this.currentWave}! 💪\n⚡ ${totalEnemies} POWERFUL ENEMIES! ⚡`;
+            announcement = `💪 BOSS WAVE ${this.currentWave}! 💪\n⚡ ${totalEnemies} POWERFUL ENEMIES! ⚡\n🌟 GET READY FOR THE ULTIMATE BATTLE! 🌟`;
         } else if (this.currentWave === 1) {
-            announcement = `🎯 WAVE ${this.currentWave} INCOMING! 🎯\n⚡ ${totalEnemies} ENEMIES APPROACHING! ⚡`;
+            announcement = `🎯 WAVE ${this.currentWave} INCOMING! 🎯\n⚡ ${totalEnemies} ENEMIES APPROACHING! ⚡\n🚀 LET'S DEFEND OUR BASE! 🚀`;
         } else if (this.currentWave <= 3) {
-            announcement = `🎯 WAVE ${this.currentWave} INCOMING! 🎯\n⚡ ${totalEnemies} ENEMIES APPROACHING! ⚡`;
+            announcement = `🎯 WAVE ${this.currentWave} INCOMING! 🎯\n⚡ ${totalEnemies} ENEMIES APPROACHING! ⚡\n🛡️ TIME TO BUILD YOUR DEFENSES! 🛡️`;
         } else if (this.currentWave <= 6) {
-            announcement = `🔥 WAVE ${this.currentWave} - GETTING TOUGH! 🔥\n⚡ ${totalEnemies} ENEMIES APPROACHING! ⚡`;
+            announcement = `🔥 WAVE ${this.currentWave} - GETTING TOUGH! 🔥\n⚡ ${totalEnemies} ENEMIES APPROACHING! ⚡\n💎 SHOW THEM YOUR POWER! 💎`;
         } else {
-            announcement = `🚨 WAVE ${this.currentWave} - ULTIMATE CHALLENGE! 🚨\n⚡ ${totalEnemies} ENEMIES APPROACHING! ⚡`;
+            announcement = `🚨 WAVE ${this.currentWave} - ULTIMATE CHALLENGE! 🚨\n⚡ ${totalEnemies} ENEMIES APPROACHING! ⚡\n👑 PROVE YOU'RE THE CHAMPION! 👑`;
         }
 
         return announcement;
@@ -271,7 +271,7 @@ class EnemyManager {
     startSpawning() {
         this.waveState = 'spawning';
         this.waveAnnouncement = ''; // No announcement during spawning
-        this.announcementTime = Date.now();
+        this.announcementTime = Date.now(); // Set time for fade-out transition
         this.lastSpawnTime = Date.now();
     }
 
