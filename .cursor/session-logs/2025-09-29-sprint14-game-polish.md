@@ -108,6 +108,9 @@ Sprint 14 focuses on comprehensive game polish and enhancement across multiple s
   - Ambient lighting overlay system for night atmosphere
   - Smooth transition effects (flash for night, fade for day)
   - Blue tint for night atmosphere
+  - Time-based transitions: 4s night, 2s day
+  - Early night transition during last 5s countdown
+  - Start/end tiles on layer 3 for enhanced visibility
 
 ## Remaining Priorities
 1. **Game Balancing**: Session length and difficulty optimization  

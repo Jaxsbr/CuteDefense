@@ -35,8 +35,8 @@ class RenderSystem {
             },
             phaseColors: {
                 day: {
-                    background: '#98FB98',
-                    grid: '#90EE90',
+                    background: '#98FB98',  // Light green grass
+                    grid: '#90EE90',       // Slightly darker green
                     path: '#8B4513',
                     tower: '#FF6B6B',
                     enemy: '#FF6B6B',
@@ -861,9 +861,10 @@ class RenderSystem {
             // Enhanced grass tile with pattern and subtle animation
             const currentColors = this.getCurrentColors();
             const gradient = this.ctx.createLinearGradient(screenX, screenY, screenX, screenY + tileSize);
-            gradient.addColorStop(0, currentColors.background);
-            gradient.addColorStop(0.5, currentColors.grid);
-            gradient.addColorStop(1, this.interpolateColor(currentColors.background, '#87CEEB', 0.3));
+            // Use grid color as main grass color for better saturation
+            gradient.addColorStop(0, currentColors.grid);
+            gradient.addColorStop(0.5, currentColors.background);
+            gradient.addColorStop(1, this.interpolateColor(currentColors.grid, '#87CEEB', 0.3));
             this.ctx.fillStyle = gradient;
             this.ctx.beginPath();
             this.ctx.roundRect(screenX, screenY, tileSize, tileSize, 4);
