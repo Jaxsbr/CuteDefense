@@ -9,6 +9,7 @@ class SimpleAudioManager {
         this.muted = false;
         this.audioPath = 'assets/audio/';
         this.audioUnlocked = false;
+        this.logger = null; // Logger reference
         
         // Initialize audio system
         this.initializeAudio();
@@ -51,7 +52,7 @@ class SimpleAudioManager {
             this.sounds[name].preload = 'auto';
             this.sounds[name].volume = 0.7; // Default volume for sound effects
         } catch (error) {
-            console.warn(`Failed to load sound: ${name} (${file})`, error);
+            if (this.logger) this.logger.warn(`Failed to load sound: ${name} (${file})`, error);
         }
     }
     
@@ -71,13 +72,13 @@ class SimpleAudioManager {
                 this.sounds[name].currentTime = 0;
                 this.sounds[name].play().catch(error => {
                     // Ignore autoplay errors silently
-                    console.debug(`Audio play failed for ${name}:`, error.message);
+                    // Audio play failed - this is expected for autoplay restrictions
                 });
             } catch (error) {
-                console.warn(`Error playing sound ${name}:`, error);
+                if (this.logger) this.logger.warn(`Error playing sound ${name}:`, error);
             }
         } else {
-            console.warn(`Sound not found: ${name}`);
+            if (this.logger) this.logger.warn(`Sound not found: ${name}`);
         }
     }
     
@@ -98,10 +99,10 @@ class SimpleAudioManager {
             this.music.loop = loop;
             this.music.volume = 0.5; // Lower volume for background music
             this.music.play().catch(error => {
-                console.debug('Background music play failed:', error.message);
+                // Background music play failed - this is expected for autoplay restrictions
             });
         } catch (error) {
-            console.warn('Error playing background music:', error);
+            if (this.logger) this.logger.warn('Error playing background music:', error);
         }
     }
     
@@ -128,7 +129,7 @@ class SimpleAudioManager {
             this.playMusic('music/background_music.wav');
         }
         
-        console.log(`Audio ${this.muted ? 'muted' : 'unmuted'}`);
+        if (this.logger) this.logger.info(`Audio ${this.muted ? 'muted' : 'unmuted'}`);
         return this.muted;
     }
     
@@ -157,7 +158,7 @@ class SimpleAudioManager {
      */
     startPreparationMusic() {
         // Background music disabled - not sounding good
-        console.log('Background music disabled');
+        if (this.logger) this.logger.info('Background music disabled');
     }
     
     /**
@@ -173,7 +174,7 @@ class SimpleAudioManager {
     endWaveMusic() {
         // Don't restart music immediately - let it fade in naturally
         // The music will resume when the next preparation phase starts
-        console.log('Wave complete - music will resume during next preparation phase');
+        if (this.logger) this.logger.info('Wave complete - music will resume during next preparation phase');
     }
     
     /**
@@ -202,6 +203,13 @@ class SimpleAudioManager {
         }
     }
     
+    /**
+     * Set logger reference
+     */
+    setLogger(logger) {
+        this.logger = logger;
+    }
+
     /**
      * Check if audio is unlocked and try to unlock if needed
      * This should be called on first user interaction

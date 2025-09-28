@@ -9,6 +9,12 @@ class TowerManager {
         this.gridSystem = gridSystem;
         this.resourceSystem = resourceSystem;
         this.selectedTowerType = 'BASIC';
+        this.logger = null; // Logger reference
+    }
+
+    // Set logger reference
+    setLogger(logger) {
+        this.logger = logger;
     }
 
     // Try to place a tower at the given position
@@ -16,19 +22,19 @@ class TowerManager {
         const type = towerType || this.selectedTowerType;
         const towerConfig = TOWER_TYPES[type];
 
-        console.log(`Attempting to place ${type} tower at (${x}, ${y})`);
-        console.log(`Tower config:`, towerConfig);
-        console.log(`Current coins: ${this.resourceSystem.getCoins()}`);
+        if (this.logger) this.logger.info(`Attempting to place ${type} tower at (${x}, ${y})`);
+        if (this.logger) this.logger.info(`Tower config:`, towerConfig);
+        if (this.logger) this.logger.info(`Current coins: ${this.resourceSystem.getCoins()}`);
 
         // Check if position is valid for tower placement
         if (!this.canPlaceTower(x, y)) {
-            console.log(`Cannot place tower at (${x}, ${y}) - position invalid`);
+            if (this.logger) this.logger.info(`Cannot place tower at (${x}, ${y}) - position invalid`);
             return false;
         }
 
         // Check if player has enough resources
         if (!this.resourceSystem.canAfford(towerConfig.cost)) {
-            console.log(`Not enough coins to place ${type} tower (cost: ${towerConfig.cost}, have: ${this.resourceSystem.getCoins()})`);
+            if (this.logger) this.logger.info(`Not enough coins to place ${type} tower (cost: ${towerConfig.cost}, have: ${this.resourceSystem.getCoins()})`);
             return false;
         }
 
@@ -41,34 +47,34 @@ class TowerManager {
         // Add placement animation effect
         this.addPlacementAnimation(x, y, tower);
 
-        console.log(`Tower placed successfully: ${type} at (${x}, ${y})`);
-        console.log(`Remaining coins: ${this.resourceSystem.getCoins()}`);
+        if (this.logger) this.logger.info(`Tower placed successfully: ${type} at (${x}, ${y})`);
+        if (this.logger) this.logger.info(`Remaining coins: ${this.resourceSystem.getCoins()}`);
         return true;
     }
 
     // Check if tower can be placed at position
     canPlaceTower(x, y) {
-        console.log(`Checking tower placement at (${x}, ${y})`);
+        if (this.logger) this.logger.info(`Checking tower placement at (${x}, ${y})`);
 
         // Check if position is within grid bounds
         if (!this.gridSystem.isValidPosition(x, y)) {
-            console.log(`Position (${x}, ${y}) is out of bounds`);
+            if (this.logger) this.logger.info(`Position (${x}, ${y}) is out of bounds`);
             return false;
         }
 
         // Check if position is not on enemy path
         if (this.gridSystem.isOnEnemyPath(x, y)) {
-            console.log(`Position (${x}, ${y}) is on enemy path`);
+            if (this.logger) this.logger.info(`Position (${x}, ${y}) is on enemy path`);
             return false;
         }
 
         // Check if position is not already occupied by a tower
         if (this.towerSystem.hasTowerAt(x, y)) {
-            console.log(`Position (${x}, ${y}) already has a tower`);
+            if (this.logger) this.logger.info(`Position (${x}, ${y}) already has a tower`);
             return false;
         }
 
-        console.log(`Position (${x}, ${y}) is valid for tower placement`);
+        if (this.logger) this.logger.info(`Position (${x}, ${y}) is valid for tower placement`);
         return true;
     }
 
@@ -76,7 +82,7 @@ class TowerManager {
     setSelectedTowerType(type) {
         if (TOWER_TYPES[type]) {
             this.selectedTowerType = type;
-            console.log(`Selected tower type: ${type}`);
+            if (this.logger) this.logger.info(`Selected tower type: ${type}`);
         }
     }
 
@@ -176,21 +182,21 @@ class TowerManager {
     tryUpgradeTower(x, y) {
         const tower = this.towerSystem.getTowerAt(x, y);
         if (!tower) {
-            console.log(`No tower found at (${x}, ${y}) for upgrade`);
+            if (this.logger) this.logger.info(`No tower found at (${x}, ${y}) for upgrade`);
             return false;
         }
 
         // Check if upgrade is available
         const upgradeInfo = this.towerSystem.getTowerUpgradeInfo(tower.id);
         if (!upgradeInfo) {
-            console.log(`No upgrade available for tower at (${x}, ${y})`);
+            if (this.logger) this.logger.info(`No upgrade available for tower at (${x}, ${y})`);
             return false;
         }
 
         // Try to upgrade the tower
         const success = this.towerSystem.upgradeTower(tower.id, this.resourceSystem);
         if (success) {
-            console.log(`Tower upgraded successfully at (${x}, ${y})`);
+            if (this.logger) this.logger.info(`Tower upgraded successfully at (${x}, ${y})`);
         }
         return success;
     }
@@ -212,6 +218,6 @@ class TowerManager {
     // Clear all towers (for game restart)
     clearAllTowers() {
         this.towerSystem.clearAllTowers();
-        console.log('🗑️ All towers cleared');
+        if (this.logger) this.logger.info('🗑️ All towers cleared');
     }
 }

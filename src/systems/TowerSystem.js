@@ -10,6 +10,7 @@ class TowerSystem {
         this.impactEffects = []; // Store impact effect particles
         this.lastUpdateTime = 0;
         this.audioManager = null; // Audio manager reference
+        this.logger = null; // Logger reference
     }
 
     // Add a new tower
@@ -26,7 +27,7 @@ class TowerSystem {
         };
 
         this.towers.push(tower);
-        console.log(`Tower placed: ${type} at (${x}, ${y})`);
+        if (this.logger) this.logger.info(`Tower placed: ${type} at (${x}, ${y})`);
         return tower;
     }
 
@@ -34,7 +35,7 @@ class TowerSystem {
     upgradeTower(towerId, resourceSystem) {
         const tower = this.towers.find(t => t.id === towerId);
         if (!tower) {
-            console.log(`Tower ${towerId} not found for upgrade`);
+            if (this.logger) this.logger.info(`Tower ${towerId} not found for upgrade`);
             return false;
         }
 
@@ -42,13 +43,13 @@ class TowerSystem {
         const upgradeConfig = TOWER_UPGRADES[tower.type]?.[upgradeKey];
 
         if (!upgradeConfig) {
-            console.log(`No upgrade available for ${tower.type} level ${tower.level + 1}`);
+            if (this.logger) this.logger.info(`No upgrade available for ${tower.type} level ${tower.level + 1}`);
             return false;
         }
 
         // Check if player can afford upgrade
         if (!resourceSystem.canAfford(upgradeConfig.cost)) {
-            console.log(`Not enough coins for upgrade (cost: ${upgradeConfig.cost}, have: ${resourceSystem.getCoins()})`);
+            if (this.logger) this.logger.info(`Not enough coins for upgrade (cost: ${upgradeConfig.cost}, have: ${resourceSystem.getCoins()})`);
             return false;
         }
 
@@ -69,7 +70,7 @@ class TowerSystem {
         // Deduct cost
         resourceSystem.spend(upgradeConfig.cost);
 
-        console.log(`Tower upgraded to level ${tower.level}: ${tower.type} at (${tower.x}, ${tower.y}) - projectile speed: ${tower.projectileSpeed}`);
+        if (this.logger) this.logger.info(`Tower upgraded to level ${tower.level}: ${tower.type} at (${tower.x}, ${tower.y}) - projectile speed: ${tower.projectileSpeed}`);
         return true;
     }
 
@@ -101,7 +102,7 @@ class TowerSystem {
 
         // Debug: Check if enemies are being passed
         if (enemies && enemies.length > 0) {
-            console.log(`TowerSystem: ${enemies.length} enemies available for targeting`);
+            if (this.logger) this.logger.info(`TowerSystem: ${enemies.length} enemies available for targeting`);
         }
 
         // Update each tower
@@ -124,7 +125,7 @@ class TowerSystem {
         if (!tower.target || !this.isTargetValid(tower, tower.target, enemies)) {
             tower.target = this.findTarget(tower, enemies);
             if (tower.target) {
-                console.log(`Tower at (${tower.x}, ${tower.y}) found target at (${tower.target.x}, ${tower.target.y})`);
+                if (this.logger) this.logger.info(`Tower at (${tower.x}, ${tower.y}) found target at (${tower.target.x}, ${tower.target.y})`);
             }
         }
 
@@ -207,6 +208,11 @@ class TowerSystem {
         this.audioManager = audioManager;
     }
 
+    // Set logger reference
+    setLogger(logger) {
+        this.logger = logger;
+    }
+
     // Shoot at target
     shoot(tower, target) {
         // Play projectile fire sound
@@ -251,7 +257,7 @@ class TowerSystem {
         this.projectiles.push(projectile);
         tower.lastShot = this.lastUpdateTime;
 
-        console.log(`Tower ${tower.type} shoots projectile with direction (${dirX.toFixed(2)}, ${dirY.toFixed(2)})`);
+        if (this.logger) this.logger.info(`Tower ${tower.type} shoots projectile with direction (${dirX.toFixed(2)}, ${dirY.toFixed(2)})`);
     }
 
     // Update all projectiles with TTL and collision detection
@@ -308,7 +314,7 @@ class TowerSystem {
                         const coinX = enemy.x * 64 + 32;
                         const coinY = enemy.y * 64 + 32;
                         resourceSystem.spawnCoin(coinX, coinY, coinsEarned);
-                        console.log(`Enemy killed! Earned ${coinsEarned} coins at (${coinX}, ${coinY})`);
+                        if (this.logger) this.logger.info(`Enemy killed! Earned ${coinsEarned} coins at (${coinX}, ${coinY})`);
                     }
                     // Remove projectile after hit
                     return false;
@@ -546,6 +552,6 @@ class TowerSystem {
     clearAllTowers() {
         this.towers = [];
         this.projectiles = [];
-        console.log('🗑️ All towers and projectiles cleared');
+        if (this.logger) this.logger.info('🗑️ All towers and projectiles cleared');
     }
 }

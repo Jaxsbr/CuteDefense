@@ -80,7 +80,12 @@ function initGame() {
     gameState.resourceSystem.setAudioManager(gameState.audioManager);
 
     // Set logger references in systems
+    gameState.audioManager.setLogger(gameState.logger);
+    gameState.towerSystem.setLogger(gameState.logger);
     gameState.resourceSystem.setLogger(gameState.logger);
+    gameState.towerManager.setLogger(gameState.logger);
+    gameState.gridSystem.setLogger(gameState.logger);
+    gameState.gameStateManager.setLogger(gameState.logger);
 
     // Set up input handlers
     setupInputHandlers();

@@ -12,6 +12,12 @@ class GameStateManager {
         this.gameStartTime = Date.now();
         this.gameOverTime = null;
         this.victoryTime = null;
+        this.logger = null; // Logger reference
+    }
+
+    // Set logger reference
+    setLogger(logger) {
+        this.logger = logger;
     }
 
     /**
@@ -87,7 +93,7 @@ class GameStateManager {
         this.gameState = 'gameOver';
         this.gameOverReason = reason;
         this.gameOverTime = Date.now();
-        console.log(`🎮 Game Over! Reason: ${reason}`);
+        if (this.logger) this.logger.info(`🎮 Game Over! Reason: ${reason}`);
     }
 
     /**
@@ -97,7 +103,7 @@ class GameStateManager {
         this.gameState = 'victory';
         this.victoryCondition = reason;
         this.victoryTime = Date.now();
-        console.log(`🏆 Victory! Reason: ${reason}`);
+        if (this.logger) this.logger.info(`🏆 Victory! Reason: ${reason}`);
     }
 
     /**
@@ -111,7 +117,7 @@ class GameStateManager {
         this.gameStartTime = Date.now();
         this.gameOverTime = null;
         this.victoryTime = null;
-        console.log('🎮 Game reset to playing state');
+        if (this.logger) this.logger.info('🎮 Game reset to playing state');
     }
 
     /**
