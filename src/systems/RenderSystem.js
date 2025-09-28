@@ -970,160 +970,37 @@ class RenderSystem {
     }
 
     renderWaveInfo(waveInfo) {
-        // Render wave announcement with enhanced visual effects
+        // Render wave announcement with consistent simple styling
         if (waveInfo.announcement) {
-            const time = Date.now() / 1000;
             const textX = this.width / 2;
             let textY = this.height / 2 - 50;
 
             // Split announcement into lines
             const lines = waveInfo.announcement.split('\n');
 
-            // Check announcement type for different visual effects
+            // Check announcement type for font size only
             const isCountdown = waveInfo.announcement.includes('STARTS IN');
-            const isWaveStart = waveInfo.announcement.includes('WAVE') && waveInfo.announcement.includes('INCOMING');
-            const isWaveComplete = waveInfo.announcement.includes('Complete');
-            const isBossWave = waveInfo.announcement.includes('BOSS WAVE');
 
-            if (isCountdown) {
-                // Dramatic countdown with pulsing and color cycling
-                const scale = Math.sin(time * 4) * 0.1 + 1; // More dramatic pulsing
-                const hue = (time * 120) % 360; // Faster color cycling
-                const alpha = Math.sin(time * 2) * 0.3 + 0.7; // Pulsing opacity
+            // Use larger font for 5s countdown, smaller for everything else
+            const fontSize = isCountdown ? 'bold 48px Arial' : 'bold 32px Arial';
 
-                this.ctx.save();
-                this.ctx.translate(textX, textY);
-                this.ctx.scale(scale, scale);
-                this.ctx.translate(-textX, -textY);
+            // Consistent white text styling for all announcements
+            this.ctx.font = fontSize;
+            this.ctx.textAlign = 'center';
+            this.ctx.fillStyle = '#FFFFFF';
+            this.ctx.strokeStyle = '#000000';
+            this.ctx.lineWidth = 3;
 
-                this.ctx.font = 'bold 48px Arial';
-                this.ctx.textAlign = 'center';
-                this.ctx.lineWidth = 6;
+            lines.forEach((line, index) => {
+                const y = textY + (index * (isCountdown ? 60 : 40));
 
-                lines.forEach((line, index) => {
-                    const y = textY + (index * 60);
-
-                    // Bright, pulsing colors for countdown
-                    this.ctx.fillStyle = `hsla(${hue}, 90%, 70%, ${alpha})`;
-                    this.ctx.strokeStyle = '#FFFFFF';
-
-                    // Multiple outlines for dramatic effect
-                    for (let i = -3; i <= 3; i++) {
-                        for (let j = -3; j <= 3; j++) {
-                            this.ctx.strokeText(line, textX + i, y + j);
-                        }
-                    }
-                    this.ctx.fillText(line, textX, y);
-                });
-
-                this.ctx.restore();
-            } else if (isWaveStart) {
-                // Exciting wave start announcement with zoom and sparkle effects
-                const scale = Math.sin(time * 2) * 0.05 + 1;
-                const hue = (time * 30) % 360;
-
-                this.ctx.save();
-                this.ctx.translate(textX, textY);
-                this.ctx.scale(scale, scale);
-                this.ctx.translate(-textX, -textY);
-
-                this.ctx.font = 'bold 42px Arial';
-                this.ctx.textAlign = 'center';
-                this.ctx.lineWidth = 5;
-
-                lines.forEach((line, index) => {
-                    const y = textY + (index * 55);
-
-                    // Bright, exciting colors
-                    this.ctx.fillStyle = `hsl(${hue}, 85%, 65%)`;
-                    this.ctx.strokeStyle = '#FFD700'; // Gold outline
-
-                    // Thick outline for impact
-                    this.ctx.strokeText(line, textX - 2, y - 2);
-                    this.ctx.strokeText(line, textX + 2, y + 2);
-                    this.ctx.strokeText(line, textX, y);
-                    this.ctx.fillText(line, textX, y);
-                });
-
-                this.ctx.restore();
-            } else if (isBossWave) {
-                // Special boss wave announcement with intense effects
-                const scale = Math.sin(time * 3) * 0.08 + 1;
-                const hue = (time * 180) % 360;
-
-                this.ctx.save();
-                this.ctx.translate(textX, textY);
-                this.ctx.scale(scale, scale);
-                this.ctx.translate(-textX, -textY);
-
-                this.ctx.font = 'bold 44px Arial';
-                this.ctx.textAlign = 'center';
-                this.ctx.lineWidth = 6;
-
-                lines.forEach((line, index) => {
-                    const y = textY + (index * 60);
-
-                    // Intense red-orange colors for boss waves
-                    this.ctx.fillStyle = `hsl(${hue}, 90%, 60%)`;
-                    this.ctx.strokeStyle = '#FF0000'; // Red outline
-
-                    // Multiple thick outlines
-                    for (let i = -4; i <= 4; i += 2) {
-                        for (let j = -4; j <= 4; j += 2) {
-                            this.ctx.strokeText(line, textX + i, y + j);
-                        }
-                    }
-                    this.ctx.fillText(line, textX, y);
-                });
-
-                this.ctx.restore();
-            } else if (isWaveComplete) {
-                // Celebration for wave completion
-                const scale = Math.sin(time * 1.5) * 0.03 + 1;
-                const hue = (time * 45) % 360;
-
-                this.ctx.font = 'bold 32px Arial';
-                this.ctx.textAlign = 'center';
-                this.ctx.lineWidth = 4;
-
-                lines.forEach((line, index) => {
-                    const y = textY + (index * 40);
-
-                    // Bright, celebratory colors
-                    this.ctx.fillStyle = `hsl(${hue}, 80%, 70%)`;
-                    this.ctx.strokeStyle = '#00FF00'; // Green outline
-
-                    this.ctx.strokeText(line, textX - 2, y - 2);
-                    this.ctx.strokeText(line, textX + 2, y + 2);
-                    this.ctx.strokeText(line, textX, y);
-                    this.ctx.fillText(line, textX, y);
-                });
-            } else {
-                // Default announcement styling
-                this.ctx.font = 'bold 28px Arial';
-                this.ctx.textAlign = 'center';
-                this.ctx.fillStyle = this.colors.waveInfo;
-                this.ctx.strokeStyle = this.colors.ui;
-                this.ctx.lineWidth = 3;
-
-                lines.forEach((line, index) => {
-                    const y = textY + (index * 35);
-
-                    this.ctx.strokeText(line, textX, y);
-                    this.ctx.fillText(line, textX, y);
-                });
-            }
+                // Simple black outline with white fill - no pulsing, no color changes
+                this.ctx.strokeText(line, textX, y);
+                this.ctx.fillText(line, textX, y);
+            });
         }
 
-        // Render wave announcement effects (particles, sparkles, etc.)
-        if (waveInfo.announcement) {
-            this.renderWaveAnnouncementEffects(waveInfo);
-        }
-
-        // Add dramatic warning effect for announcements
-        if (waveInfo.announcement) {
-            this.renderDramaticWarningEffect(waveInfo);
-        }
+        // No visual effects for announcements - keep them clean and simple
 
         // Render wave stats with enhanced UI
         this.renderWaveStatsPanel(waveInfo);

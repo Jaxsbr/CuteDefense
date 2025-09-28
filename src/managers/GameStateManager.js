@@ -57,9 +57,9 @@ class GameStateManager {
      * Check if victory conditions are met
      */
     checkVictoryConditions(enemyManager) {
-        // Check if all waves completed
+        // Check if all waves completed - victory should trigger when the final wave is complete
         const waveInfo = enemyManager.getWaveInfo();
-        if (waveInfo.currentWave > this.maxWaves) {
+        if (waveInfo.currentWave >= this.maxWaves && waveInfo.waveState === 'complete') {
             return true;
         }
 
