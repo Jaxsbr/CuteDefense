@@ -118,14 +118,22 @@ class RenderSystem {
         const nightColors = this.dayNightSystem.phaseColors.night;
         const progress = this.dayNightSystem.transitionProgress;
 
+        // Determine which phase we're transitioning to
+        const targetPhase = this.dayNightSystem.currentPhase;
+        
+        // If we're in day phase, show day colors (progress = 0 means day, progress = 1 means night)
+        // If we're in night phase, show night colors
+        const isNightPhase = targetPhase === 'night';
+        const colorProgress = isNightPhase ? progress : (1 - progress);
+
         // Interpolate between day and night colors
         return {
-            background: this.interpolateColor(dayColors.background, nightColors.background, progress),
-            grid: this.interpolateColor(dayColors.grid, nightColors.grid, progress),
-            path: this.interpolateColor(dayColors.path, nightColors.path, progress),
-            tower: this.interpolateColor(dayColors.tower, nightColors.tower, progress),
-            enemy: this.interpolateColor(dayColors.enemy, nightColors.enemy, progress),
-            ambientLight: dayColors.ambientLight + (nightColors.ambientLight - dayColors.ambientLight) * progress
+            background: this.interpolateColor(dayColors.background, nightColors.background, colorProgress),
+            grid: this.interpolateColor(dayColors.grid, nightColors.grid, colorProgress),
+            path: this.interpolateColor(dayColors.path, nightColors.path, colorProgress),
+            tower: this.interpolateColor(dayColors.tower, nightColors.tower, colorProgress),
+            enemy: this.interpolateColor(dayColors.enemy, nightColors.enemy, colorProgress),
+            ambientLight: dayColors.ambientLight + (nightColors.ambientLight - dayColors.ambientLight) * colorProgress
         };
     }
 

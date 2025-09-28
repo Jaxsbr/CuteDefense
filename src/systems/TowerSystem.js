@@ -102,7 +102,8 @@ class TowerSystem {
 
         // Debug: Check if enemies are being passed
         if (enemies && enemies.length > 0) {
-            if (this.logger) this.logger.info(`TowerSystem: ${enemies.length} enemies available for targeting`);
+            // Log commented out, excessive
+            //if (this.logger) this.logger.info(`TowerSystem: ${enemies.length} enemies available for targeting`);
         }
 
         // Update each tower
