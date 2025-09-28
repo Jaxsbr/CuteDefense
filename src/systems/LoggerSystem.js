@@ -4,7 +4,7 @@
  */
 class LoggerSystem {
     constructor() {
-        this.debugEnabled = false;
+        this.debugEnabled = false; // Start with debug OFF - no console output
         this.logs = [];
         this.maxLogs = 1000; // Keep last 1000 logs in memory
     }
@@ -43,7 +43,7 @@ class LoggerSystem {
             this.logs.shift(); // Remove oldest log
         }
         
-        // Emit to console if debug is enabled
+        // ONLY emit to console if debug is enabled
         if (this.debugEnabled) {
             const consoleMethod = this.getConsoleMethod(level);
             if (args.length > 0) {
@@ -52,6 +52,7 @@ class LoggerSystem {
                 consoleMethod(`[${timestamp}] ${message}`);
             }
         }
+        // If debug is disabled, NO console output at all
     }
     
     /**

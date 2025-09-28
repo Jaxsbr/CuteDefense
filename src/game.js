@@ -39,7 +39,7 @@ let gameState = {
 
 // Initialize game
 function initGame() {
-    // Initialize logger first
+    // Initialize logger first (debug mode OFF by default)
     gameState.logger = new LoggerSystem();
     gameState.logger.info('Initializing CuteDefense...');
 
@@ -78,6 +78,9 @@ function initGame() {
     gameState.enemySystem.setAudioManager(gameState.audioManager);
     gameState.enemyManager.setAudioManager(gameState.audioManager);
     gameState.resourceSystem.setAudioManager(gameState.audioManager);
+
+    // Set logger references in systems
+    gameState.resourceSystem.setLogger(gameState.logger);
 
     // Set up input handlers
     setupInputHandlers();
@@ -240,7 +243,7 @@ function handleHUDClick(clickX, clickY) {
                 // Try to upgrade the selected tower
                 const success = gameState.towerManager.tryUpgradeTower(gameState.selectedTower.x, gameState.selectedTower.y);
                 if (success) {
-                    console.log(`⬆️ Tower upgraded via HUD!`);
+                    gameState.logger.info(`⬆️ Tower upgraded via HUD!`);
                     // Play upgrade sound
                     gameState.audioManager.playSound('tower_upgrade');
                     // Update selected tower reference
@@ -269,11 +272,11 @@ function handleTowerPlacementPopupClick(clickX, clickY) {
     if (clickX >= bounds.plus.x && clickX <= bounds.plus.x + bounds.plus.width &&
         clickY >= bounds.plus.y && clickY <= bounds.plus.y + bounds.plus.height) {
 
-        console.log('🏗️ Place tower button clicked!');
+        gameState.logger.info('🏗️ Place tower button clicked!');
         const gridPos = gameState.towerPlacementPopup;
         const placementSuccess = gameState.towerManager.tryPlaceTower(gridPos.x, gridPos.y);
         if (placementSuccess) {
-            console.log(`🏗️ Tower placed at (${gridPos.x}, ${gridPos.y})`);
+            gameState.logger.info(`🏗️ Tower placed at (${gridPos.x}, ${gridPos.y})`);
             // Play tower placement sound
             gameState.audioManager.playSound('tower_place');
 
@@ -290,7 +293,7 @@ function handleTowerPlacementPopupClick(clickX, clickY) {
     if (clickX >= bounds.cancel.x && clickX <= bounds.cancel.x + bounds.cancel.width &&
         clickY >= bounds.cancel.y && clickY <= bounds.cancel.y + bounds.cancel.height) {
 
-        console.log('❌ Cancel tower placement');
+        gameState.logger.info('❌ Cancel tower placement');
         // Clear popup
         gameState.towerPlacementPopup = null;
         return true;
@@ -307,7 +310,7 @@ function handleRestartButtonClick(clickX, clickY) {
     if (clickX >= bounds.x && clickX <= bounds.x + bounds.width &&
         clickY >= bounds.y && clickY <= bounds.y + bounds.height) {
 
-        console.log('🔄 Restart button clicked!');
+        gameState.logger.info('🔄 Restart button clicked!');
         restartGame();
         return true;
     }
@@ -316,7 +319,7 @@ function handleRestartButtonClick(clickX, clickY) {
 
 // Restart the game
 function restartGame() {
-    console.log('🔄 Restarting game...');
+    gameState.logger.info('🔄 Restarting game...');
 
     // Reset game state manager
     gameState.gameStateManager.reset();
@@ -336,7 +339,7 @@ function restartGame() {
     // Restart wave system
     gameState.enemyManager.startWaveSystem();
 
-    console.log('✅ Game restarted successfully!');
+    gameState.logger.info('✅ Game restarted successfully!');
 }
 
 // Show audio hint if needed
@@ -479,6 +482,7 @@ function setupInputHandlers() {
 
 // Start game when page loads
 document.addEventListener('DOMContentLoaded', () => {
+    // Note: Logger not available yet, using console for DOM loaded message
     console.log('DOM loaded, starting game initialization...');
     initGame();
 });

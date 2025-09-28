@@ -11,11 +11,17 @@ class ResourceSystem {
         this.collectionEffects = []; // Particle effects for coin collection
         this.coinTotalPulse = { active: false, time: 0, duration: 1000 }; // Pulse animation for coin total
         this.audioManager = null; // Audio manager reference
+        this.logger = null; // Logger reference
     }
 
     // Set audio manager reference
     setAudioManager(audioManager) {
         this.audioManager = audioManager;
+    }
+
+    // Set logger reference
+    setLogger(logger) {
+        this.logger = logger;
     }
 
     // Add coins to player's total
@@ -26,7 +32,7 @@ class ResourceSystem {
         this.coinTotalPulse.active = true;
         this.coinTotalPulse.time = 0;
 
-        console.log(`Added ${amount} coins. Total: ${this.coins}`);
+        if (this.logger) this.logger.info(`Added ${amount} coins. Total: ${this.coins}`);
     }
 
     // Create collection effect particles
@@ -117,7 +123,7 @@ class ResourceSystem {
     spend(amount) {
         if (this.canAfford(amount)) {
             this.coins -= amount;
-            console.log(`Spent ${amount} coins. Remaining: ${this.coins}`);
+            if (this.logger) this.logger.info(`Spent ${amount} coins. Remaining: ${this.coins}`);
             return true;
         }
         return false;
@@ -150,7 +156,7 @@ class ResourceSystem {
         };
 
         this.coinAnimations.push(coin);
-        console.log(`Coin spawned at (${x}, ${y}) with value ${value}, expires in ${coin.lifetime / 1000}s`);
+        if (this.logger) this.logger.info(`Coin spawned at (${x}, ${y}) with value ${value}, expires in ${coin.lifetime / 1000}s`);
     }
 
     // Try to collect coin at position
@@ -168,7 +174,7 @@ class ResourceSystem {
             // Create satisfying collection effects
             this.createCollectionEffect(coin.x, coin.y, coin.value);
 
-            console.log(`Collected coin worth ${coin.value} coins`);
+                if (this.logger) this.logger.info(`Collected coin worth ${coin.value} coins`);
             return true;
         }
 
@@ -192,7 +198,7 @@ class ResourceSystem {
                 if (this.audioManager) {
                     this.audioManager.playSound('coin_expire');
                 }
-                console.log(`Coin expired at (${coin.x}, ${coin.y}) with value ${coin.value}`);
+                if (this.logger) this.logger.info(`Coin expired at (${coin.x}, ${coin.y}) with value ${coin.value}`);
             }
 
             // Enhanced bounce animation with more personality
