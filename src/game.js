@@ -166,6 +166,10 @@ function update() {
 
 // Render game frame
 function render() {
+    // Update day/night phase based on wave state
+    const waveInfo = gameState.enemyManager.getWaveInfo();
+    gameState.renderer.updateDayNightPhase(waveInfo.waveState);
+
     // Clear canvas
     gameState.renderer.clear();
 

@@ -19,11 +19,82 @@ class RenderSystem {
             ui: '#333333',
             waveInfo: '#FFFFFF'
         };
+
+        // Day/night cycle system
+        this.dayNightSystem = {
+            currentPhase: 'day', // 'day' or 'night'
+            transitionProgress: 0, // 0-1 for smooth transitions
+            phaseColors: {
+                day: {
+                    background: '#98FB98',
+                    grid: '#90EE90',
+                    path: '#8B4513',
+                    tower: '#FF6B6B',
+                    enemy: '#FF6B6B',
+                    ambientLight: 1.0
+                },
+                night: {
+                    background: '#2C3E50',
+                    grid: '#34495E',
+                    path: '#5D4E37',
+                    tower: '#E74C3C',
+                    enemy: '#E74C3C',
+                    ambientLight: 0.3
+                }
+            }
+        };
     }
 
     // Set resource system reference
     setResourceSystem(resourceSystem) {
         this.resourceSystem = resourceSystem;
+    }
+
+    // Update day/night phase based on wave state
+    updateDayNightPhase(waveState) {
+        const targetPhase = (waveState === 'preparation' || waveState === 'complete') ? 'day' : 'night';
+        
+        if (this.dayNightSystem.currentPhase !== targetPhase) {
+            this.dayNightSystem.currentPhase = targetPhase;
+            this.dayNightSystem.transitionProgress = 0;
+        }
+    }
+
+    // Get current colors based on day/night phase
+    getCurrentColors() {
+        const dayColors = this.dayNightSystem.phaseColors.day;
+        const nightColors = this.dayNightSystem.phaseColors.night;
+        const progress = this.dayNightSystem.transitionProgress;
+
+        // Interpolate between day and night colors
+        return {
+            background: this.interpolateColor(dayColors.background, nightColors.background, progress),
+            grid: this.interpolateColor(dayColors.grid, nightColors.grid, progress),
+            path: this.interpolateColor(dayColors.path, nightColors.path, progress),
+            tower: this.interpolateColor(dayColors.tower, nightColors.tower, progress),
+            enemy: this.interpolateColor(dayColors.enemy, nightColors.enemy, progress),
+            ambientLight: dayColors.ambientLight + (nightColors.ambientLight - dayColors.ambientLight) * progress
+        };
+    }
+
+    // Helper method to interpolate between two hex colors
+    interpolateColor(color1, color2, progress) {
+        const hex1 = color1.replace('#', '');
+        const hex2 = color2.replace('#', '');
+        
+        const r1 = parseInt(hex1.substr(0, 2), 16);
+        const g1 = parseInt(hex1.substr(2, 2), 16);
+        const b1 = parseInt(hex1.substr(4, 2), 16);
+        
+        const r2 = parseInt(hex2.substr(0, 2), 16);
+        const g2 = parseInt(hex2.substr(2, 2), 16);
+        const b2 = parseInt(hex2.substr(4, 2), 16);
+        
+        const r = Math.round(r1 + (r2 - r1) * progress);
+        const g = Math.round(g1 + (g2 - g1) * progress);
+        const b = Math.round(b1 + (b2 - b1) * progress);
+        
+        return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
     }
 
     // Calculate tilemap height based on grid configuration
@@ -609,7 +680,8 @@ class RenderSystem {
     }
 
     clear() {
-        this.ctx.fillStyle = this.colors.background;
+        const currentColors = this.getCurrentColors();
+        this.ctx.fillStyle = currentColors.background;
         this.ctx.fillRect(0, 0, this.width, this.height);
     }
 
