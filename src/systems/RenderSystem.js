@@ -25,6 +25,8 @@ class RenderSystem {
             currentPhase: 'night', // Start as night, will change to day on first update
             transitionProgress: 0, // 0-1 for smooth transitions
             initialized: false, // Track if system has been initialized
+            transitionStartTime: 0, // Track when transition started
+            transitionDuration: 4000, // 4 seconds in milliseconds
             phaseChangeEffect: {
                 active: false,
                 duration: 1000, // 1 second
@@ -101,20 +103,27 @@ class RenderSystem {
         if (this.dayNightSystem.currentPhase !== targetPhase) {
             this.dayNightSystem.currentPhase = targetPhase;
             this.dayNightSystem.transitionProgress = 0;
-
+            this.dayNightSystem.transitionStartTime = Date.now();
+            
+            // Set transition duration based on target phase
+            this.dayNightSystem.transitionDuration = targetPhase === 'night' ? 4000 : 2000; // 4s for night, 2s for day
+            
             // Trigger phase change effect
             this.dayNightSystem.phaseChangeEffect.active = true;
             this.dayNightSystem.phaseChangeEffect.startTime = Date.now();
             this.dayNightSystem.phaseChangeEffect.type = targetPhase === 'night' ? 'flash' : 'fade';
         }
-
-        // Smooth transition over time (4 seconds for countdown transition)
+        
+        // Time-based transition calculation
         if (this.dayNightSystem.transitionProgress < 1.0) {
-            // Calculate transition speed based on target phase
-            const isNightTransition = targetPhase === 'night';
-            // 4 seconds at 60fps = 240 frames, so 1/240 = 0.0042 per frame
-            const transitionSpeed = isNightTransition ? 0.0042 : 0.01; // 4s for night transition, slower for day transition
-            this.dayNightSystem.transitionProgress = Math.min(1.0, this.dayNightSystem.transitionProgress + transitionSpeed);
+            const elapsed = Date.now() - this.dayNightSystem.transitionStartTime;
+            const progress = Math.min(1.0, elapsed / this.dayNightSystem.transitionDuration);
+            this.dayNightSystem.transitionProgress = progress;
+            
+            // Debug logging for transition progress
+            if (this.logger && targetPhase === 'night' && Math.floor(progress * 100) % 20 === 0) {
+                this.logger.info(`🌙 Night transition progress: ${Math.floor(progress * 100)}% (${elapsed}ms)`);
+            }
         }
 
         // Update phase change effect
