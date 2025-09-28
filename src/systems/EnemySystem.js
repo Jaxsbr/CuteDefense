@@ -39,6 +39,13 @@ class EnemySystem {
             deathAnimation: null, // Death animation state
             isDying: false, // Death animation flag
             visualEffects: [], // General visual effects array
+            spawnAnimation: { // Spawn animation with circle ripples
+                active: true,
+                time: 0,
+                duration: 0.8,
+                maxRadius: 40,
+                alpha: 1.0
+            },
             // Visual properties from type
             shape: type.shape || 'circle',
             borderColor: type.borderColor || type.color,
@@ -74,6 +81,8 @@ class EnemySystem {
         if (enemy.pathIndex >= enemy.path.length - 1) {
             // Reached the end of the path
             enemy.reachedGoal = true;
+            // Start end reached animation
+            this.startEndReachedAnimation(enemy);
             return;
         }
 
@@ -236,9 +245,34 @@ class EnemySystem {
     }
 
     /**
+     * Start end reached animation for enemy
+     */
+    startEndReachedAnimation(enemy) {
+        enemy.endReachedAnimation = {
+            active: true,
+            time: 0,
+            duration: 1.0,
+            maxRadius: 60,
+            alpha: 1.0
+        };
+    }
+
+    /**
      * Update enemy visual effects
      */
     updateEnemyVisualEffects(enemy, deltaTime) {
+        // Update spawn animation
+        if (enemy.spawnAnimation && enemy.spawnAnimation.active) {
+            enemy.spawnAnimation.time += deltaTime;
+            const progress = enemy.spawnAnimation.time / enemy.spawnAnimation.duration;
+            
+            if (progress >= 1) {
+                enemy.spawnAnimation.active = false;
+            } else {
+                enemy.spawnAnimation.alpha = 1 - progress;
+            }
+        }
+
         // Update damage indicators
         if (enemy.damageIndicators) {
             for (let i = enemy.damageIndicators.length - 1; i >= 0; i--) {
@@ -265,6 +299,18 @@ class EnemySystem {
                 enemy.deathAnimation.scale = 1 - progress * 0.5;
                 enemy.deathAnimation.rotation = progress * Math.PI * 2;
                 enemy.deathAnimation.alpha = 1 - progress;
+            }
+        }
+
+        // Update end reached animation
+        if (enemy.endReachedAnimation && enemy.endReachedAnimation.active) {
+            enemy.endReachedAnimation.time += deltaTime;
+            const progress = enemy.endReachedAnimation.time / enemy.endReachedAnimation.duration;
+            
+            if (progress >= 1) {
+                enemy.endReachedAnimation.active = false;
+            } else {
+                enemy.endReachedAnimation.alpha = 1 - progress;
             }
         }
     }

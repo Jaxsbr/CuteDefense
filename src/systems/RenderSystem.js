@@ -220,14 +220,22 @@ class RenderSystem {
     renderSelectionInfoSection(x, y, width, height, selectedTower) {
         this.ctx.save();
 
-        // Section background
+        // Section background with rounded corners
+        this.ctx.beginPath();
+        this.ctx.roundRect(x, y, width, height, 8);
+        this.ctx.clip();
         this.ctx.fillStyle = 'rgba(100, 0, 200, 0.3)';
         this.ctx.fillRect(x, y, width, height);
+        this.ctx.restore();
 
-        // Section border
+        // Section border with rounded corners
+        this.ctx.save();
         this.ctx.strokeStyle = '#9C27B0';
         this.ctx.lineWidth = 2;
-        this.ctx.strokeRect(x, y, width, height);
+        this.ctx.beginPath();
+        this.ctx.roundRect(x, y, width, height, 8);
+        this.ctx.stroke();
+        this.ctx.restore();
 
         // Info title
         this.ctx.fillStyle = '#FFF';
@@ -259,14 +267,22 @@ class RenderSystem {
     renderSelectionActionsSection(x, y, width, height, selectedTower, towerManager) {
         this.ctx.save();
 
-        // Section background
+        // Section background with rounded corners
+        this.ctx.beginPath();
+        this.ctx.roundRect(x, y, width, height, 8);
+        this.ctx.clip();
         this.ctx.fillStyle = 'rgba(0, 200, 100, 0.3)';
         this.ctx.fillRect(x, y, width, height);
+        this.ctx.restore();
 
-        // Section border
+        // Section border with rounded corners
+        this.ctx.save();
         this.ctx.strokeStyle = '#4CAF50';
         this.ctx.lineWidth = 2;
-        this.ctx.strokeRect(x, y, width, height);
+        this.ctx.beginPath();
+        this.ctx.roundRect(x, y, width, height, 8);
+        this.ctx.stroke();
+        this.ctx.restore();
 
         // Actions title
         this.ctx.fillStyle = '#FFF';
@@ -1010,7 +1026,7 @@ class RenderSystem {
 
     renderEnemies(enemies, tileSize) {
         enemies.forEach(enemy => {
-            if (enemy.isAlive && !enemy.reachedGoal) {
+            if (enemy.isAlive) {
                 this.renderEnemy(enemy, tileSize);
             }
         });
@@ -1025,6 +1041,16 @@ class RenderSystem {
 
         // Save context state
         this.ctx.save();
+
+        // Apply spawn animation if spawning
+        if (enemy.spawnAnimation && enemy.spawnAnimation.active) {
+            this.renderSpawnAnimation(centerX, centerY, enemy.spawnAnimation);
+        }
+
+        // Apply end reached animation if enemy reached goal
+        if (enemy.endReachedAnimation && enemy.endReachedAnimation.active) {
+            this.renderEndReachedAnimation(centerX, centerY, enemy.endReachedAnimation);
+        }
 
         // Apply death animation if dying
         if (enemy.isDying && enemy.deathAnimation) {
@@ -2183,5 +2209,66 @@ class RenderSystem {
             
             this.ctx.restore();
         });
+    }
+
+    // Render spawn animation with circle ripples
+    renderSpawnAnimation(centerX, centerY, spawnAnimation) {
+        this.ctx.save();
+        
+        const progress = spawnAnimation.time / spawnAnimation.duration;
+        const currentRadius = progress * spawnAnimation.maxRadius;
+        const alpha = spawnAnimation.alpha * (1 - progress);
+        
+        // Create expanding circle ripples
+        for (let i = 0; i < 3; i++) {
+            const rippleProgress = Math.max(0, progress - (i * 0.2));
+            const rippleRadius = rippleProgress * spawnAnimation.maxRadius;
+            const rippleAlpha = alpha * (1 - rippleProgress) * 0.6;
+            
+            if (rippleAlpha > 0) {
+                this.ctx.globalAlpha = rippleAlpha;
+                this.ctx.strokeStyle = '#FF6B6B';
+                this.ctx.lineWidth = 3;
+                this.ctx.beginPath();
+                this.ctx.arc(centerX, centerY, rippleRadius, 0, Math.PI * 2);
+                this.ctx.stroke();
+            }
+        }
+        
+        this.ctx.restore();
+    }
+
+    // Render end reached animation with negative effect
+    renderEndReachedAnimation(centerX, centerY, endReachedAnimation) {
+        this.ctx.save();
+        
+        const progress = endReachedAnimation.time / endReachedAnimation.duration;
+        const currentRadius = progress * endReachedAnimation.maxRadius;
+        const alpha = endReachedAnimation.alpha * (1 - progress);
+        
+        // Create expanding red circle with negative effect
+        for (let i = 0; i < 4; i++) {
+            const rippleProgress = Math.max(0, progress - (i * 0.15));
+            const rippleRadius = rippleProgress * endReachedAnimation.maxRadius;
+            const rippleAlpha = alpha * (1 - rippleProgress) * 0.8;
+            
+            if (rippleAlpha > 0) {
+                this.ctx.globalAlpha = rippleAlpha;
+                this.ctx.strokeStyle = '#FF0000';
+                this.ctx.lineWidth = 4;
+                this.ctx.beginPath();
+                this.ctx.arc(centerX, centerY, rippleRadius, 0, Math.PI * 2);
+                this.ctx.stroke();
+                
+                // Add inner dark circle for negative effect
+                this.ctx.globalAlpha = rippleAlpha * 0.5;
+                this.ctx.fillStyle = '#8B0000';
+                this.ctx.beginPath();
+                this.ctx.arc(centerX, centerY, rippleRadius * 0.3, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+        }
+        
+        this.ctx.restore();
     }
 }
