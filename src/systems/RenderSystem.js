@@ -56,6 +56,11 @@ class RenderSystem {
         this.resourceSystem = resourceSystem;
     }
 
+    // Set logger reference
+    setLogger(logger) {
+        this.logger = logger;
+    }
+
     // Update day/night phase based on wave state
     updateDayNightPhase(waveState) {
         let targetPhase = 'day'; // Default to day
@@ -71,7 +76,9 @@ class RenderSystem {
         
         // Debug logging
         if (this.dayNightSystem.currentPhase !== targetPhase) {
-            console.log(`🌅🌙 Phase change: ${this.dayNightSystem.currentPhase} → ${targetPhase} (waveState: ${waveState})`);
+            if (this.logger) {
+                this.logger.info(`🌅🌙 Phase change: ${this.dayNightSystem.currentPhase} → ${targetPhase} (waveState: ${waveState})`);
+            }
         }
         
         if (this.dayNightSystem.currentPhase !== targetPhase) {

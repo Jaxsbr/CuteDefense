@@ -93,6 +93,7 @@ function initGame() {
     gameState.resourceSystem.setLogger(gameState.logger);
     gameState.towerManager.setLogger(gameState.logger);
     gameState.grid.setLogger(gameState.logger);
+    gameState.renderer.setLogger(gameState.logger);
 
     // Safety check for GameStateManager
     if (gameState.gameStateManager && typeof gameState.gameStateManager.setLogger === 'function') {
@@ -172,7 +173,9 @@ function render() {
     // Debug: Log wave state every 60 frames (1 second at 60fps)
     if (Math.floor(Date.now() / 1000) !== gameState.lastDebugSecond) {
         gameState.lastDebugSecond = Math.floor(Date.now() / 1000);
-        console.log(`🌊 Wave State: ${currentWaveInfo.waveState}, Current Wave: ${currentWaveInfo.currentWave}`);
+        if (gameState.logger) {
+            gameState.logger.info(`🌊 Wave State: ${currentWaveInfo.waveState}, Current Wave: ${currentWaveInfo.currentWave}`);
+        }
     }
     gameState.renderer.updateDayNightPhase(currentWaveInfo.waveState);
 
