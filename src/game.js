@@ -67,7 +67,7 @@ function initGame() {
     gameState.logger.info('Tower manager initialized');
     gameState.gameStateManager = new GameStateManager();
     gameState.logger.info('Game state manager initialized');
-    
+
     // Debug: Check if GameStateManager was created properly
     if (!gameState.gameStateManager) {
         gameState.logger.error('GameStateManager failed to initialize!');
@@ -91,8 +91,8 @@ function initGame() {
     gameState.towerSystem.setLogger(gameState.logger);
     gameState.resourceSystem.setLogger(gameState.logger);
     gameState.towerManager.setLogger(gameState.logger);
-    gameState.gridSystem.setLogger(gameState.logger);
-    
+    gameState.grid.setLogger(gameState.logger);
+
     // Safety check for GameStateManager
     if (gameState.gameStateManager && typeof gameState.gameStateManager.setLogger === 'function') {
         gameState.gameStateManager.setLogger(gameState.logger);
