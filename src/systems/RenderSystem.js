@@ -550,11 +550,8 @@ class RenderSystem {
         // Level rings in portrait
         this.renderTowerLevelRings(centerX, centerY, radius, tower.level);
 
-        // Tower type indicator
-        this.ctx.fillStyle = '#FFF';
-        this.ctx.font = 'bold 20px Arial';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText(tower.type.charAt(0), centerX, centerY + 7);
+        // Use new organic tower details instead of character indicator
+        this.renderTowerOrganicDetails(centerX, centerY, radius, tower.level, tower.type);
 
         // Rank badge in portrait
         if (tower.level > 1) {
