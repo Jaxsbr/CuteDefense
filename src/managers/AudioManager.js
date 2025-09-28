@@ -159,7 +159,9 @@ class SimpleAudioManager {
      * Resume music after wave completion
      */
     endWaveMusic() {
-        this.startPreparationMusic();
+        // Don't restart music immediately - let it fade in naturally
+        // The music will resume when the next preparation phase starts
+        console.log('Wave complete - music will resume during next preparation phase');
     }
 }
 

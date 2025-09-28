@@ -118,10 +118,7 @@ class EnemyManager {
             this.waveState = 'complete';
             this.waveAnnouncement = `Wave ${this.currentWave} Complete!`;
             this.announcementTime = currentTime;
-            // Resume background music after wave completion
-            if (this.audioManager) {
-                this.audioManager.endWaveMusic();
-            }
+            // Music will resume when next preparation phase starts
         }
     }
 
@@ -152,6 +149,11 @@ class EnemyManager {
 
         // Prepare wave pattern
         this.prepareWavePattern();
+
+        // Resume background music for preparation phase
+        if (this.audioManager) {
+            this.audioManager.startPreparationMusic();
+        }
 
         // Don't set initial announcement here - let updatePreparation() handle it
         // This prevents the flash of the initial announcement before countdown
