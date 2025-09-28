@@ -70,9 +70,9 @@ class RenderSystem {
             this.dayNightSystem.phaseChangeEffect.type = targetPhase === 'night' ? 'flash' : 'fade';
         }
         
-        // Smooth transition over time
+        // Smooth transition over time (slower for better visibility)
         if (this.dayNightSystem.transitionProgress < 1.0) {
-            this.dayNightSystem.transitionProgress = Math.min(1.0, this.dayNightSystem.transitionProgress + 0.02); // 2% per frame
+            this.dayNightSystem.transitionProgress = Math.min(1.0, this.dayNightSystem.transitionProgress + 0.01); // 1% per frame for slower transition
         }
         
         // Update phase change effect
@@ -128,30 +128,6 @@ class RenderSystem {
         }
     }
 
-    // Render phase change transition effect
-    renderPhaseChangeEffect() {
-        if (!this.dayNightSystem.phaseChangeEffect.active) return;
-        
-        const elapsed = Date.now() - this.dayNightSystem.phaseChangeEffect.startTime;
-        const progress = Math.min(1.0, elapsed / this.dayNightSystem.phaseChangeEffect.duration);
-        const effect = this.dayNightSystem.phaseChangeEffect;
-        
-        this.ctx.save();
-        
-        if (effect.type === 'flash') {
-            // Flash effect for night transition
-            const flashAlpha = Math.sin(progress * Math.PI) * 0.3;
-            this.ctx.fillStyle = `rgba(255, 255, 255, ${flashAlpha})`;
-            this.ctx.fillRect(0, 0, this.width, this.height);
-        } else if (effect.type === 'fade') {
-            // Fade effect for day transition
-            const fadeAlpha = (1.0 - progress) * 0.5;
-            this.ctx.fillStyle = `rgba(0, 0, 0, ${fadeAlpha})`;
-            this.ctx.fillRect(0, 0, this.width, this.height);
-        }
-        
-        this.ctx.restore();
-    }
 
     // Calculate tilemap height based on grid configuration
     getTilemapHeight() {
@@ -2541,8 +2517,8 @@ class RenderSystem {
         this.ctx.restore();
     }
 
-    // Render day/night lighting effects
-    renderDayNightLighting() {
+    // Render day/night tile lighting overlay (only affects tiles)
+    renderDayNightTileLighting() {
         const currentColors = this.getCurrentColors();
         const ambientLight = currentColors.ambientLight;
         
@@ -2550,21 +2526,44 @@ class RenderSystem {
         if (ambientLight < 1.0) {
             this.ctx.save();
             
-            // Create ambient lighting overlay
+            // Create ambient lighting overlay only over tilemap area
+            const tilemapHeight = this.getTilemapHeight();
             const overlayAlpha = 1.0 - ambientLight;
             this.ctx.fillStyle = `rgba(0, 0, 0, ${overlayAlpha})`;
-            this.ctx.fillRect(0, 0, this.width, this.height);
+            this.ctx.fillRect(0, 0, this.width, tilemapHeight);
             
             // Add subtle blue tint for night atmosphere
             if (this.dayNightSystem.currentPhase === 'night') {
                 this.ctx.fillStyle = `rgba(0, 50, 100, ${overlayAlpha * 0.3})`;
-                this.ctx.fillRect(0, 0, this.width, this.height);
+                this.ctx.fillRect(0, 0, this.width, tilemapHeight);
             }
             
             this.ctx.restore();
         }
+    }
+
+    // Render phase change transition effect (full screen)
+    renderPhaseChangeEffect() {
+        if (!this.dayNightSystem.phaseChangeEffect.active) return;
         
-        // Render phase change transition effect
-        this.renderPhaseChangeEffect();
+        const elapsed = Date.now() - this.dayNightSystem.phaseChangeEffect.startTime;
+        const progress = Math.min(1.0, elapsed / this.dayNightSystem.phaseChangeEffect.duration);
+        const effect = this.dayNightSystem.phaseChangeEffect;
+        
+        this.ctx.save();
+        
+        if (effect.type === 'flash') {
+            // Flash effect for night transition
+            const flashAlpha = Math.sin(progress * Math.PI) * 0.3;
+            this.ctx.fillStyle = `rgba(255, 255, 255, ${flashAlpha})`;
+            this.ctx.fillRect(0, 0, this.width, this.height);
+        } else if (effect.type === 'fade') {
+            // Fade effect for day transition
+            const fadeAlpha = (1.0 - progress) * 0.5;
+            this.ctx.fillStyle = `rgba(0, 0, 0, ${fadeAlpha})`;
+            this.ctx.fillRect(0, 0, this.width, this.height);
+        }
+        
+        this.ctx.restore();
     }
 }

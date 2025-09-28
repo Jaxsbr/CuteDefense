@@ -173,8 +173,11 @@ function render() {
     // Clear canvas
     gameState.renderer.clear();
 
-    // Render grid
+    // Render grid with day/night lighting
     gameState.renderer.renderGrid(gameState.grid, gameState.debug);
+
+    // Render day/night tile lighting overlay (only affects tiles)
+    gameState.renderer.renderDayNightTileLighting();
 
     // Render enemies
     gameState.renderer.renderEnemies(gameState.enemySystem.getEnemiesForRendering(), CONFIG.TILE_SIZE);
@@ -220,8 +223,8 @@ function render() {
     // Render game state overlay (game over, victory, etc.)
     gameState.renderer.renderGameStateOverlay(gameState.gameStateManager.getGameStateInfo());
 
-    // Render day/night lighting effects
-    gameState.renderer.renderDayNightLighting();
+    // Render phase change transition effects (full screen)
+    gameState.renderer.renderPhaseChangeEffect();
 }
 
 // Handle HUD clicks
