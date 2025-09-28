@@ -631,39 +631,203 @@ class RenderSystem {
     renderTile(gridX, gridY, tile, tileSize) {
         const screenX = gridX * tileSize;
         const screenY = gridY * tileSize;
+        const centerX = screenX + tileSize / 2;
+        const centerY = screenY + tileSize / 2;
+        const time = Date.now() / 1000;
 
-        // Set tile color based on type
+        // Save context for transformations
+        this.ctx.save();
+
         if (tile.type === 'start') {
-            // Bright green for start tile
-            this.ctx.fillStyle = '#00FF00';
+            // Enhanced start tile with gradient and pattern
+            const gradient = this.ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, tileSize / 2);
+            gradient.addColorStop(0, '#00FF88');
+            gradient.addColorStop(0.7, '#00CC66');
+            gradient.addColorStop(1, '#00AA44');
+            this.ctx.fillStyle = gradient;
+            this.ctx.beginPath();
+            this.ctx.roundRect(screenX, screenY, tileSize, tileSize, 4);
+            this.ctx.fill();
+
+            // Add animated sparkle effect
+            this.renderTileSparkles(centerX, centerY, time, gridX + gridY);
+
         } else if (tile.type === 'end') {
-            // Bright red for end tile
-            this.ctx.fillStyle = '#FF0000';
+            // Enhanced end tile with softer gradient and pattern
+            const gradient = this.ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, tileSize / 2);
+            gradient.addColorStop(0, '#FF8888');
+            gradient.addColorStop(0.7, '#DD6666');
+            gradient.addColorStop(1, '#BB4444');
+            this.ctx.fillStyle = gradient;
+            this.ctx.beginPath();
+            this.ctx.roundRect(screenX, screenY, tileSize, tileSize, 4);
+            this.ctx.fill();
+
+            // Add animated warning effect
+            this.renderTileWarningEffect(centerX, centerY, time, gridX + gridY);
+
         } else if (tile.type === 'path') {
-            this.ctx.fillStyle = this.colors.path;
+            // Enhanced path tile with lighter texture
+            const gradient = this.ctx.createLinearGradient(screenX, screenY, screenX + tileSize, screenY + tileSize);
+            gradient.addColorStop(0, '#D2B48C');
+            gradient.addColorStop(0.5, '#DEB887');
+            gradient.addColorStop(1, '#D2B48C');
+            this.ctx.fillStyle = gradient;
+            this.ctx.beginPath();
+            this.ctx.roundRect(screenX, screenY, tileSize, tileSize, 4);
+            this.ctx.fill();
+
+            // Add path texture pattern
+            this.renderPathTexture(screenX, screenY, tileSize, time, gridX + gridY);
+
         } else {
-            this.ctx.fillStyle = this.colors.grid;
+            // Enhanced grass tile with pattern and subtle animation
+            const gradient = this.ctx.createLinearGradient(screenX, screenY, screenX, screenY + tileSize);
+            gradient.addColorStop(0, '#98FB98');
+            gradient.addColorStop(0.5, '#90EE90');
+            gradient.addColorStop(1, '#87CEEB');
+            this.ctx.fillStyle = gradient;
+            this.ctx.beginPath();
+            this.ctx.roundRect(screenX, screenY, tileSize, tileSize, 4);
+            this.ctx.fill();
+
+            // Add grass texture pattern
+            this.renderGrassTexture(screenX, screenY, tileSize, time, gridX + gridY);
         }
 
-        // Draw tile
-        this.ctx.fillRect(screenX, screenY, tileSize, tileSize);
+        // Draw enhanced borders
+        this.renderTileBorder(screenX, screenY, tileSize, tile.type);
 
-        // Draw border with special highlighting for start/end tiles
-        if (tile.type === 'start' || tile.type === 'end') {
-            // Thick, bright border for start/end tiles
+        this.ctx.restore();
+    }
+
+    renderTileSparkles(centerX, centerY, time, seed) {
+        // Create sparkles around start tile
+        for (let i = 0; i < 3; i++) {
+            const angle = (time * 2 + i * Math.PI / 1.5 + seed * 0.1) % (Math.PI * 2);
+            const distance = 20 + Math.sin(time * 3 + i) * 5;
+            const x = centerX + Math.cos(angle) * distance;
+            const y = centerY + Math.sin(angle) * distance;
+
+            const sparkleSize = 1 + Math.sin(time * 4 + i) * 0.5;
+            const alpha = 0.6 + Math.sin(time * 3 + i) * 0.3;
+
+            this.ctx.save();
+            this.ctx.globalAlpha = alpha;
+            this.ctx.fillStyle = '#FFFFFF';
+            this.ctx.shadowColor = '#00FF88';
+            this.ctx.shadowBlur = 4;
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, sparkleSize, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.restore();
+        }
+    }
+
+    renderTileWarningEffect(centerX, centerY, time, seed) {
+        // Create pulsing warning effect for end tile
+        const pulseIntensity = Math.sin(time * 4) * 0.3 + 0.7;
+        const pulseRadius = 15 + pulseIntensity * 5;
+
+        this.ctx.save();
+        this.ctx.globalAlpha = 0.3;
+        this.ctx.strokeStyle = '#FF8888';
+        this.ctx.lineWidth = 2 + pulseIntensity;
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY, pulseRadius, 0, Math.PI * 2);
+        this.ctx.stroke();
+        this.ctx.restore();
+    }
+
+    renderPathTexture(screenX, screenY, tileSize, time, seed) {
+        // Add animated path texture with more visible effects
+        this.ctx.save();
+        this.ctx.globalAlpha = 0.6;
+        this.ctx.strokeStyle = '#654321';
+        this.ctx.lineWidth = 2;
+
+        // Draw animated texture lines with more movement
+        for (let i = 0; i < 4; i++) {
+            const offset = (seed + i) * 0.1;
+            const y = screenY + (tileSize / 5) * (i + 1) + Math.sin(time * 2 + offset) * 4;
+            const wave = Math.sin(time * 3 + offset) * 3;
+
+            this.ctx.beginPath();
+            this.ctx.moveTo(screenX + 3 + wave, y);
+            this.ctx.lineTo(screenX + tileSize - 3 + wave, y);
+            this.ctx.stroke();
+        }
+
+        // Add animated pebbles/stones
+        for (let i = 0; i < 3; i++) {
+            const pebbleX = screenX + 8 + (i * 15) + Math.sin(time * 1.5 + seed + i) * 2;
+            const pebbleY = screenY + 8 + (i * 12) + Math.cos(time * 1.2 + seed + i) * 1;
+            const pebbleSize = 2 + Math.sin(time * 2 + i) * 0.5;
+
+            this.ctx.fillStyle = '#4A4A4A';
+            this.ctx.beginPath();
+            this.ctx.arc(pebbleX, pebbleY, pebbleSize, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+        this.ctx.restore();
+    }
+
+    renderGrassTexture(screenX, screenY, tileSize, time, seed) {
+        // Add grass texture with more visible animation
+        this.ctx.save();
+        this.ctx.globalAlpha = 0.7;
+        this.ctx.strokeStyle = '#7CCD7C';
+        this.ctx.lineWidth = 2;
+
+        // Draw animated grass blades with more movement
+        for (let i = 0; i < 5; i++) {
+            const x = screenX + (tileSize / 6) * (i + 1);
+            const sway = Math.sin(time * 1.5 + seed * 0.1 + i) * 4;
+            const height = 10 + Math.sin(time * 2 + seed + i) * 4;
+            const wave = Math.sin(time * 3 + i) * 2;
+
+            this.ctx.beginPath();
+            this.ctx.moveTo(x + sway, screenY + tileSize);
+            this.ctx.lineTo(x + sway + wave, screenY + tileSize - height);
+            this.ctx.stroke();
+        }
+
+        // Add animated flowers/weeds
+        for (let i = 0; i < 2; i++) {
+            const flowerX = screenX + 10 + (i * 20) + Math.sin(time * 2 + seed + i) * 3;
+            const flowerY = screenY + 8 + Math.cos(time * 1.5 + seed + i) * 2;
+            const flowerSize = 1.5 + Math.sin(time * 3 + i) * 0.5;
+
+            this.ctx.fillStyle = '#FFB6C1';
+            this.ctx.beginPath();
+            this.ctx.arc(flowerX, flowerY, flowerSize, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+        this.ctx.restore();
+    }
+
+    renderTileBorder(screenX, screenY, tileSize, tileType) {
+        if (tileType === 'start' || tileType === 'end') {
+            // Enhanced borders for special tiles with rounded corners
             this.ctx.strokeStyle = '#FFFFFF';
             this.ctx.lineWidth = 3;
-            this.ctx.strokeRect(screenX, screenY, tileSize, tileSize);
+            this.ctx.beginPath();
+            this.ctx.roundRect(screenX, screenY, tileSize, tileSize, 4);
+            this.ctx.stroke();
 
-            // Add inner border for extra emphasis
-            this.ctx.strokeStyle = '#000000';
+            // Inner glow effect
+            this.ctx.strokeStyle = tileType === 'start' ? '#00FF88' : '#FF8888';
             this.ctx.lineWidth = 1;
-            this.ctx.strokeRect(screenX + 2, screenY + 2, tileSize - 4, tileSize - 4);
+            this.ctx.beginPath();
+            this.ctx.roundRect(screenX + 2, screenY + 2, tileSize - 4, tileSize - 4, 3);
+            this.ctx.stroke();
         } else {
-            // Normal border for other tiles
-            this.ctx.strokeStyle = '#333';
-            this.ctx.lineWidth = 1;
-            this.ctx.strokeRect(screenX, screenY, tileSize, tileSize);
+            // Dark cartoony outline for regular tiles
+            this.ctx.strokeStyle = '#333333';
+            this.ctx.lineWidth = 2;
+            this.ctx.beginPath();
+            this.ctx.roundRect(screenX, screenY, tileSize, tileSize, 4);
+            this.ctx.stroke();
         }
     }
 
@@ -867,10 +1031,10 @@ class RenderSystem {
             this.ctx.globalAlpha = 0.7;
         }
 
-        // Draw glow effect
+        // Enhanced glow effect for better visibility
         if (enemy.glowColor) {
             this.ctx.shadowColor = enemy.glowColor;
-            this.ctx.shadowBlur = 8;
+            this.ctx.shadowBlur = 12; // Increased from 8 for better visibility
         }
 
         // Draw enemy based on shape
@@ -893,10 +1057,21 @@ class RenderSystem {
 
         this.ctx.fill();
 
-        // Draw border
+        // Enhanced border for better contrast
         if (enemy.borderColor && enemy.borderWidth) {
+            // Draw thicker, more visible border
             this.ctx.strokeStyle = enemy.borderColor;
-            this.ctx.lineWidth = enemy.borderWidth;
+            this.ctx.lineWidth = enemy.borderWidth + 1; // Slightly thicker
+            this.ctx.stroke();
+
+            // Add inner dark outline for extra contrast
+            this.ctx.strokeStyle = '#000000';
+            this.ctx.lineWidth = 1;
+            this.ctx.stroke();
+        } else {
+            // Add default dark border for enemies without defined borders
+            this.ctx.strokeStyle = '#000000';
+            this.ctx.lineWidth = 2;
             this.ctx.stroke();
         }
 
@@ -1409,10 +1584,10 @@ class RenderSystem {
         this.ctx.translate(projectile.x, projectile.y);
         this.ctx.rotate(bounceRotation);
 
-        // Enhanced glow effect with pulsing
+        // Enhanced glow effect with pulsing for better visibility
         const pulseIntensity = Math.sin(time * 6) * 0.3 + 0.7;
         this.ctx.shadowColor = projectile.color;
-        this.ctx.shadowBlur = 8 + pulseIntensity * 4;
+        this.ctx.shadowBlur = 12 + pulseIntensity * 6; // Increased from 8+4
 
         // Main projectile body with enhanced colors
         this.ctx.fillStyle = projectile.color;
@@ -1426,9 +1601,14 @@ class RenderSystem {
         this.ctx.arc(0, 0, projectile.size * (0.3 + pulseIntensity * 0.2), 0, Math.PI * 2);
         this.ctx.fill();
 
-        // Add animated border
+        // Enhanced border system for maximum contrast
         this.ctx.strokeStyle = '#FFF';
-        this.ctx.lineWidth = 2 + pulseIntensity;
+        this.ctx.lineWidth = 3 + pulseIntensity; // Increased from 2
+        this.ctx.stroke();
+
+        // Add dark inner outline for contrast
+        this.ctx.strokeStyle = '#000000';
+        this.ctx.lineWidth = 1;
         this.ctx.stroke();
 
         // Add sparkle effect around fast-moving projectiles
@@ -1467,7 +1647,7 @@ class RenderSystem {
         this.ctx.restore();
     }
 
-    // Render upgrade particles
+    // Render upgrade particles with enhanced contrast
     renderUpgradeParticles(particles) {
         particles.forEach(particle => {
             this.ctx.save();
@@ -1475,26 +1655,29 @@ class RenderSystem {
             // Set alpha for fading effect
             this.ctx.globalAlpha = particle.alpha;
 
-            // Draw particle with glow effect
+            // Enhanced glow effect for better visibility
             this.ctx.shadowColor = particle.color;
-            this.ctx.shadowBlur = 6;
+            this.ctx.shadowBlur = 10; // Increased from 6
 
             this.ctx.fillStyle = particle.color;
             this.ctx.beginPath();
             this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
             this.ctx.fill();
 
-            // Add bright center
+            // Enhanced bright center with border for contrast
             this.ctx.fillStyle = '#FFF';
+            this.ctx.strokeStyle = '#000000';
+            this.ctx.lineWidth = 1;
             this.ctx.beginPath();
             this.ctx.arc(particle.x, particle.y, particle.size * 0.5, 0, Math.PI * 2);
             this.ctx.fill();
+            this.ctx.stroke();
 
             this.ctx.restore();
         });
     }
 
-    // Render placement effect particles
+    // Render placement effect particles with enhanced contrast
     renderPlacementEffects(effects) {
         effects.forEach(effect => {
             this.ctx.save();
@@ -1502,20 +1685,23 @@ class RenderSystem {
             // Set alpha for fading effect
             this.ctx.globalAlpha = effect.alpha;
 
-            // Draw sparkle with glow effect
+            // Enhanced glow effect for better visibility
             this.ctx.shadowColor = effect.color;
-            this.ctx.shadowBlur = 8;
+            this.ctx.shadowBlur = 12; // Increased from 8
 
             this.ctx.fillStyle = effect.color;
             this.ctx.beginPath();
             this.ctx.arc(effect.x, effect.y, effect.size, 0, Math.PI * 2);
             this.ctx.fill();
 
-            // Add bright center
+            // Enhanced bright center with border for contrast
             this.ctx.fillStyle = '#FFF';
+            this.ctx.strokeStyle = '#000000';
+            this.ctx.lineWidth = 1;
             this.ctx.beginPath();
             this.ctx.arc(effect.x, effect.y, effect.size * 0.6, 0, Math.PI * 2);
             this.ctx.fill();
+            this.ctx.stroke();
 
             this.ctx.restore();
         });
@@ -1669,12 +1855,17 @@ class RenderSystem {
         this.ctx.arc(0, 0, 16, 0, Math.PI * 2);
         this.ctx.fill();
 
-        // Enhanced coin border with gradient
+        // Enhanced coin border with gradient and high contrast
         const gradient = this.ctx.createRadialGradient(0, 0, 12, 0, 0, 16);
         gradient.addColorStop(0, borderColor);
         gradient.addColorStop(1, coin.expired ? '#333333' : '#B8860B');
         this.ctx.strokeStyle = gradient;
-        this.ctx.lineWidth = 3;
+        this.ctx.lineWidth = 4; // Increased from 3 for better visibility
+        this.ctx.stroke();
+
+        // Add inner dark outline for maximum contrast
+        this.ctx.strokeStyle = '#000000';
+        this.ctx.lineWidth = 1;
         this.ctx.stroke();
 
         // Inner coin highlight
@@ -1709,29 +1900,32 @@ class RenderSystem {
     renderCoinSparkles(centerX, centerY, time, coinId) {
         this.ctx.save();
 
-        // Create 4 sparkles around the coin
+        // Create 4 sparkles around the coin with enhanced contrast
         for (let i = 0; i < 4; i++) {
             const angle = (time * 2 + i * Math.PI / 2 + coinId * 0.1) % (Math.PI * 2);
             const distance = 25 + Math.sin(time * 3 + i) * 3;
             const sparkleX = centerX + Math.cos(angle) * distance;
             const sparkleY = centerY + Math.sin(angle) * distance;
 
-            const sparkleSize = 1.5 + Math.sin(time * 4 + i) * 0.5;
-            const sparkleAlpha = 0.6 + Math.sin(time * 3 + i) * 0.3;
+            const sparkleSize = 2 + Math.sin(time * 4 + i) * 0.5; // Increased from 1.5
+            const sparkleAlpha = 0.8 + Math.sin(time * 3 + i) * 0.2; // Increased from 0.6
 
             this.ctx.globalAlpha = sparkleAlpha;
             this.ctx.fillStyle = '#FFD700';
             this.ctx.shadowColor = '#FFD700';
-            this.ctx.shadowBlur = 4;
+            this.ctx.shadowBlur = 8; // Increased from 4 for better visibility
             this.ctx.beginPath();
             this.ctx.arc(sparkleX, sparkleY, sparkleSize, 0, Math.PI * 2);
             this.ctx.fill();
 
-            // Bright center
+            // Enhanced bright center with border
             this.ctx.fillStyle = '#FFF';
+            this.ctx.strokeStyle = '#000000';
+            this.ctx.lineWidth = 1;
             this.ctx.beginPath();
             this.ctx.arc(sparkleX, sparkleY, sparkleSize * 0.5, 0, Math.PI * 2);
             this.ctx.fill();
+            this.ctx.stroke();
         }
 
         this.ctx.restore();
@@ -1741,7 +1935,7 @@ class RenderSystem {
     renderWarningSparkles(centerX, centerY, time, coinId, warningProgress) {
         this.ctx.save();
 
-        // Create more intense sparkles with warning colors
+        // Create more intense sparkles with enhanced warning colors and contrast
         const sparkleCount = 6 + Math.floor(warningProgress * 4); // More sparkles as warning increases
 
         for (let i = 0; i < sparkleCount; i++) {
@@ -1750,26 +1944,29 @@ class RenderSystem {
             const sparkleX = centerX + Math.cos(angle) * distance;
             const sparkleY = centerY + Math.sin(angle) * distance;
 
-            const sparkleSize = 2 + Math.sin(time * 6 + i) * 1;
-            const sparkleAlpha = 0.8 + Math.sin(time * 8 + i) * 0.2;
+            const sparkleSize = 2.5 + Math.sin(time * 6 + i) * 1; // Increased from 2
+            const sparkleAlpha = 0.9 + Math.sin(time * 8 + i) * 0.1; // Increased from 0.8
 
-            // Warning colors - red/orange
+            // Enhanced warning colors - more intense red/orange
             const warningIntensity = Math.sin(time * 8 + i) * 0.5 + 0.5;
             const sparkleColor = `rgba(255, ${165 - warningIntensity * 100}, ${0 + warningIntensity * 100}, 1)`;
 
             this.ctx.globalAlpha = sparkleAlpha;
             this.ctx.fillStyle = sparkleColor;
             this.ctx.shadowColor = sparkleColor;
-            this.ctx.shadowBlur = 6;
+            this.ctx.shadowBlur = 10; // Increased from 6 for better visibility
             this.ctx.beginPath();
             this.ctx.arc(sparkleX, sparkleY, sparkleSize, 0, Math.PI * 2);
             this.ctx.fill();
 
-            // Bright center
+            // Enhanced bright center with dark border for contrast
             this.ctx.fillStyle = '#FFF';
+            this.ctx.strokeStyle = '#000000';
+            this.ctx.lineWidth = 1;
             this.ctx.beginPath();
             this.ctx.arc(sparkleX, sparkleY, sparkleSize * 0.5, 0, Math.PI * 2);
             this.ctx.fill();
+            this.ctx.stroke();
         }
 
         this.ctx.restore();
