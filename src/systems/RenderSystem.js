@@ -220,14 +220,22 @@ class RenderSystem {
     renderSelectionInfoSection(x, y, width, height, selectedTower) {
         this.ctx.save();
 
-        // Section background
+        // Section background with rounded corners
+        this.ctx.beginPath();
+        this.ctx.roundRect(x, y, width, height, 8);
+        this.ctx.clip();
         this.ctx.fillStyle = 'rgba(100, 0, 200, 0.3)';
         this.ctx.fillRect(x, y, width, height);
+        this.ctx.restore();
 
-        // Section border
+        // Section border with rounded corners
+        this.ctx.save();
         this.ctx.strokeStyle = '#9C27B0';
         this.ctx.lineWidth = 2;
-        this.ctx.strokeRect(x, y, width, height);
+        this.ctx.beginPath();
+        this.ctx.roundRect(x, y, width, height, 8);
+        this.ctx.stroke();
+        this.ctx.restore();
 
         // Info title
         this.ctx.fillStyle = '#FFF';
@@ -259,14 +267,22 @@ class RenderSystem {
     renderSelectionActionsSection(x, y, width, height, selectedTower, towerManager) {
         this.ctx.save();
 
-        // Section background
+        // Section background with rounded corners
+        this.ctx.beginPath();
+        this.ctx.roundRect(x, y, width, height, 8);
+        this.ctx.clip();
         this.ctx.fillStyle = 'rgba(0, 200, 100, 0.3)';
         this.ctx.fillRect(x, y, width, height);
+        this.ctx.restore();
 
-        // Section border
+        // Section border with rounded corners
+        this.ctx.save();
         this.ctx.strokeStyle = '#4CAF50';
         this.ctx.lineWidth = 2;
-        this.ctx.strokeRect(x, y, width, height);
+        this.ctx.beginPath();
+        this.ctx.roundRect(x, y, width, height, 8);
+        this.ctx.stroke();
+        this.ctx.restore();
 
         // Actions title
         this.ctx.fillStyle = '#FFF';
@@ -631,39 +647,203 @@ class RenderSystem {
     renderTile(gridX, gridY, tile, tileSize) {
         const screenX = gridX * tileSize;
         const screenY = gridY * tileSize;
+        const centerX = screenX + tileSize / 2;
+        const centerY = screenY + tileSize / 2;
+        const time = Date.now() / 1000;
 
-        // Set tile color based on type
+        // Save context for transformations
+        this.ctx.save();
+
         if (tile.type === 'start') {
-            // Bright green for start tile
-            this.ctx.fillStyle = '#00FF00';
+            // Enhanced start tile with gradient and pattern
+            const gradient = this.ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, tileSize / 2);
+            gradient.addColorStop(0, '#00FF88');
+            gradient.addColorStop(0.7, '#00CC66');
+            gradient.addColorStop(1, '#00AA44');
+            this.ctx.fillStyle = gradient;
+            this.ctx.beginPath();
+            this.ctx.roundRect(screenX, screenY, tileSize, tileSize, 4);
+            this.ctx.fill();
+
+            // Add animated sparkle effect
+            this.renderTileSparkles(centerX, centerY, time, gridX + gridY);
+
         } else if (tile.type === 'end') {
-            // Bright red for end tile
-            this.ctx.fillStyle = '#FF0000';
+            // Enhanced end tile with softer gradient and pattern
+            const gradient = this.ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, tileSize / 2);
+            gradient.addColorStop(0, '#FF8888');
+            gradient.addColorStop(0.7, '#DD6666');
+            gradient.addColorStop(1, '#BB4444');
+            this.ctx.fillStyle = gradient;
+            this.ctx.beginPath();
+            this.ctx.roundRect(screenX, screenY, tileSize, tileSize, 4);
+            this.ctx.fill();
+
+            // Add animated warning effect
+            this.renderTileWarningEffect(centerX, centerY, time, gridX + gridY);
+
         } else if (tile.type === 'path') {
-            this.ctx.fillStyle = this.colors.path;
+            // Enhanced path tile with lighter texture
+            const gradient = this.ctx.createLinearGradient(screenX, screenY, screenX + tileSize, screenY + tileSize);
+            gradient.addColorStop(0, '#D2B48C');
+            gradient.addColorStop(0.5, '#DEB887');
+            gradient.addColorStop(1, '#D2B48C');
+            this.ctx.fillStyle = gradient;
+            this.ctx.beginPath();
+            this.ctx.roundRect(screenX, screenY, tileSize, tileSize, 4);
+            this.ctx.fill();
+
+            // Add path texture pattern
+            this.renderPathTexture(screenX, screenY, tileSize, time, gridX + gridY);
+
         } else {
-            this.ctx.fillStyle = this.colors.grid;
+            // Enhanced grass tile with pattern and subtle animation
+            const gradient = this.ctx.createLinearGradient(screenX, screenY, screenX, screenY + tileSize);
+            gradient.addColorStop(0, '#98FB98');
+            gradient.addColorStop(0.5, '#90EE90');
+            gradient.addColorStop(1, '#87CEEB');
+            this.ctx.fillStyle = gradient;
+            this.ctx.beginPath();
+            this.ctx.roundRect(screenX, screenY, tileSize, tileSize, 4);
+            this.ctx.fill();
+
+            // Add grass texture pattern
+            this.renderGrassTexture(screenX, screenY, tileSize, time, gridX + gridY);
         }
 
-        // Draw tile
-        this.ctx.fillRect(screenX, screenY, tileSize, tileSize);
+        // Draw enhanced borders
+        this.renderTileBorder(screenX, screenY, tileSize, tile.type);
 
-        // Draw border with special highlighting for start/end tiles
-        if (tile.type === 'start' || tile.type === 'end') {
-            // Thick, bright border for start/end tiles
+        this.ctx.restore();
+    }
+
+    renderTileSparkles(centerX, centerY, time, seed) {
+        // Create sparkles around start tile
+        for (let i = 0; i < 3; i++) {
+            const angle = (time * 2 + i * Math.PI / 1.5 + seed * 0.1) % (Math.PI * 2);
+            const distance = 20 + Math.sin(time * 3 + i) * 5;
+            const x = centerX + Math.cos(angle) * distance;
+            const y = centerY + Math.sin(angle) * distance;
+
+            const sparkleSize = 1 + Math.sin(time * 4 + i) * 0.5;
+            const alpha = 0.6 + Math.sin(time * 3 + i) * 0.3;
+
+            this.ctx.save();
+            this.ctx.globalAlpha = alpha;
+            this.ctx.fillStyle = '#FFFFFF';
+            this.ctx.shadowColor = '#00FF88';
+            this.ctx.shadowBlur = 4;
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, sparkleSize, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.restore();
+        }
+    }
+
+    renderTileWarningEffect(centerX, centerY, time, seed) {
+        // Create pulsing warning effect for end tile
+        const pulseIntensity = Math.sin(time * 4) * 0.3 + 0.7;
+        const pulseRadius = 15 + pulseIntensity * 5;
+
+        this.ctx.save();
+        this.ctx.globalAlpha = 0.3;
+        this.ctx.strokeStyle = '#FF8888';
+        this.ctx.lineWidth = 2 + pulseIntensity;
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY, pulseRadius, 0, Math.PI * 2);
+        this.ctx.stroke();
+        this.ctx.restore();
+    }
+
+    renderPathTexture(screenX, screenY, tileSize, time, seed) {
+        // Add animated path texture with more visible effects
+        this.ctx.save();
+        this.ctx.globalAlpha = 0.6;
+        this.ctx.strokeStyle = '#654321';
+        this.ctx.lineWidth = 2;
+
+        // Draw animated texture lines with more movement
+        for (let i = 0; i < 4; i++) {
+            const offset = (seed + i) * 0.1;
+            const y = screenY + (tileSize / 5) * (i + 1) + Math.sin(time * 2 + offset) * 4;
+            const wave = Math.sin(time * 3 + offset) * 3;
+
+            this.ctx.beginPath();
+            this.ctx.moveTo(screenX + 3 + wave, y);
+            this.ctx.lineTo(screenX + tileSize - 3 + wave, y);
+            this.ctx.stroke();
+        }
+
+        // Add animated pebbles/stones
+        for (let i = 0; i < 3; i++) {
+            const pebbleX = screenX + 8 + (i * 15) + Math.sin(time * 1.5 + seed + i) * 2;
+            const pebbleY = screenY + 8 + (i * 12) + Math.cos(time * 1.2 + seed + i) * 1;
+            const pebbleSize = 2 + Math.sin(time * 2 + i) * 0.5;
+
+            this.ctx.fillStyle = '#4A4A4A';
+            this.ctx.beginPath();
+            this.ctx.arc(pebbleX, pebbleY, pebbleSize, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+        this.ctx.restore();
+    }
+
+    renderGrassTexture(screenX, screenY, tileSize, time, seed) {
+        // Add grass texture with more visible animation
+        this.ctx.save();
+        this.ctx.globalAlpha = 0.7;
+        this.ctx.strokeStyle = '#7CCD7C';
+        this.ctx.lineWidth = 2;
+
+        // Draw animated grass blades with more movement
+        for (let i = 0; i < 5; i++) {
+            const x = screenX + (tileSize / 6) * (i + 1);
+            const sway = Math.sin(time * 1.5 + seed * 0.1 + i) * 4;
+            const height = 10 + Math.sin(time * 2 + seed + i) * 4;
+            const wave = Math.sin(time * 3 + i) * 2;
+
+            this.ctx.beginPath();
+            this.ctx.moveTo(x + sway, screenY + tileSize);
+            this.ctx.lineTo(x + sway + wave, screenY + tileSize - height);
+            this.ctx.stroke();
+        }
+
+        // Add animated flowers/weeds
+        for (let i = 0; i < 2; i++) {
+            const flowerX = screenX + 10 + (i * 20) + Math.sin(time * 2 + seed + i) * 3;
+            const flowerY = screenY + 8 + Math.cos(time * 1.5 + seed + i) * 2;
+            const flowerSize = 1.5 + Math.sin(time * 3 + i) * 0.5;
+
+            this.ctx.fillStyle = '#FFB6C1';
+            this.ctx.beginPath();
+            this.ctx.arc(flowerX, flowerY, flowerSize, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+        this.ctx.restore();
+    }
+
+    renderTileBorder(screenX, screenY, tileSize, tileType) {
+        if (tileType === 'start' || tileType === 'end') {
+            // Enhanced borders for special tiles with rounded corners
             this.ctx.strokeStyle = '#FFFFFF';
             this.ctx.lineWidth = 3;
-            this.ctx.strokeRect(screenX, screenY, tileSize, tileSize);
+            this.ctx.beginPath();
+            this.ctx.roundRect(screenX, screenY, tileSize, tileSize, 4);
+            this.ctx.stroke();
 
-            // Add inner border for extra emphasis
-            this.ctx.strokeStyle = '#000000';
+            // Inner glow effect
+            this.ctx.strokeStyle = tileType === 'start' ? '#00FF88' : '#FF8888';
             this.ctx.lineWidth = 1;
-            this.ctx.strokeRect(screenX + 2, screenY + 2, tileSize - 4, tileSize - 4);
+            this.ctx.beginPath();
+            this.ctx.roundRect(screenX + 2, screenY + 2, tileSize - 4, tileSize - 4, 3);
+            this.ctx.stroke();
         } else {
-            // Normal border for other tiles
-            this.ctx.strokeStyle = '#333';
-            this.ctx.lineWidth = 1;
-            this.ctx.strokeRect(screenX, screenY, tileSize, tileSize);
+            // Dark cartoony outline for regular tiles
+            this.ctx.strokeStyle = '#333333';
+            this.ctx.lineWidth = 2;
+            this.ctx.beginPath();
+            this.ctx.roundRect(screenX, screenY, tileSize, tileSize, 4);
+            this.ctx.stroke();
         }
     }
 
@@ -675,7 +855,12 @@ class RenderSystem {
 
         // Limit tower size to fit within tile bounds
         const maxRadius = tileSize * 0.4; // 40% of tile size to prevent overlap
-        const towerRadius = Math.min(tower.size || tileSize * 0.3, maxRadius);
+        let towerRadius = Math.min(tower.size || tileSize * 0.3, maxRadius);
+
+        // Apply growth animation scaling
+        if (tower.growthAnimation && tower.growthAnimation.active) {
+            towerRadius *= tower.growthAnimation.scale;
+        }
 
         // Draw level rings (visual indicator for tower level) - no pulsing
         this.renderTowerLevelRings(centerX, centerY, towerRadius, tower.level);
@@ -841,7 +1026,7 @@ class RenderSystem {
 
     renderEnemies(enemies, tileSize) {
         enemies.forEach(enemy => {
-            if (enemy.isAlive && !enemy.reachedGoal) {
+            if (enemy.isAlive) {
                 this.renderEnemy(enemy, tileSize);
             }
         });
@@ -857,15 +1042,34 @@ class RenderSystem {
         // Save context state
         this.ctx.save();
 
+        // Apply spawn animation if spawning
+        if (enemy.spawnAnimation && enemy.spawnAnimation.active) {
+            this.renderSpawnAnimation(centerX, centerY, enemy.spawnAnimation);
+        }
+
+        // Apply end reached animation if enemy reached goal
+        if (enemy.endReachedAnimation && enemy.endReachedAnimation.active) {
+            this.renderEndReachedAnimation(centerX, centerY, enemy.endReachedAnimation);
+        }
+
+        // Apply death animation if dying
+        if (enemy.isDying && enemy.deathAnimation) {
+            this.ctx.translate(centerX, centerY);
+            this.ctx.rotate(enemy.deathAnimation.rotation);
+            this.ctx.scale(enemy.deathAnimation.scale, enemy.deathAnimation.scale);
+            this.ctx.globalAlpha = enemy.deathAnimation.alpha;
+            this.ctx.translate(-centerX, -centerY);
+        }
+
         // Apply damage flash effect
         if (enemy.isFlashing) {
             this.ctx.globalAlpha = 0.7;
         }
 
-        // Draw glow effect
+        // Enhanced glow effect for better visibility
         if (enemy.glowColor) {
             this.ctx.shadowColor = enemy.glowColor;
-            this.ctx.shadowBlur = 8;
+            this.ctx.shadowBlur = 12; // Increased from 8 for better visibility
         }
 
         // Draw enemy based on shape
@@ -888,10 +1092,21 @@ class RenderSystem {
 
         this.ctx.fill();
 
-        // Draw border
+        // Enhanced border for better contrast
         if (enemy.borderColor && enemy.borderWidth) {
+            // Draw thicker, more visible border
             this.ctx.strokeStyle = enemy.borderColor;
-            this.ctx.lineWidth = enemy.borderWidth;
+            this.ctx.lineWidth = enemy.borderWidth + 1; // Slightly thicker
+            this.ctx.stroke();
+
+            // Add inner dark outline for extra contrast
+            this.ctx.strokeStyle = '#000000';
+            this.ctx.lineWidth = 1;
+            this.ctx.stroke();
+        } else {
+            // Add default dark border for enemies without defined borders
+            this.ctx.strokeStyle = '#000000';
+            this.ctx.lineWidth = 2;
             this.ctx.stroke();
         }
 
@@ -965,155 +1180,37 @@ class RenderSystem {
     }
 
     renderWaveInfo(waveInfo) {
-        // Render wave announcement with enhanced visual effects
+        // Render wave announcement with consistent simple styling
         if (waveInfo.announcement) {
-            const time = Date.now() / 1000;
             const textX = this.width / 2;
             let textY = this.height / 2 - 50;
 
             // Split announcement into lines
             const lines = waveInfo.announcement.split('\n');
 
-            // Check announcement type for different visual effects
+            // Check announcement type for font size only
             const isCountdown = waveInfo.announcement.includes('STARTS IN');
-            const isWaveStart = waveInfo.announcement.includes('WAVE') && waveInfo.announcement.includes('INCOMING');
-            const isWaveComplete = waveInfo.announcement.includes('Complete');
-            const isBossWave = waveInfo.announcement.includes('BOSS WAVE');
 
-            if (isCountdown) {
-                // Dramatic countdown with pulsing and color cycling
-                const scale = Math.sin(time * 4) * 0.1 + 1; // More dramatic pulsing
-                const hue = (time * 120) % 360; // Faster color cycling
-                const alpha = Math.sin(time * 2) * 0.3 + 0.7; // Pulsing opacity
+            // Use larger font for 5s countdown, smaller for everything else
+            const fontSize = isCountdown ? 'bold 48px Arial' : 'bold 32px Arial';
 
-                this.ctx.save();
-                this.ctx.translate(textX, textY);
-                this.ctx.scale(scale, scale);
-                this.ctx.translate(-textX, -textY);
+            // Consistent white text styling for all announcements
+            this.ctx.font = fontSize;
+            this.ctx.textAlign = 'center';
+            this.ctx.fillStyle = '#FFFFFF';
+            this.ctx.strokeStyle = '#000000';
+            this.ctx.lineWidth = 3;
 
-                this.ctx.font = 'bold 48px Arial';
-                this.ctx.textAlign = 'center';
-                this.ctx.lineWidth = 6;
+            lines.forEach((line, index) => {
+                const y = textY + (index * (isCountdown ? 60 : 40));
 
-                lines.forEach((line, index) => {
-                    const y = textY + (index * 60);
-
-                    // Bright, pulsing colors for countdown
-                    this.ctx.fillStyle = `hsla(${hue}, 90%, 70%, ${alpha})`;
-                    this.ctx.strokeStyle = '#FFFFFF';
-
-                    // Multiple outlines for dramatic effect
-                    for (let i = -3; i <= 3; i++) {
-                        for (let j = -3; j <= 3; j++) {
-                            this.ctx.strokeText(line, textX + i, y + j);
-                        }
-                    }
-                    this.ctx.fillText(line, textX, y);
-                });
-
-                this.ctx.restore();
-            } else if (isWaveStart) {
-                // Exciting wave start announcement with zoom and sparkle effects
-                const scale = Math.sin(time * 2) * 0.05 + 1;
-                const hue = (time * 30) % 360;
-
-                this.ctx.save();
-                this.ctx.translate(textX, textY);
-                this.ctx.scale(scale, scale);
-                this.ctx.translate(-textX, -textY);
-
-                this.ctx.font = 'bold 42px Arial';
-                this.ctx.textAlign = 'center';
-                this.ctx.lineWidth = 5;
-
-                lines.forEach((line, index) => {
-                    const y = textY + (index * 55);
-
-                    // Bright, exciting colors
-                    this.ctx.fillStyle = `hsl(${hue}, 85%, 65%)`;
-                    this.ctx.strokeStyle = '#FFD700'; // Gold outline
-
-                    // Thick outline for impact
-                    this.ctx.strokeText(line, textX - 2, y - 2);
-                    this.ctx.strokeText(line, textX + 2, y + 2);
-                    this.ctx.strokeText(line, textX, y);
-                    this.ctx.fillText(line, textX, y);
-                });
-
-                this.ctx.restore();
-            } else if (isBossWave) {
-                // Special boss wave announcement with intense effects
-                const scale = Math.sin(time * 3) * 0.08 + 1;
-                const hue = (time * 180) % 360;
-
-                this.ctx.save();
-                this.ctx.translate(textX, textY);
-                this.ctx.scale(scale, scale);
-                this.ctx.translate(-textX, -textY);
-
-                this.ctx.font = 'bold 44px Arial';
-                this.ctx.textAlign = 'center';
-                this.ctx.lineWidth = 6;
-
-                lines.forEach((line, index) => {
-                    const y = textY + (index * 60);
-
-                    // Intense red-orange colors for boss waves
-                    this.ctx.fillStyle = `hsl(${hue}, 90%, 60%)`;
-                    this.ctx.strokeStyle = '#FF0000'; // Red outline
-
-                    // Multiple thick outlines
-                    for (let i = -4; i <= 4; i += 2) {
-                        for (let j = -4; j <= 4; j += 2) {
-                            this.ctx.strokeText(line, textX + i, y + j);
-                        }
-                    }
-                    this.ctx.fillText(line, textX, y);
-                });
-
-                this.ctx.restore();
-            } else if (isWaveComplete) {
-                // Celebration for wave completion
-                const scale = Math.sin(time * 1.5) * 0.03 + 1;
-                const hue = (time * 45) % 360;
-
-                this.ctx.font = 'bold 32px Arial';
-                this.ctx.textAlign = 'center';
-                this.ctx.lineWidth = 4;
-
-                lines.forEach((line, index) => {
-                    const y = textY + (index * 40);
-
-                    // Bright, celebratory colors
-                    this.ctx.fillStyle = `hsl(${hue}, 80%, 70%)`;
-                    this.ctx.strokeStyle = '#00FF00'; // Green outline
-
-                    this.ctx.strokeText(line, textX - 2, y - 2);
-                    this.ctx.strokeText(line, textX + 2, y + 2);
-                    this.ctx.strokeText(line, textX, y);
-                    this.ctx.fillText(line, textX, y);
-                });
-            } else {
-                // Default announcement styling
-                this.ctx.font = 'bold 28px Arial';
-                this.ctx.textAlign = 'center';
-                this.ctx.fillStyle = this.colors.waveInfo;
-                this.ctx.strokeStyle = this.colors.ui;
-                this.ctx.lineWidth = 3;
-
-                lines.forEach((line, index) => {
-                    const y = textY + (index * 35);
-
-                    this.ctx.strokeText(line, textX, y);
-                    this.ctx.fillText(line, textX, y);
-                });
-            }
+                // Simple black outline with white fill - no pulsing, no color changes
+                this.ctx.strokeText(line, textX, y);
+                this.ctx.fillText(line, textX, y);
+            });
         }
 
-        // Render wave announcement effects (particles, sparkles, etc.)
-        if (waveInfo.announcement) {
-            this.renderWaveAnnouncementEffects(waveInfo);
-        }
+        // No visual effects for announcements - keep them clean and simple
 
         // Render wave stats with enhanced UI
         this.renderWaveStatsPanel(waveInfo);
@@ -1250,6 +1347,77 @@ class RenderSystem {
             this.ctx.beginPath();
             this.ctx.arc(x, y, 2 + Math.sin(time * 3 + i) * 1.5, 0, Math.PI * 2);
             this.ctx.fill();
+            this.ctx.restore();
+        }
+    }
+
+    // Render dramatic warning effect for wave announcements
+    renderDramaticWarningEffect(waveInfo) {
+        const time = Date.now() / 1000;
+        const isCountdown = waveInfo.announcement.includes('STARTS IN');
+        const isBossWave = waveInfo.announcement.includes('BOSS WAVE');
+
+        if (isCountdown || isBossWave) {
+            // Create dramatic corner blur pulse effect
+            const intensity = isBossWave ? 0.8 : 0.6;
+            const pulseSpeed = isBossWave ? 8 : 6;
+            const pulseIntensity = Math.sin(time * pulseSpeed) * 0.5 + 0.5;
+
+            // Calculate fade-out transition
+            let fadeMultiplier = 1.0;
+            if (waveInfo.waveState === 'spawning' && waveInfo.announcementTime) {
+                const elapsed = Date.now() - waveInfo.announcementTime;
+                const fadeDuration = 1000; // 1 second fade-out
+                if (elapsed > 0) {
+                    fadeMultiplier = Math.max(0, 1.0 - (elapsed / fadeDuration));
+                }
+            }
+
+            // Apply blur effect to corners of the screen
+            this.ctx.save();
+
+            // Create radial gradient for corner blur effect
+            const centerX = this.width / 2;
+            const centerY = this.height / 2;
+            const maxDistance = Math.sqrt(centerX * centerX + centerY * centerY);
+
+            // Increased opacity for better visibility
+            const cornerOpacity = pulseIntensity * 0.6 * fadeMultiplier; // Increased from 0.3 to 0.6
+            const borderOpacity = pulseIntensity * 0.8 * fadeMultiplier; // Increased from 0.6 to 0.8
+
+            // Top-left corner blur
+            const gradient1 = this.ctx.createRadialGradient(0, 0, 0, 0, 0, maxDistance * 0.4);
+            gradient1.addColorStop(0, `rgba(255, 100, 100, ${cornerOpacity})`);
+            gradient1.addColorStop(1, 'rgba(255, 100, 100, 0)');
+            this.ctx.fillStyle = gradient1;
+            this.ctx.fillRect(0, 0, this.width * 0.3, this.height * 0.3);
+
+            // Top-right corner blur
+            const gradient2 = this.ctx.createRadialGradient(this.width, 0, 0, this.width, 0, maxDistance * 0.4);
+            gradient2.addColorStop(0, `rgba(255, 100, 100, ${cornerOpacity})`);
+            gradient2.addColorStop(1, 'rgba(255, 100, 100, 0)');
+            this.ctx.fillStyle = gradient2;
+            this.ctx.fillRect(this.width * 0.7, 0, this.width * 0.3, this.height * 0.3);
+
+            // Bottom-left corner blur
+            const gradient3 = this.ctx.createRadialGradient(0, this.height, 0, 0, this.height, maxDistance * 0.4);
+            gradient3.addColorStop(0, `rgba(255, 100, 100, ${cornerOpacity})`);
+            gradient3.addColorStop(1, 'rgba(255, 100, 100, 0)');
+            this.ctx.fillStyle = gradient3;
+            this.ctx.fillRect(0, this.height * 0.7, this.width * 0.3, this.height * 0.3);
+
+            // Bottom-right corner blur
+            const gradient4 = this.ctx.createRadialGradient(this.width, this.height, 0, this.width, this.height, maxDistance * 0.4);
+            gradient4.addColorStop(0, `rgba(255, 100, 100, ${cornerOpacity})`);
+            gradient4.addColorStop(1, 'rgba(255, 100, 100, 0)');
+            this.ctx.fillStyle = gradient4;
+            this.ctx.fillRect(this.width * 0.7, this.height * 0.7, this.width * 0.3, this.height * 0.3);
+
+            // Add subtle border pulse effect
+            this.ctx.strokeStyle = `rgba(255, 100, 100, ${borderOpacity})`;
+            this.ctx.lineWidth = 3 + pulseIntensity * 2;
+            this.ctx.strokeRect(0, 0, this.width, this.height);
+
             this.ctx.restore();
         }
     }
@@ -1401,6 +1569,11 @@ class RenderSystem {
             if (tower.upgradeParticles) {
                 this.renderUpgradeParticles(tower.upgradeParticles);
             }
+
+            // Render placement effect particles if they exist
+            if (tower.placementEffects) {
+                this.renderPlacementEffects(tower.placementEffects);
+            }
         });
     }
 
@@ -1411,16 +1584,27 @@ class RenderSystem {
         });
     }
 
-    // Render individual projectile with trail effect
+    // Render individual projectile with enhanced trail and bouncy effects
     renderProjectile(projectile) {
+        const time = Date.now() / 1000;
+
         // Save context state
         this.ctx.save();
 
-        // Render trail effect
+        // Enhanced trail effect with gradient
         if (projectile.trail && projectile.trail.length > 1) {
-            this.ctx.strokeStyle = projectile.color;
-            this.ctx.lineWidth = 3;
-            this.ctx.globalAlpha = 0.6;
+            // Create gradient trail that fades from projectile color to transparent
+            const gradient = this.ctx.createLinearGradient(
+                projectile.trail[0].x, projectile.trail[0].y,
+                projectile.trail[projectile.trail.length - 1].x,
+                projectile.trail[projectile.trail.length - 1].y
+            );
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 0)');
+            gradient.addColorStop(1, projectile.color + 'CC'); // 80% opacity
+
+            this.ctx.strokeStyle = gradient;
+            this.ctx.lineWidth = 4;
+            this.ctx.lineCap = 'round';
             this.ctx.beginPath();
             this.ctx.moveTo(projectile.trail[0].x, projectile.trail[0].y);
             for (let i = 1; i < projectile.trail.length; i++) {
@@ -1429,34 +1613,76 @@ class RenderSystem {
             this.ctx.stroke();
         }
 
-        // Reset alpha for main projectile
-        this.ctx.globalAlpha = 1.0;
+        // Add bouncy rotation animation to projectile
+        const bounceRotation = Math.sin(time * 8 + projectile.id * 0.1) * 0.1;
 
-        // Render main projectile with glow effect
+        this.ctx.translate(projectile.x, projectile.y);
+        this.ctx.rotate(bounceRotation);
+
+        // Enhanced glow effect with pulsing for better visibility
+        const pulseIntensity = Math.sin(time * 6) * 0.3 + 0.7;
         this.ctx.shadowColor = projectile.color;
-        this.ctx.shadowBlur = 8;
+        this.ctx.shadowBlur = 12 + pulseIntensity * 6; // Increased from 8+4
 
+        // Main projectile body with enhanced colors
         this.ctx.fillStyle = projectile.color;
         this.ctx.beginPath();
-        this.ctx.arc(projectile.x, projectile.y, projectile.size, 0, Math.PI * 2);
+        this.ctx.arc(0, 0, projectile.size, 0, Math.PI * 2);
         this.ctx.fill();
 
-        // Add bright center
+        // Add bright center with pulsing effect
         this.ctx.fillStyle = '#FFF';
         this.ctx.beginPath();
-        this.ctx.arc(projectile.x, projectile.y, projectile.size * 0.4, 0, Math.PI * 2);
+        this.ctx.arc(0, 0, projectile.size * (0.3 + pulseIntensity * 0.2), 0, Math.PI * 2);
         this.ctx.fill();
 
-        // Add border
+        // Enhanced border system for maximum contrast
         this.ctx.strokeStyle = '#FFF';
-        this.ctx.lineWidth = 2;
+        this.ctx.lineWidth = 3 + pulseIntensity; // Increased from 2
         this.ctx.stroke();
+
+        // Add dark inner outline for contrast
+        this.ctx.strokeStyle = '#000000';
+        this.ctx.lineWidth = 1;
+        this.ctx.stroke();
+
+        // Add sparkle effect around fast-moving projectiles
+        if (projectile.speed > 200) {
+            this.renderProjectileSparkles(0, 0, time, projectile.id);
+        }
 
         // Restore context state
         this.ctx.restore();
     }
 
-    // Render upgrade particles
+    // Render sparkles around fast projectiles
+    renderProjectileSparkles(centerX, centerY, time, projectileId) {
+        this.ctx.save();
+
+        // Create 2-3 sparkles around the projectile
+        const sparkleCount = 3;
+        for (let i = 0; i < sparkleCount; i++) {
+            const angle = (time * 4 + i * Math.PI / 1.5 + projectileId * 0.1) % (Math.PI * 2);
+            const distance = 12 + Math.sin(time * 8 + i) * 3;
+            const sparkleX = centerX + Math.cos(angle) * distance;
+            const sparkleY = centerY + Math.sin(angle) * distance;
+
+            const sparkleSize = 1 + Math.sin(time * 6 + i) * 0.5;
+            const sparkleAlpha = 0.6 + Math.sin(time * 8 + i) * 0.3;
+
+            this.ctx.globalAlpha = sparkleAlpha;
+            this.ctx.fillStyle = '#FFF';
+            this.ctx.shadowColor = '#FFF';
+            this.ctx.shadowBlur = 4;
+            this.ctx.beginPath();
+            this.ctx.arc(sparkleX, sparkleY, sparkleSize, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+
+        this.ctx.restore();
+    }
+
+    // Render upgrade particles with enhanced contrast
     renderUpgradeParticles(particles) {
         particles.forEach(particle => {
             this.ctx.save();
@@ -1464,20 +1690,53 @@ class RenderSystem {
             // Set alpha for fading effect
             this.ctx.globalAlpha = particle.alpha;
 
-            // Draw particle with glow effect
+            // Enhanced glow effect for better visibility
             this.ctx.shadowColor = particle.color;
-            this.ctx.shadowBlur = 6;
+            this.ctx.shadowBlur = 10; // Increased from 6
 
             this.ctx.fillStyle = particle.color;
             this.ctx.beginPath();
             this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
             this.ctx.fill();
 
-            // Add bright center
+            // Enhanced bright center with border for contrast
             this.ctx.fillStyle = '#FFF';
+            this.ctx.strokeStyle = '#000000';
+            this.ctx.lineWidth = 1;
             this.ctx.beginPath();
             this.ctx.arc(particle.x, particle.y, particle.size * 0.5, 0, Math.PI * 2);
             this.ctx.fill();
+            this.ctx.stroke();
+
+            this.ctx.restore();
+        });
+    }
+
+    // Render placement effect particles with enhanced contrast
+    renderPlacementEffects(effects) {
+        effects.forEach(effect => {
+            this.ctx.save();
+
+            // Set alpha for fading effect
+            this.ctx.globalAlpha = effect.alpha;
+
+            // Enhanced glow effect for better visibility
+            this.ctx.shadowColor = effect.color;
+            this.ctx.shadowBlur = 12; // Increased from 8
+
+            this.ctx.fillStyle = effect.color;
+            this.ctx.beginPath();
+            this.ctx.arc(effect.x, effect.y, effect.size, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Enhanced bright center with border for contrast
+            this.ctx.fillStyle = '#FFF';
+            this.ctx.strokeStyle = '#000000';
+            this.ctx.lineWidth = 1;
+            this.ctx.beginPath();
+            this.ctx.arc(effect.x, effect.y, effect.size * 0.6, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.stroke();
 
             this.ctx.restore();
         });
@@ -1494,38 +1753,258 @@ class RenderSystem {
     renderCollectionEffects(effects) {
         effects.forEach(particle => {
             this.ctx.save();
-            this.ctx.globalAlpha = particle.life / particle.maxLife;
-            this.ctx.fillStyle = particle.color;
-            this.ctx.beginPath();
-            this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-            this.ctx.fill();
+            this.ctx.globalAlpha = particle.alpha || (particle.life / particle.maxLife);
+
+            if (particle.text) {
+                // Render floating text with appropriate color
+                const isNegative = particle.text.startsWith('-');
+                this.ctx.fillStyle = isNegative ? '#FF4444' : '#FFD700';
+                this.ctx.font = `bold ${particle.size}px Arial`;
+                this.ctx.textAlign = 'center';
+                this.ctx.strokeStyle = isNegative ? '#AA0000' : '#000';
+                this.ctx.lineWidth = isNegative ? 3 : 2; // Thicker outline for negative text
+                this.ctx.strokeText(particle.text, particle.x, particle.y);
+                this.ctx.fillText(particle.text, particle.x, particle.y);
+            } else {
+                // Render sparkle particles with rotation and glow
+                this.ctx.translate(particle.x, particle.y);
+                if (particle.rotation !== undefined) {
+                    this.ctx.rotate(particle.rotation);
+                }
+
+                // Add glow effect
+                this.ctx.shadowColor = particle.color;
+                this.ctx.shadowBlur = 6;
+
+                this.ctx.fillStyle = particle.color;
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, particle.size, 0, Math.PI * 2);
+                this.ctx.fill();
+
+                // Add bright center
+                this.ctx.fillStyle = '#FFF';
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, particle.size * 0.6, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+
             this.ctx.restore();
         });
     }
 
+    // Render impact effects from projectile hits
+    renderImpactEffects(effects) {
+        effects.forEach(effect => {
+            this.ctx.save();
+            this.ctx.globalAlpha = effect.alpha || (effect.life / effect.maxLife);
+
+            if (effect.text) {
+                // Render damage number floating text
+                this.ctx.fillStyle = '#FF4444'; // Red for damage numbers
+                this.ctx.font = `bold ${effect.size}px Arial`;
+                this.ctx.textAlign = 'center';
+                this.ctx.strokeStyle = '#AA0000';
+                this.ctx.lineWidth = 2;
+                this.ctx.strokeText(effect.text, effect.x, effect.y);
+                this.ctx.fillText(effect.text, effect.x, effect.y);
+            } else {
+                // Render impact sparkle particles with rotation and glow
+                this.ctx.translate(effect.x, effect.y);
+                if (effect.rotation !== undefined) {
+                    this.ctx.rotate(effect.rotation);
+                }
+
+                // Add glow effect
+                this.ctx.shadowColor = effect.color;
+                this.ctx.shadowBlur = 8;
+
+                this.ctx.fillStyle = effect.color;
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, effect.size, 0, Math.PI * 2);
+                this.ctx.fill();
+
+                // Add bright center
+                this.ctx.fillStyle = '#FFF';
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, effect.size * 0.6, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+
+            this.ctx.restore();
+        });
+    }
 
     // Render individual coin
     renderCoin(coin) {
         const bounceY = coin.y + coin.bounceHeight;
+        const swayX = coin.x + (coin.swayOffset || 0);
+        const time = Date.now() / 1000;
 
-        // Draw coin (scaled for 64px tiles)
-        this.ctx.fillStyle = '#FFD700';
+        // Add subtle rotation animation
+        const rotation = Math.sin(time * 2 + coin.id * 0.1) * 0.1;
+
+        // Handle collection and expiration animation scaling
+        let scale = 1.0;
+        if (coin.collected && coin.collectionProgress !== undefined) {
+            scale = Math.max(0.1, 1.0 - coin.collectionProgress);
+        } else if (coin.expired && coin.expirationProgress !== undefined) {
+            scale = Math.max(0.1, 1.0 - coin.expirationProgress);
+        }
+
+        this.ctx.save();
+        this.ctx.translate(swayX, bounceY);
+        this.ctx.scale(scale, scale);
+        this.ctx.rotate(rotation);
+
+        // Determine coin visual state
+        let coinColor = '#FFD700';
+        let glowColor = '#FFD700';
+        let borderColor = '#FFA500';
+        let innerColor = '#FFF8DC';
+        let shadowBlur = 8;
+
+        if (coin.expired) {
+            // Expired coin - dark, negative colors
+            coinColor = '#666666';
+            glowColor = '#FF4444';
+            borderColor = '#444444';
+            innerColor = '#888888';
+            shadowBlur = 12;
+        } else if (coin.warningProgress > 0) {
+            // Warning coin - pulsing orange/red
+            const warningIntensity = Math.sin(time * 8) * 0.5 + 0.5;
+            coinColor = `rgba(255, ${165 - warningIntensity * 100}, ${0 + warningIntensity * 100}, 1)`;
+            glowColor = '#FF8800';
+            borderColor = '#FF6600';
+            innerColor = '#FFCC88';
+            shadowBlur = 10 + warningIntensity * 4;
+        }
+
+        // Draw coin with enhanced glow effect
+        this.ctx.shadowColor = glowColor;
+        this.ctx.shadowBlur = shadowBlur;
+
+        // Main coin body
+        this.ctx.fillStyle = coinColor;
         this.ctx.beginPath();
-        this.ctx.arc(coin.x, bounceY, 16, 0, Math.PI * 2);  // Increased from 8 to 16 for better visibility
+        this.ctx.arc(0, 0, 16, 0, Math.PI * 2);
         this.ctx.fill();
 
-        // Draw coin border
-        this.ctx.strokeStyle = '#FFA500';
-        this.ctx.lineWidth = 3;  // Increased from 2 to 3 for better visibility
+        // Enhanced coin border with gradient and high contrast
+        const gradient = this.ctx.createRadialGradient(0, 0, 12, 0, 0, 16);
+        gradient.addColorStop(0, borderColor);
+        gradient.addColorStop(1, coin.expired ? '#333333' : '#B8860B');
+        this.ctx.strokeStyle = gradient;
+        this.ctx.lineWidth = 4; // Increased from 3 for better visibility
         this.ctx.stroke();
 
-        // Draw sparkle effect
-        if (coin.sparkleTime % 200 < 100) {
-            this.ctx.fillStyle = '#FFF';
-            this.ctx.font = '20px Arial';  // Increased from 12px to 20px
-            this.ctx.textAlign = 'center';
-            this.ctx.fillText('$', coin.x, bounceY + 6);  // Adjusted position
+        // Add inner dark outline for maximum contrast
+        this.ctx.strokeStyle = '#000000';
+        this.ctx.lineWidth = 1;
+        this.ctx.stroke();
+
+        // Inner coin highlight
+        this.ctx.fillStyle = innerColor;
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, 10, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Draw sparkle effects around coin (only for normal coins)
+        if (!coin.expired && coin.warningProgress === 0) {
+            this.renderCoinSparkles(0, 0, time, coin.id);
+        } else if (coin.warningProgress > 0) {
+            // Warning sparkles - more intense and red/orange
+            this.renderWarningSparkles(0, 0, time, coin.id, coin.warningProgress);
         }
+
+        this.ctx.restore();
+
+        // Draw coin value indicator
+        if (coin.value > 1) {
+            this.ctx.fillStyle = '#FFF';
+            this.ctx.font = 'bold 12px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.strokeStyle = '#000';
+            this.ctx.lineWidth = 2;
+            this.ctx.strokeText(coin.value.toString(), swayX, bounceY - 25);
+            this.ctx.fillText(coin.value.toString(), swayX, bounceY - 25);
+        }
+    }
+
+    // Enhanced sparkle effects for coins
+    renderCoinSparkles(centerX, centerY, time, coinId) {
+        this.ctx.save();
+
+        // Create 4 sparkles around the coin with enhanced contrast
+        for (let i = 0; i < 4; i++) {
+            const angle = (time * 2 + i * Math.PI / 2 + coinId * 0.1) % (Math.PI * 2);
+            const distance = 25 + Math.sin(time * 3 + i) * 3;
+            const sparkleX = centerX + Math.cos(angle) * distance;
+            const sparkleY = centerY + Math.sin(angle) * distance;
+
+            const sparkleSize = 2 + Math.sin(time * 4 + i) * 0.5; // Increased from 1.5
+            const sparkleAlpha = 0.8 + Math.sin(time * 3 + i) * 0.2; // Increased from 0.6
+
+            this.ctx.globalAlpha = sparkleAlpha;
+            this.ctx.fillStyle = '#FFD700';
+            this.ctx.shadowColor = '#FFD700';
+            this.ctx.shadowBlur = 8; // Increased from 4 for better visibility
+            this.ctx.beginPath();
+            this.ctx.arc(sparkleX, sparkleY, sparkleSize, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Enhanced bright center with border
+            this.ctx.fillStyle = '#FFF';
+            this.ctx.strokeStyle = '#000000';
+            this.ctx.lineWidth = 1;
+            this.ctx.beginPath();
+            this.ctx.arc(sparkleX, sparkleY, sparkleSize * 0.5, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.stroke();
+        }
+
+        this.ctx.restore();
+    }
+
+    // Enhanced warning sparkles for coins approaching expiration
+    renderWarningSparkles(centerX, centerY, time, coinId, warningProgress) {
+        this.ctx.save();
+
+        // Create more intense sparkles with enhanced warning colors and contrast
+        const sparkleCount = 6 + Math.floor(warningProgress * 4); // More sparkles as warning increases
+
+        for (let i = 0; i < sparkleCount; i++) {
+            const angle = (time * 4 + i * Math.PI / 3 + coinId * 0.1) % (Math.PI * 2);
+            const distance = 30 + Math.sin(time * 6 + i) * 5;
+            const sparkleX = centerX + Math.cos(angle) * distance;
+            const sparkleY = centerY + Math.sin(angle) * distance;
+
+            const sparkleSize = 2.5 + Math.sin(time * 6 + i) * 1; // Increased from 2
+            const sparkleAlpha = 0.9 + Math.sin(time * 8 + i) * 0.1; // Increased from 0.8
+
+            // Enhanced warning colors - more intense red/orange
+            const warningIntensity = Math.sin(time * 8 + i) * 0.5 + 0.5;
+            const sparkleColor = `rgba(255, ${165 - warningIntensity * 100}, ${0 + warningIntensity * 100}, 1)`;
+
+            this.ctx.globalAlpha = sparkleAlpha;
+            this.ctx.fillStyle = sparkleColor;
+            this.ctx.shadowColor = sparkleColor;
+            this.ctx.shadowBlur = 10; // Increased from 6 for better visibility
+            this.ctx.beginPath();
+            this.ctx.arc(sparkleX, sparkleY, sparkleSize, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Enhanced bright center with dark border for contrast
+            this.ctx.fillStyle = '#FFF';
+            this.ctx.strokeStyle = '#000000';
+            this.ctx.lineWidth = 1;
+            this.ctx.beginPath();
+            this.ctx.arc(sparkleX, sparkleY, sparkleSize * 0.5, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.stroke();
+        }
+
+        this.ctx.restore();
     }
 
     // Render tower placement popup
@@ -1704,6 +2183,92 @@ class RenderSystem {
             this.ctx.fillText('0', x + width / 2, y + 45);
         }
 
+        this.ctx.restore();
+    }
+
+    // Render damage indicators floating above enemies
+    renderDamageIndicators(indicators) {
+        indicators.forEach(indicator => {
+            this.ctx.save();
+            this.ctx.globalAlpha = indicator.alpha;
+            
+            // Render damage text with enhanced contrast
+            this.ctx.fillStyle = indicator.color;
+            this.ctx.strokeStyle = '#000000';
+            this.ctx.lineWidth = 2;
+            this.ctx.font = `bold ${indicator.size}px Arial`;
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            
+            // Add glow effect
+            this.ctx.shadowColor = indicator.color;
+            this.ctx.shadowBlur = 4;
+            
+            this.ctx.strokeText(indicator.text, indicator.x, indicator.y);
+            this.ctx.fillText(indicator.text, indicator.x, indicator.y);
+            
+            this.ctx.restore();
+        });
+    }
+
+    // Render spawn animation with circle ripples
+    renderSpawnAnimation(centerX, centerY, spawnAnimation) {
+        this.ctx.save();
+        
+        const progress = spawnAnimation.time / spawnAnimation.duration;
+        const currentRadius = progress * spawnAnimation.maxRadius;
+        const alpha = spawnAnimation.alpha * (1 - progress);
+        
+        // Create expanding circle ripples
+        for (let i = 0; i < 3; i++) {
+            const rippleProgress = Math.max(0, progress - (i * 0.2));
+            const rippleRadius = rippleProgress * spawnAnimation.maxRadius;
+            const rippleAlpha = alpha * (1 - rippleProgress) * 0.6;
+            
+            if (rippleAlpha > 0) {
+                this.ctx.globalAlpha = rippleAlpha;
+                this.ctx.strokeStyle = '#FF6B6B';
+                this.ctx.lineWidth = 3;
+                this.ctx.beginPath();
+                this.ctx.arc(centerX, centerY, rippleRadius, 0, Math.PI * 2);
+                this.ctx.stroke();
+            }
+        }
+        
+        this.ctx.restore();
+    }
+
+    // Render end reached animation with negative effect
+    renderEndReachedAnimation(centerX, centerY, endReachedAnimation) {
+        this.ctx.save();
+        
+        const progress = endReachedAnimation.time / endReachedAnimation.duration;
+        const currentRadius = progress * endReachedAnimation.maxRadius;
+        const alpha = endReachedAnimation.alpha * (1 - progress);
+        
+        // Create expanding red circle with negative effect
+        for (let i = 0; i < 4; i++) {
+            const rippleProgress = Math.max(0, progress - (i * 0.15));
+            const rippleRadius = rippleProgress * endReachedAnimation.maxRadius;
+            const rippleAlpha = alpha * (1 - rippleProgress) * 0.8;
+            
+            if (rippleAlpha > 0) {
+                this.ctx.globalAlpha = rippleAlpha;
+                this.ctx.strokeStyle = '#FF0000';
+                this.ctx.lineWidth = 4;
+                this.ctx.beginPath();
+                this.ctx.arc(centerX, centerY, rippleRadius, 0, Math.PI * 2);
+                this.ctx.stroke();
+                
+                // Add inner dark circle for negative effect
+                this.ctx.globalAlpha = rippleAlpha * 0.5;
+                this.ctx.fillStyle = '#8B0000';
+                this.ctx.beginPath();
+                this.ctx.arc(centerX, centerY, rippleRadius * 0.3, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+        }
+        
         this.ctx.restore();
     }
 }

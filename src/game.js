@@ -141,19 +141,30 @@ function render() {
     // Render projectiles
     gameState.renderer.renderProjectiles(gameState.towerManager.getProjectilesForRendering());
 
+    // Render impact effects
+    gameState.renderer.renderImpactEffects(gameState.towerManager.getImpactEffectsForRendering());
+
     // Render coins
     gameState.renderer.renderCoins(gameState.resourceSystem.getCoinsForRendering());
 
     // Render collection effects
     gameState.renderer.renderCollectionEffects(gameState.resourceSystem.getCollectionEffectsForRendering());
 
+    // Render damage indicators
+    gameState.renderer.renderDamageIndicators(gameState.enemyManager.getDamageIndicatorsForRendering());
+
     // Render debug info
     if (gameState.debug.enabled) {
         gameState.renderer.renderDebugInfo(gameState.debug);
     }
 
-    // Render main HUD (always visible)
+    // Render wave announcements (full-screen dramatic announcements)
     const waveInfo = gameState.enemyManager.getWaveInfo();
+    if (waveInfo.announcement) {
+        gameState.renderer.renderWaveInfo(waveInfo);
+    }
+
+    // Render main HUD (always visible)
     const resourceInfo = gameState.resourceSystem.getResourceInfo();
     gameState.renderer.renderMainHUD(gameState.selectedTower, gameState.towerManager, waveInfo, resourceInfo);
 

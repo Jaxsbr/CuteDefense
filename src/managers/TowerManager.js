@@ -15,29 +15,32 @@ class TowerManager {
     tryPlaceTower(x, y, towerType = null) {
         const type = towerType || this.selectedTowerType;
         const towerConfig = TOWER_TYPES[type];
-        
+
         console.log(`Attempting to place ${type} tower at (${x}, ${y})`);
         console.log(`Tower config:`, towerConfig);
         console.log(`Current coins: ${this.resourceSystem.getCoins()}`);
-        
+
         // Check if position is valid for tower placement
         if (!this.canPlaceTower(x, y)) {
             console.log(`Cannot place tower at (${x}, ${y}) - position invalid`);
             return false;
         }
-        
+
         // Check if player has enough resources
         if (!this.resourceSystem.canAfford(towerConfig.cost)) {
             console.log(`Not enough coins to place ${type} tower (cost: ${towerConfig.cost}, have: ${this.resourceSystem.getCoins()})`);
             return false;
         }
-        
-        // Place the tower
-        const tower = this.towerSystem.addTower(x, y, type);
-        
-        // Deduct cost from resources
+
+        // Deduct cost from resources first
         this.resourceSystem.spend(towerConfig.cost);
-        
+
+        // Place the tower with placement animation
+        const tower = this.towerSystem.addTower(x, y, type);
+
+        // Add placement animation effect
+        this.addPlacementAnimation(x, y, tower);
+
         console.log(`Tower placed successfully: ${type} at (${x}, ${y})`);
         console.log(`Remaining coins: ${this.resourceSystem.getCoins()}`);
         return true;
@@ -46,25 +49,25 @@ class TowerManager {
     // Check if tower can be placed at position
     canPlaceTower(x, y) {
         console.log(`Checking tower placement at (${x}, ${y})`);
-        
+
         // Check if position is within grid bounds
         if (!this.gridSystem.isValidPosition(x, y)) {
             console.log(`Position (${x}, ${y}) is out of bounds`);
             return false;
         }
-        
+
         // Check if position is not on enemy path
         if (this.gridSystem.isOnEnemyPath(x, y)) {
             console.log(`Position (${x}, ${y}) is on enemy path`);
             return false;
         }
-        
+
         // Check if position is not already occupied by a tower
         if (this.towerSystem.hasTowerAt(x, y)) {
             console.log(`Position (${x}, ${y}) already has a tower`);
             return false;
         }
-        
+
         console.log(`Position (${x}, ${y}) is valid for tower placement`);
         return true;
     }
@@ -106,6 +109,57 @@ class TowerManager {
     // Get projectiles for rendering
     getProjectilesForRendering() {
         return this.towerSystem.getProjectilesForRendering();
+    }
+
+    // Get impact effects for rendering
+    getImpactEffectsForRendering() {
+        return this.towerSystem.getImpactEffectsForRendering();
+    }
+
+    // Add placement animation effect
+    addPlacementAnimation(x, y, tower) {
+        // Create placement animation particles
+        const centerX = x * this.gridSystem.tileSize + this.gridSystem.tileSize / 2;
+        const centerY = y * this.gridSystem.tileSize + this.gridSystem.tileSize / 2;
+
+        // Add sparkle effect particles around the tower placement
+        const sparkleCount = 8;
+        for (let i = 0; i < sparkleCount; i++) {
+            const angle = (i / sparkleCount) * Math.PI * 2;
+            const distance = 20 + Math.random() * 15;
+            const sparkleX = centerX + Math.cos(angle) * distance;
+            const sparkleY = centerY + Math.sin(angle) * distance;
+
+            // Create sparkle particle
+            const sparkle = {
+                x: sparkleX,
+                y: sparkleY,
+                vx: Math.cos(angle) * 2,
+                vy: Math.sin(angle) * 2,
+                life: 1.0,
+                maxLife: 1.0,
+                size: 3 + Math.random() * 2,
+                color: '#FFD700',
+                alpha: 1.0
+            };
+
+            // Add to tower's placement effects (we'll need to add this property)
+            if (!tower.placementEffects) {
+                tower.placementEffects = [];
+            }
+            tower.placementEffects.push(sparkle);
+        }
+
+        // Add tower growth animation
+        if (!tower.growthAnimation) {
+            tower.growthAnimation = {
+                scale: 0.1,
+                targetScale: 1.0,
+                duration: 0.5, // 500ms growth animation
+                elapsed: 0.0,
+                active: true
+            };
+        }
     }
 
     // Remove tower

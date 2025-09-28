@@ -25,25 +25,86 @@ class ResourceSystem {
 
     // Create collection effect particles
     createCollectionEffect(x, y, coinValue) {
-        // Create sparkle particles
-        for (let i = 0; i < 8; i++) {
-            const angle = (Math.PI * 2 * i) / 8;
-            const speed = 50 + Math.random() * 50;
+        // Create enhanced sparkle particles
+        const particleCount = 12 + Math.min(coinValue * 2, 8); // More particles for higher value coins
+
+        for (let i = 0; i < particleCount; i++) {
+            const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.5;
+            const speed = 80 + Math.random() * 60;
             const particle = {
                 id: Date.now() + Math.random(),
                 x: x,
                 y: y,
                 vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed,
-                life: 1000, // 1 second
-                maxLife: 1000,
-                size: 4 + Math.random() * 4,
-                color: '#FFD700'
+                vy: Math.sin(angle) * speed - 20, // Slight upward bias
+                life: 1200 + Math.random() * 400, // 1.2-1.6 seconds
+                maxLife: 1200 + Math.random() * 400,
+                size: 3 + Math.random() * 5,
+                color: coinValue > 1 ? '#FFA500' : '#FFD700', // Different colors for different values
+                alpha: 1.0,
+                rotation: Math.random() * Math.PI * 2,
+                rotationSpeed: (Math.random() - 0.5) * 0.2
             };
             this.collectionEffects.push(particle);
         }
 
-        // Note: Floating indicator removed - using coin total pulse instead
+        // Create floating text effect for coin value
+        if (coinValue > 1) {
+            const floatingText = {
+                id: Date.now() + Math.random(),
+                x: x,
+                y: y,
+                vx: (Math.random() - 0.5) * 20,
+                vy: -60, // Float upward
+                life: 1500,
+                maxLife: 1500,
+                text: `+${coinValue}`,
+                alpha: 1.0,
+                size: 16
+            };
+            this.collectionEffects.push(floatingText);
+        }
+    }
+
+    // Create expiration effect particles (negative feedback)
+    createExpirationEffect(x, y, coinValue) {
+        // Create dramatic negative effect particles
+        const particleCount = 16 + Math.min(coinValue * 3, 12); // More particles for higher value coins
+
+        for (let i = 0; i < particleCount; i++) {
+            const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.3;
+            const speed = 100 + Math.random() * 80;
+            const particle = {
+                id: Date.now() + Math.random(),
+                x: x,
+                y: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed - 30, // Strong upward bias for dramatic effect
+                life: 1500 + Math.random() * 500, // 1.5-2 seconds
+                maxLife: 1500 + Math.random() * 500,
+                size: 4 + Math.random() * 6,
+                color: coinValue > 1 ? '#FF4444' : '#FF6666', // Red colors for negative feedback
+                alpha: 1.0,
+                rotation: Math.random() * Math.PI * 2,
+                rotationSpeed: (Math.random() - 0.5) * 0.3
+            };
+            this.collectionEffects.push(particle);
+        }
+
+        // Create dramatic floating text effect for lost coin value
+        const floatingText = {
+            id: Date.now() + Math.random(),
+            x: x,
+            y: y,
+            vx: (Math.random() - 0.5) * 30,
+            vy: -80, // Float upward more dramatically
+            life: 2000,
+            maxLife: 2000,
+            text: `-${coinValue}`,
+            alpha: 1.0,
+            size: 20 // Larger text for more impact
+        };
+        this.collectionEffects.push(floatingText);
     }
 
     // Spend coins
@@ -76,11 +137,14 @@ class ResourceSystem {
             collected: false,
             animationTime: 0,
             bounceHeight: 0,
-            sparkleTime: 0
+            sparkleTime: 0,
+            lifetime: 10000, // 10 seconds before expiration
+            expired: false,
+            warningTime: 3000 // 3 seconds warning before expiration
         };
 
         this.coinAnimations.push(coin);
-        console.log(`Coin spawned at (${x}, ${y}) with value ${value}`);
+        console.log(`Coin spawned at (${x}, ${y}) with value ${value}, expires in ${coin.lifetime / 1000}s`);
     }
 
     // Try to collect coin at position
@@ -111,12 +175,50 @@ class ResourceSystem {
         this.coinAnimations = this.coinAnimations.filter(coin => {
             coin.animationTime += deltaTime;
             coin.sparkleTime += deltaTime;
+            coin.lifetime -= deltaTime;
 
-            // Bounce animation
-            coin.bounceHeight = Math.sin(coin.animationTime * 0.005) * 5;
+            // Check for expiration
+            if (!coin.collected && !coin.expired && coin.lifetime <= 0) {
+                coin.expired = true;
+                coin.expirationTime = 0;
+                this.createExpirationEffect(coin.x, coin.y, coin.value);
+                console.log(`Coin expired at (${coin.x}, ${coin.y}) with value ${coin.value}`);
+            }
 
-            // Remove collected coins after animation
+            // Enhanced bounce animation with more personality
+            if (!coin.collected && !coin.expired) {
+                // More bouncy animation with slight variation per coin
+                const bounceSpeed = 0.004 + (coin.id % 100) * 0.00001; // Slight variation per coin
+                const bounceHeight = 8 + Math.sin(coin.animationTime * 0.001) * 2; // Variable bounce height
+                coin.bounceHeight = Math.sin(coin.animationTime * bounceSpeed) * bounceHeight;
+
+                // Add subtle horizontal sway
+                coin.swayOffset = Math.sin(coin.animationTime * 0.003) * 1;
+
+                // Warning animation as coin approaches expiration
+                if (coin.lifetime <= coin.warningTime) {
+                    coin.warningProgress = (coin.warningTime - coin.lifetime) / coin.warningTime;
+                } else {
+                    coin.warningProgress = 0;
+                }
+            } else if (coin.collected) {
+                // Collection animation - coin shrinks and fades
+                coin.collectionProgress = (coin.animationTime - 500) / 500; // Start shrinking after 500ms
+                coin.bounceHeight = Math.sin(coin.animationTime * 0.01) * 3; // Faster, smaller bounce
+                coin.swayOffset = 0;
+            } else if (coin.expired) {
+                // Expiration animation - coin shrinks and fades with negative effect
+                coin.expirationTime += deltaTime;
+                coin.expirationProgress = Math.min(coin.expirationTime / 1000, 1.0); // 1 second expiration animation
+                coin.bounceHeight = Math.sin(coin.expirationTime * 0.02) * 2; // Fast, small bounce
+                coin.swayOffset = 0;
+            }
+
+            // Remove coins after their animation completes
             if (coin.collected && coin.animationTime > 1000) {
+                return false;
+            }
+            if (coin.expired && coin.expirationProgress >= 1.0) {
                 return false;
             }
 
@@ -129,8 +231,21 @@ class ResourceSystem {
             particle.y += particle.vy * (deltaTime / 1000);
             particle.life -= deltaTime;
 
-            // Apply gravity to particles
-            particle.vy += 100 * (deltaTime / 1000);
+            // Apply gravity to particles (only for non-text particles)
+            if (!particle.text) {
+                particle.vy += 120 * (deltaTime / 1000);
+
+                // Update rotation for sparkle particles
+                if (particle.rotation !== undefined) {
+                    particle.rotation += particle.rotationSpeed;
+                }
+
+                // Fade out over time
+                particle.alpha = particle.life / particle.maxLife;
+            } else {
+                // Floating text particles fade out more slowly
+                particle.alpha = particle.life / particle.maxLife;
+            }
 
             return particle.life > 0;
         });

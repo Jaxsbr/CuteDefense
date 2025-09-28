@@ -7,6 +7,7 @@ class TowerSystem {
     constructor() {
         this.towers = [];
         this.projectiles = [];
+        this.impactEffects = []; // Store impact effect particles
         this.lastUpdateTime = 0;
     }
 
@@ -106,10 +107,14 @@ class TowerSystem {
         this.towers.forEach(tower => {
             this.updateTower(tower, enemies, deltaTime);
             this.updateUpgradeParticles(tower, deltaTime);
+            this.updatePlacementAnimations(tower, deltaTime);
         });
 
         // Update projectiles with damage system
         this.updateProjectiles(deltaTime, enemySystem, resourceSystem);
+
+        // Update impact effects
+        this.updateImpactEffects(deltaTime);
     }
 
     // Update individual tower
@@ -271,9 +276,18 @@ class TowerSystem {
             const aliveEnemies = enemySystem.getEnemiesForRendering();
             for (const enemy of aliveEnemies) {
                 if (this.checkProjectileCollision(projectile, enemy)) {
+                    // Create impact effect at collision point
+                    this.createImpactEffect(projectile.x, projectile.y, projectile.damage, projectile.color);
+
+                    // Add damage indicator to enemy
+                    enemySystem.addDamageIndicator(enemy, projectile.damage);
+                    
                     // Deal damage and check if enemy dies
                     const coinsEarned = enemySystem.damageEnemy(enemy.id, projectile.damage);
                     if (coinsEarned > 0) {
+                        // Start death animation
+                        enemySystem.startDeathAnimation(enemy);
+                        
                         // Spawn coin at enemy's current position
                         const coinX = enemy.x * 64 + 32;
                         const coinY = enemy.y * 64 + 32;
@@ -374,6 +388,46 @@ class TowerSystem {
         }
     }
 
+    // Update placement animations for towers
+    updatePlacementAnimations(tower, deltaTime) {
+        // Update growth animation
+        if (tower.growthAnimation && tower.growthAnimation.active) {
+            const anim = tower.growthAnimation;
+            anim.elapsed += deltaTime / 1000; // Convert to seconds
+
+            // Ease out animation (starts fast, slows down)
+            const progress = Math.min(anim.elapsed / anim.duration, 1.0);
+            const easeOut = 1 - Math.pow(1 - progress, 3); // Cubic ease out
+            anim.scale = anim.targetScale * easeOut;
+
+            // End animation when complete
+            if (progress >= 1.0) {
+                anim.active = false;
+                anim.scale = anim.targetScale;
+            }
+        }
+
+        // Update placement effect particles
+        if (tower.placementEffects) {
+            tower.placementEffects = tower.placementEffects.filter(effect => {
+                // Update particle position
+                effect.x += effect.vx * (deltaTime / 16.67);
+                effect.y += effect.vy * (deltaTime / 16.67);
+
+                // Update particle life
+                effect.life -= (deltaTime / 1000);
+                effect.alpha = effect.life;
+
+                // Fade out and slow down over time
+                effect.vx *= 0.98;
+                effect.vy *= 0.98;
+
+                // Return true to keep particle alive
+                return effect.life > 0;
+            });
+        }
+    }
+
     // Get towers for rendering
     getTowersForRendering() {
         return this.towers;
@@ -382,6 +436,79 @@ class TowerSystem {
     // Get projectiles for rendering
     getProjectilesForRendering() {
         return this.projectiles;
+    }
+
+    // Get impact effects for rendering
+    getImpactEffectsForRendering() {
+        return this.impactEffects;
+    }
+
+    // Create impact effect particles when projectile hits enemy
+    createImpactEffect(x, y, damage, projectileColor) {
+        // Create impact sparkle particles
+        const particleCount = 8 + Math.min(damage * 2, 6); // More particles for higher damage
+
+        for (let i = 0; i < particleCount; i++) {
+            const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.5;
+            const speed = 60 + Math.random() * 40;
+            const particle = {
+                id: Date.now() + Math.random(),
+                x: x,
+                y: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed - 20, // Slight upward bias
+                life: 800 + Math.random() * 400, // 0.8-1.2 seconds
+                maxLife: 800 + Math.random() * 400,
+                size: 3 + Math.random() * 4,
+                color: projectileColor || '#FFD700',
+                alpha: 1.0,
+                rotation: Math.random() * Math.PI * 2,
+                rotationSpeed: (Math.random() - 0.5) * 0.2
+            };
+            this.impactEffects.push(particle);
+        }
+
+        // Create damage number floating text
+        const damageText = {
+            id: Date.now() + Math.random(),
+            x: x + (Math.random() - 0.5) * 20,
+            y: y - 10,
+            vx: (Math.random() - 0.5) * 30,
+            vy: -50, // Float upward
+            life: 1200,
+            maxLife: 1200,
+            text: damage.toString(),
+            alpha: 1.0,
+            size: 14 + Math.min(damage * 2, 6) // Larger text for higher damage
+        };
+        this.impactEffects.push(damageText);
+    }
+
+    // Update impact effect particles
+    updateImpactEffects(deltaTime) {
+        this.impactEffects = this.impactEffects.filter(effect => {
+            effect.x += effect.vx * (deltaTime / 1000);
+            effect.y += effect.vy * (deltaTime / 1000);
+            effect.life -= deltaTime;
+
+            // Apply gravity to particles (only for non-text particles)
+            if (!effect.text) {
+                effect.vy += 80 * (deltaTime / 1000);
+
+                // Update rotation for sparkle particles
+                if (effect.rotation !== undefined) {
+                    effect.rotation += effect.rotationSpeed;
+                }
+
+                // Fade out over time
+                effect.alpha = effect.life / effect.maxLife;
+            } else {
+                // Floating text particles fade out more slowly
+                effect.alpha = effect.life / effect.maxLife;
+            }
+
+            return effect.life > 0;
+        });
     }
 
     // Remove tower
