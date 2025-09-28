@@ -58,6 +58,11 @@ class RenderSystem {
             this.dayNightSystem.currentPhase = targetPhase;
             this.dayNightSystem.transitionProgress = 0;
         }
+        
+        // Smooth transition over time
+        if (this.dayNightSystem.transitionProgress < 1.0) {
+            this.dayNightSystem.transitionProgress = Math.min(1.0, this.dayNightSystem.transitionProgress + 0.02); // 2% per frame
+        }
     }
 
     // Get current colors based on day/night phase
@@ -753,10 +758,11 @@ class RenderSystem {
 
         } else if (tile.type === 'path') {
             // Enhanced path tile with lighter texture
+            const currentColors = this.getCurrentColors();
             const gradient = this.ctx.createLinearGradient(screenX, screenY, screenX + tileSize, screenY + tileSize);
-            gradient.addColorStop(0, '#D2B48C');
-            gradient.addColorStop(0.5, '#DEB887');
-            gradient.addColorStop(1, '#D2B48C');
+            gradient.addColorStop(0, currentColors.path);
+            gradient.addColorStop(0.5, this.interpolateColor(currentColors.path, '#DEB887', 0.3));
+            gradient.addColorStop(1, currentColors.path);
             this.ctx.fillStyle = gradient;
             this.ctx.beginPath();
             this.ctx.roundRect(screenX, screenY, tileSize, tileSize, 4);
@@ -767,10 +773,11 @@ class RenderSystem {
 
         } else {
             // Enhanced grass tile with pattern and subtle animation
+            const currentColors = this.getCurrentColors();
             const gradient = this.ctx.createLinearGradient(screenX, screenY, screenX, screenY + tileSize);
-            gradient.addColorStop(0, '#98FB98');
-            gradient.addColorStop(0.5, '#90EE90');
-            gradient.addColorStop(1, '#87CEEB');
+            gradient.addColorStop(0, currentColors.background);
+            gradient.addColorStop(0.5, currentColors.grid);
+            gradient.addColorStop(1, this.interpolateColor(currentColors.background, '#87CEEB', 0.3));
             this.ctx.fillStyle = gradient;
             this.ctx.beginPath();
             this.ctx.roundRect(screenX, screenY, tileSize, tileSize, 4);
@@ -935,7 +942,8 @@ class RenderSystem {
         this.renderTowerLevelRings(centerX, centerY, towerRadius, tower.level);
 
         // Draw tower as a circle with tower-specific color
-        this.ctx.fillStyle = tower.color || this.colors.tower;
+        const currentColors = this.getCurrentColors();
+        this.ctx.fillStyle = tower.color || currentColors.tower;
         this.ctx.beginPath();
         this.ctx.arc(centerX, centerY, towerRadius, 0, Math.PI * 2);
         this.ctx.fill();
@@ -1282,7 +1290,8 @@ class RenderSystem {
         }
 
         // Draw enemy based on shape
-        this.ctx.fillStyle = enemy.color;
+        const currentColors = this.getCurrentColors();
+        this.ctx.fillStyle = enemy.color || currentColors.enemy;
         this.ctx.beginPath();
 
         switch (enemy.shape) {
