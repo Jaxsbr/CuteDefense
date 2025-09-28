@@ -42,66 +42,64 @@ class RenderSystem {
         const hudWidth = this.width - 20; // Full width minus margins
         const hudX = 10; // 10px margin from left
 
-        // Cartoony HUD background with rounded corners and gradient
+        // Clean HUD background with rounded corners
         this.ctx.save();
         this.ctx.beginPath();
         this.ctx.roundRect(hudX, hudY, hudWidth, hudHeight, 15); // Rounded corners
         this.ctx.clip();
         
-        // Animated gradient background
-        const time = Date.now() / 1000;
+        // Static gradient background (no pulsing)
         const gradient = this.ctx.createLinearGradient(hudX, hudY, hudX, hudY + hudHeight);
-        gradient.addColorStop(0, `rgba(${Math.sin(time * 0.5) * 20 + 30}, ${Math.sin(time * 0.3) * 20 + 30}, ${Math.sin(time * 0.7) * 20 + 30}, 0.95)`);
-        gradient.addColorStop(1, `rgba(${Math.sin(time * 0.5) * 10 + 20}, ${Math.sin(time * 0.3) * 10 + 20}, ${Math.sin(time * 0.7) * 10 + 20}, 0.9)`);
+        gradient.addColorStop(0, 'rgba(40, 40, 40, 0.95)');
+        gradient.addColorStop(1, 'rgba(20, 20, 20, 0.9)');
         
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(hudX, hudY, hudWidth, hudHeight);
         this.ctx.restore();
 
-        // Cartoony border with animated glow
+        // Clean border with subtle glow
         this.ctx.save();
-        const glowIntensity = Math.sin(time * 2) * 0.3 + 0.7;
         this.ctx.shadowColor = '#FFD700';
-        this.ctx.shadowBlur = 8 * glowIntensity;
+        this.ctx.shadowBlur = 4;
         this.ctx.strokeStyle = '#FFD700';
-        this.ctx.lineWidth = 4;
+        this.ctx.lineWidth = 3;
         this.ctx.beginPath();
         this.ctx.roundRect(hudX, hudY, hudWidth, hudHeight, 15);
         this.ctx.stroke();
         this.ctx.restore();
 
-        // Inner animated border
+        // Inner border
         this.ctx.save();
-        this.ctx.strokeStyle = `rgba(255, 215, 0, ${0.3 + Math.sin(time * 3) * 0.2})`;
-        this.ctx.lineWidth = 2;
+        this.ctx.strokeStyle = 'rgba(255, 215, 0, 0.3)';
+        this.ctx.lineWidth = 1;
         this.ctx.beginPath();
         this.ctx.roundRect(hudX + 2, hudY + 2, hudWidth - 4, hudHeight - 4, 13);
         this.ctx.stroke();
         this.ctx.restore();
 
-        // Add sparkle effects around HUD
+        // Subtle sparkle effects (reduced)
         this.renderHUDSparkles(hudX, hudY, hudWidth, hudHeight, time);
 
         // Render the five HUD sections
         this.renderHUDSections(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager, waveInfo, resourceInfo);
     }
 
-    // Render sparkle effects around HUD for cartoony feel
+    // Render subtle sparkle effects around HUD
     renderHUDSparkles(hudX, hudY, hudWidth, hudHeight, time) {
         this.ctx.save();
         
-        // Create sparkles around the HUD border
-        for (let i = 0; i < 8; i++) {
-            const angle = (time * 0.5 + i * Math.PI / 4) % (Math.PI * 2);
-            const distance = 15 + Math.sin(time * 2 + i) * 5;
+        // Create subtle sparkles (reduced count and intensity)
+        for (let i = 0; i < 4; i++) {
+            const angle = (time * 0.2 + i * Math.PI / 2) % (Math.PI * 2);
+            const distance = 20 + Math.sin(time * 0.5 + i) * 3;
             const sparkleX = hudX + hudWidth / 2 + Math.cos(angle) * (hudWidth / 2 + distance);
             const sparkleY = hudY + hudHeight / 2 + Math.sin(angle) * (hudHeight / 2 + distance);
             
-            const sparkleSize = 2 + Math.sin(time * 3 + i) * 1;
-            const sparkleAlpha = Math.sin(time * 2 + i) * 0.5 + 0.5;
+            const sparkleSize = 1 + Math.sin(time * 1 + i) * 0.5;
+            const sparkleAlpha = Math.sin(time * 0.5 + i) * 0.3 + 0.2;
             
             this.ctx.globalAlpha = sparkleAlpha;
-            this.ctx.fillStyle = `hsl(${(time * 60 + i * 45) % 360}, 90%, 80%)`;
+            this.ctx.fillStyle = '#FFD700';
             this.ctx.beginPath();
             this.ctx.arc(sparkleX, sparkleY, sparkleSize, 0, Math.PI * 2);
             this.ctx.fill();
@@ -143,22 +141,22 @@ class RenderSystem {
     // Render wave info section with cartoony styling
     renderWaveInfoSection(x, y, width, height, waveInfo) {
         this.ctx.save();
-        
+
         const time = Date.now() / 1000;
-        
+
         // Cartoony section background with rounded corners
         this.ctx.beginPath();
         this.ctx.roundRect(x, y, width, height, 8);
         this.ctx.clip();
-        
-        // Animated gradient background
+
+        // Static gradient background
         const gradient = this.ctx.createLinearGradient(x, y, x, y + height);
-        gradient.addColorStop(0, `rgba(0, ${100 + Math.sin(time * 0.5) * 20}, ${200 + Math.sin(time * 0.3) * 20}, 0.4)`);
-        gradient.addColorStop(1, `rgba(0, ${80 + Math.sin(time * 0.5) * 15}, ${180 + Math.sin(time * 0.3) * 15}, 0.3)`);
+        gradient.addColorStop(0, 'rgba(0, 100, 200, 0.3)');
+        gradient.addColorStop(1, 'rgba(0, 80, 180, 0.2)');
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(x, y, width, height);
         this.ctx.restore();
-        
+
         // Cartoony border with glow
         this.ctx.save();
         this.ctx.shadowColor = '#4CAF50';
@@ -169,19 +167,17 @@ class RenderSystem {
         this.ctx.roundRect(x, y, width, height, 8);
         this.ctx.stroke();
         this.ctx.restore();
-        
-        // Animated title with bounce effect
-        const bounceY = y + 20 + Math.sin(time * 3) * 2;
+
+        // Static title
         this.ctx.fillStyle = '#FFF';
         this.ctx.font = 'bold 16px Arial';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('🌊 Wave Info', x + width / 2, bounceY);
+        this.ctx.fillText('🌊 Wave Info', x + width / 2, y + 20);
         
-        // Display wave data with pulsing effect
+        // Display wave data (no pulsing)
         this.ctx.font = '14px Arial';
-        const pulseAlpha = 0.7 + Math.sin(time * 2) * 0.3;
-        this.ctx.globalAlpha = pulseAlpha;
-        
+        this.ctx.globalAlpha = 1.0;
+
         if (waveInfo) {
             this.ctx.fillText(`Wave: ${waveInfo.currentWave || 1}`, x + width / 2, y + 40);
             this.ctx.fillText(`Enemies: ${waveInfo.enemiesSpawned || 0}/${waveInfo.totalEnemies || 0}`, x + width / 2, y + 60);
@@ -191,29 +187,29 @@ class RenderSystem {
             this.ctx.fillText('Enemies: 0/0', x + width / 2, y + 60);
             this.ctx.fillText('Status: preparation', x + width / 2, y + 80);
         }
-        
+
         this.ctx.restore();
     }
 
     // Render selection portrait section with cartoony styling
     renderSelectionPortraitSection(x, y, width, height, selectedTower) {
         this.ctx.save();
-        
+
         const time = Date.now() / 1000;
-        
+
         // Cartoony section background with rounded corners
         this.ctx.beginPath();
         this.ctx.roundRect(x, y, width, height, 8);
         this.ctx.clip();
-        
-        // Animated gradient background
+
+        // Static gradient background
         const gradient = this.ctx.createLinearGradient(x, y, x, y + height);
-        gradient.addColorStop(0, `rgba(${200 + Math.sin(time * 0.3) * 20}, ${100 + Math.sin(time * 0.5) * 20}, 0, 0.4)`);
-        gradient.addColorStop(1, `rgba(${180 + Math.sin(time * 0.3) * 15}, ${80 + Math.sin(time * 0.5) * 15}, 0, 0.3)`);
+        gradient.addColorStop(0, 'rgba(200, 100, 0, 0.3)');
+        gradient.addColorStop(1, 'rgba(180, 80, 0, 0.2)');
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(x, y, width, height);
         this.ctx.restore();
-        
+
         // Cartoony border with glow
         this.ctx.save();
         this.ctx.shadowColor = '#FF9800';
@@ -224,29 +220,27 @@ class RenderSystem {
         this.ctx.roundRect(x, y, width, height, 8);
         this.ctx.stroke();
         this.ctx.restore();
-        
-        // Animated portrait title
-        const wiggleY = y + 20 + Math.sin(time * 2) * 1;
+
+        // Static portrait title
         this.ctx.fillStyle = '#FFF';
         this.ctx.font = 'bold 16px Arial';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('🎯 Selection', x + width / 2, wiggleY);
+        this.ctx.fillText('🎯 Selection', x + width / 2, y + 20);
         
         if (selectedTower) {
-            // Render tower portrait with animation
+            // Render tower portrait (no animation)
             const portraitSize = Math.min(width - 20, height - 40, 60);
             const portraitX = x + (width - portraitSize) / 2;
-            const portraitY = y + 30 + Math.sin(time * 1.5) * 2; // Gentle bounce
+            const portraitY = y + 30;
             
             this.renderTowerPortrait(portraitX, portraitY, portraitSize, selectedTower);
         } else {
-            // Show empty selection with pulsing effect
+            // Show empty selection (no pulsing)
             this.ctx.font = '14px Arial';
-            const pulseAlpha = 0.5 + Math.sin(time * 2) * 0.3;
-            this.ctx.globalAlpha = pulseAlpha;
+            this.ctx.globalAlpha = 0.7;
             this.ctx.fillText('No Selection', x + width / 2, y + height / 2);
         }
-        
+
         this.ctx.restore();
     }
 
@@ -349,22 +343,22 @@ class RenderSystem {
     // Render coin info section with cartoony styling and animations
     renderCoinInfoSection(x, y, width, height, resourceInfo) {
         this.ctx.save();
-        
+
         const time = Date.now() / 1000;
-        
+
         // Cartoony section background with rounded corners
         this.ctx.beginPath();
         this.ctx.roundRect(x, y, width, height, 8);
         this.ctx.clip();
-        
-        // Animated gradient background
+
+        // Static gradient background
         const gradient = this.ctx.createLinearGradient(x, y, x, y + height);
-        gradient.addColorStop(0, `rgba(${200 + Math.sin(time * 0.4) * 30}, ${200 + Math.sin(time * 0.6) * 30}, 0, 0.4)`);
-        gradient.addColorStop(1, `rgba(${180 + Math.sin(time * 0.4) * 20}, ${180 + Math.sin(time * 0.6) * 20}, 0, 0.3)`);
+        gradient.addColorStop(0, 'rgba(200, 200, 0, 0.3)');
+        gradient.addColorStop(1, 'rgba(180, 180, 0, 0.2)');
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(x, y, width, height);
         this.ctx.restore();
-        
+
         // Cartoony border with glow
         this.ctx.save();
         this.ctx.shadowColor = '#FFD700';
@@ -375,35 +369,27 @@ class RenderSystem {
         this.ctx.roundRect(x, y, width, height, 8);
         this.ctx.stroke();
         this.ctx.restore();
-        
-        // Animated coin title with sparkle effect
-        const sparkleY = y + 20 + Math.sin(time * 4) * 1;
+
+        // Static coin title
         this.ctx.fillStyle = '#FFF';
         this.ctx.font = 'bold 16px Arial';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('💰 Coins', x + width / 2, sparkleY);
+        this.ctx.fillText('💰 Coins', x + width / 2, y + 20);
         
-        // Display coin count with pulsing animation
+        // Display coin count (no pulsing)
         this.ctx.font = 'bold 18px Arial';
         const coinCount = resourceInfo ? (resourceInfo.coins || 0) : 0;
-        const pulseScale = 1 + Math.sin(time * 3) * 0.1;
-        this.ctx.save();
-        this.ctx.translate(x + width / 2, y + 50);
-        this.ctx.scale(pulseScale, pulseScale);
         this.ctx.fillStyle = '#FFD700';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText(`${coinCount}`, 0, 0);
-        this.ctx.restore();
-        
-        // Animated coin icon with rotation and bounce
+        this.ctx.fillText(`${coinCount}`, x + width / 2, y + 50);
+
+        // Static coin icon (no rotation or bounce)
         const coinX = x + width / 2;
-        const coinY = y + 70 + Math.sin(time * 2) * 3; // Bounce effect
-        const coinRotation = time * 0.5; // Slow rotation
+        const coinY = y + 70;
         
         this.ctx.save();
         this.ctx.translate(coinX, coinY);
-        this.ctx.rotate(coinRotation);
-        
+
         // Coin with glow effect
         this.ctx.shadowColor = '#FFD700';
         this.ctx.shadowBlur = 8;
@@ -411,40 +397,39 @@ class RenderSystem {
         this.ctx.beginPath();
         this.ctx.arc(0, 0, 12, 0, Math.PI * 2);
         this.ctx.fill();
-        
+
         // Coin border
         this.ctx.strokeStyle = '#B8860B';
         this.ctx.lineWidth = 3;
         this.ctx.stroke();
-        
-        // Coin sparkle effect
+
+        // Coin sparkle effect (removed excessive sparkles)
         this.ctx.restore();
-        this.renderCoinSparkles(coinX, coinY, time);
-        
+
         this.ctx.restore();
     }
 
     // Render sparkle effects around coin
     renderCoinSparkles(coinX, coinY, time) {
         this.ctx.save();
-        
+
         // Create sparkles around the coin
         for (let i = 0; i < 4; i++) {
             const angle = (time * 2 + i * Math.PI / 2) % (Math.PI * 2);
             const distance = 20 + Math.sin(time * 3 + i) * 5;
             const sparkleX = coinX + Math.cos(angle) * distance;
             const sparkleY = coinY + Math.sin(angle) * distance;
-            
+
             const sparkleSize = 1 + Math.sin(time * 4 + i) * 0.5;
             const sparkleAlpha = Math.sin(time * 3 + i) * 0.5 + 0.5;
-            
+
             this.ctx.globalAlpha = sparkleAlpha;
             this.ctx.fillStyle = '#FFD700';
             this.ctx.beginPath();
             this.ctx.arc(sparkleX, sparkleY, sparkleSize, 0, Math.PI * 2);
             this.ctx.fill();
         }
-        
+
         this.ctx.restore();
     }
 
