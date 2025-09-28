@@ -37,14 +37,14 @@ const TOWER_UPGRADES = {
             damage: 2,
             range: 4,
             fireRate: 800,
-            color: '#FF8E8E'
+            color: '#7BB3F0'  // Light blue from color palette
         },
         level3: {
             cost: 25,
             damage: 3,
             range: 5,
             fireRate: 600,
-            color: '#FFB3B3'
+            color: '#B0E0E6'  // Light accent blue from color palette
         }
     },
     STRONG: {
