@@ -33,39 +33,42 @@ let gameState = {
     gameStateManager: null, // Track game state (win/lose/restart)
     selectedTower: null, // Track selected tower for HUD
     towerPlacementPopup: null, // Track tower placement popup state
-    audioManager: null // Audio system for sound effects and music
+    audioManager: null, // Audio system for sound effects and music
+    logger: null // System logger for centralized logging
 };
 
 // Initialize game
 function initGame() {
-    console.log('Initializing CuteDefense...');
+    // Initialize logger first
+    gameState.logger = new LoggerSystem();
+    gameState.logger.info('Initializing CuteDefense...');
 
     // Get canvas and context
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
     // Initialize core systems
-    console.log('Initializing core systems...');
+    gameState.logger.info('Initializing core systems...');
     gameState.grid = new GridSystem(CONFIG.GRID_COLS, CONFIG.GRID_ROWS, CONFIG.TILE_SIZE);
-    console.log('Grid system initialized');
+    gameState.logger.info('Grid system initialized');
     gameState.input = new InputSystem(canvas);
-    console.log('Input system initialized');
+    gameState.logger.info('Input system initialized');
     gameState.renderer = new RenderSystem(ctx, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
-    console.log('Render system initialized');
+    gameState.logger.info('Render system initialized');
     gameState.enemySystem = new EnemySystem();
-    console.log('Enemy system initialized');
+    gameState.logger.info('Enemy system initialized');
     gameState.enemyManager = new EnemyManager(gameState.enemySystem, gameState.grid);
-    console.log('Enemy manager initialized');
+    gameState.logger.info('Enemy manager initialized');
     gameState.towerSystem = new TowerSystem();
-    console.log('Tower system initialized');
+    gameState.logger.info('Tower system initialized');
     gameState.resourceSystem = new ResourceSystem();
-    console.log('Resource system initialized');
+    gameState.logger.info('Resource system initialized');
     gameState.towerManager = new TowerManager(gameState.towerSystem, gameState.grid, gameState.resourceSystem);
-    console.log('Tower manager initialized');
+    gameState.logger.info('Tower manager initialized');
     gameState.gameStateManager = new GameStateManager();
-    console.log('Game state manager initialized');
+    gameState.logger.info('Game state manager initialized');
     gameState.audioManager = new SimpleAudioManager();
-    console.log('Audio manager initialized');
+    gameState.logger.info('Audio manager initialized');
 
     // Set resource system reference in render system
     gameState.renderer.setResourceSystem(gameState.resourceSystem);
@@ -92,10 +95,10 @@ function initGame() {
     gameState.isRunning = true;
     gameLoop();
 
-    console.log('Game initialized successfully!');
-    console.log('Game state:', gameState);
-    console.log('TowerManager:', gameState.towerManager);
-    console.log('ResourceSystem:', gameState.resourceSystem);
+    gameState.logger.info('Game initialized successfully!');
+    gameState.logger.info('Game state:', gameState);
+    gameState.logger.info('TowerManager:', gameState.towerManager);
+    gameState.logger.info('ResourceSystem:', gameState.resourceSystem);
 }
 
 // Main game loop
@@ -354,7 +357,7 @@ function showAudioHintIfNeeded() {
 // Handle input events
 function handleInput() {
     if (gameState.input.wasClicked()) {
-        console.log('🎯 Click detected!');
+        gameState.logger.info('🎯 Click detected!');
         
         // Hide audio hint on first click
         const audioHint = document.getElementById('audio-hint');
@@ -369,7 +372,7 @@ function handleInput() {
         
         const clickPos = gameState.input.getClickPosition();
 
-        console.log(`📍 Clicked at screen (${clickPos.x}, ${clickPos.y})`);
+        gameState.logger.info(`📍 Clicked at screen (${clickPos.x}, ${clickPos.y})`);
 
         // Check if game is in terminal state and restart button was clicked
         if (gameState.gameStateManager.isTerminalState()) {
@@ -385,7 +388,7 @@ function handleInput() {
 
         // First, try to collect a coin (coins take priority over tower placement)
         if (gameState.resourceSystem.tryCollectCoin(clickPos.x, clickPos.y)) {
-            console.log('💰 Coin collected!');
+            gameState.logger.info('💰 Coin collected!');
             // Play coin collection sound
             gameState.audioManager.playSound('coin_collect');
             return; // Don't try to place tower if coin was collected
@@ -393,7 +396,7 @@ function handleInput() {
 
         // Check if clicking on HUD (always check, regardless of selection)
         if (handleHUDClick(clickPos.x, clickPos.y)) {
-            console.log('🎯 HUD click handled');
+            gameState.logger.info('🎯 HUD click handled');
             return; // HUD click handled
         }
 
@@ -404,15 +407,15 @@ function handleInput() {
 
         // If no coin was collected, check for tower upgrade or placement
         const gridPos = gameState.grid.screenToGrid(clickPos.x, clickPos.y);
-        console.log(`📍 Screen (${clickPos.x}, ${clickPos.y}) -> grid (${gridPos.x}, ${gridPos.y})`);
+        gameState.logger.info(`📍 Screen (${clickPos.x}, ${clickPos.y}) -> grid (${gridPos.x}, ${gridPos.y})`);
 
         // Check if tower manager exists
         if (!gameState.towerManager) {
-            console.error('❌ TowerManager not initialized!');
+            gameState.logger.error('❌ TowerManager not initialized!');
             return;
         }
 
-        console.log('✅ TowerManager exists, checking for tower selection, upgrade, or placement...');
+        gameState.logger.info('✅ TowerManager exists, checking for tower selection, upgrade, or placement...');
 
         // Check if there's a tower at this position
         const towerAtPosition = gameState.towerManager.getTowerAt(gridPos.x, gridPos.y);
@@ -420,7 +423,7 @@ function handleInput() {
         if (towerAtPosition) {
             // Tower exists - select it for HUD display
             gameState.selectedTower = towerAtPosition;
-            console.log(`🎯 Tower selected at (${gridPos.x}, ${gridPos.y}) - Level ${towerAtPosition.level}`);
+            gameState.logger.info(`🎯 Tower selected at (${gridPos.x}, ${gridPos.y}) - Level ${towerAtPosition.level}`);
             // Clear any popup
             gameState.towerPlacementPopup = null;
             return;
@@ -435,9 +438,9 @@ function handleInput() {
                 y: gridPos.y,
                 tileSize: CONFIG.TILE_SIZE
             };
-            console.log(`🏗️ Show placement popup at (${gridPos.x}, ${gridPos.y}) - cleared tower selection`);
+            gameState.logger.info(`🏗️ Show placement popup at (${gridPos.x}, ${gridPos.y}) - cleared tower selection`);
         } else {
-            console.log(`❌ Cannot build at (${gridPos.x}, ${gridPos.y})`);
+            gameState.logger.info(`❌ Cannot build at (${gridPos.x}, ${gridPos.y})`);
             // Clear selection and popup if clicking non-buildable space
             gameState.selectedTower = null;
             gameState.towerPlacementPopup = null;
@@ -452,23 +455,23 @@ function setupInputHandlers() {
         switch (e.key.toLowerCase()) {
             case 'd':
                 gameState.debug.enabled = !gameState.debug.enabled;
-                console.log('Debug mode:', gameState.debug.enabled);
+                gameState.logger.setDebugMode(gameState.debug.enabled);
                 break;
             case 'g':
                 gameState.debug.showGrid = !gameState.debug.showGrid;
-                console.log('Grid display:', gameState.debug.showGrid);
+                gameState.logger.info('Grid display:', gameState.debug.showGrid);
                 break;
             case 'p':
                 gameState.debug.showPath = !gameState.debug.showPath;
-                console.log('Path display:', gameState.debug.showPath);
+                gameState.logger.info('Path display:', gameState.debug.showPath);
                 break;
             case 'c':
                 gameState.debug.showCollision = !gameState.debug.showCollision;
-                console.log('Collision display:', gameState.debug.showCollision);
+                gameState.logger.info('Collision display:', gameState.debug.showCollision);
                 break;
             case 'm':
                 const muted = gameState.audioManager.toggleMute();
-                console.log('Audio muted:', muted);
+                gameState.logger.info('Audio muted:', muted);
                 break;
         }
     });

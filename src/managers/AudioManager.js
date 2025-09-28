@@ -36,6 +36,7 @@ class SimpleAudioManager {
         // Try to unlock audio system by playing a silent sound
         this.unlockAudio();
         
+        // Note: Logger not available in AudioManager constructor
         console.log('Audio system initialized');
     }
     
@@ -187,16 +188,16 @@ class SimpleAudioManager {
                 const originalVolume = this.sounds['button_click'].volume;
                 this.sounds['button_click'].volume = 0.01; // Very quiet
                 this.sounds['button_click'].play().then(() => {
-                    console.log('Audio system unlocked successfully');
+                    // Audio unlocked successfully
                     // Restore original volume
                     this.sounds['button_click'].volume = originalVolume;
                 }).catch(error => {
-                    console.log('Audio unlock failed, will require user interaction:', error.message);
+                    // Audio unlock failed, will require user interaction
                     // Restore original volume
                     this.sounds['button_click'].volume = originalVolume;
                 });
             } catch (error) {
-                console.log('Audio unlock attempt failed:', error.message);
+                // Audio unlock attempt failed
             }
         }
     }
