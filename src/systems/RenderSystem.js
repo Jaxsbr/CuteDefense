@@ -63,12 +63,17 @@ class RenderSystem {
     }
 
     // Update day/night phase based on wave state
-    updateDayNightPhase(waveState) {
+    updateDayNightPhase(waveState, waveInfo = null) {
         let targetPhase = 'day'; // Default to day
         
         // Determine target phase based on wave state
         if (waveState === 'preparation') {
-            targetPhase = 'day';
+            // Check if we're in the last 5 seconds of countdown
+            if (waveInfo && waveInfo.announcement && waveInfo.announcement.includes('STARTS IN')) {
+                targetPhase = 'night'; // Start transitioning to night during last 5 seconds
+            } else {
+                targetPhase = 'day';
+            }
         } else if (waveState === 'spawning' || waveState === 'active') {
             targetPhase = 'night';
         } else if (waveState === 'complete') {
@@ -103,9 +108,12 @@ class RenderSystem {
             this.dayNightSystem.phaseChangeEffect.type = targetPhase === 'night' ? 'flash' : 'fade';
         }
         
-        // Smooth transition over time (slower for better visibility)
+        // Smooth transition over time (5 seconds for countdown transition)
         if (this.dayNightSystem.transitionProgress < 1.0) {
-            this.dayNightSystem.transitionProgress = Math.min(1.0, this.dayNightSystem.transitionProgress + 0.01); // 1% per frame for slower transition
+            // Calculate transition speed based on target phase
+            const isNightTransition = targetPhase === 'night';
+            const transitionSpeed = isNightTransition ? 0.02 : 0.01; // Faster for night transition (5s), slower for day transition
+            this.dayNightSystem.transitionProgress = Math.min(1.0, this.dayNightSystem.transitionProgress + transitionSpeed);
         }
         
         // Update phase change effect

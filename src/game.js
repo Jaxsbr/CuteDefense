@@ -177,7 +177,7 @@ function render() {
             gameState.logger.info(`🌊 Wave State: ${currentWaveInfo.waveState}, Current Wave: ${currentWaveInfo.currentWave}`);
         }
     }
-    gameState.renderer.updateDayNightPhase(currentWaveInfo.waveState);
+    gameState.renderer.updateDayNightPhase(currentWaveInfo.waveState, currentWaveInfo);
 
     // Clear canvas
     gameState.renderer.clear();
