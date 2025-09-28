@@ -78,6 +78,7 @@ class RenderSystem {
         this.ctx.restore();
 
         // Subtle sparkle effects (reduced)
+        const time = Date.now() / 1000;
         this.renderHUDSparkles(hudX, hudY, hudWidth, hudHeight, time);
 
         // Render the five HUD sections
