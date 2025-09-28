@@ -4,9 +4,16 @@ A simple, kid-friendly tower defense game with cute graphics and simple controls
 
 ## Quick Launch
 
+### Option 1: Direct Browser (Simplest)
 1. **Open the game**: Simply open `index.html` in your web browser
 2. **Enable audio**: Click anywhere on the page to enable audio (required for full experience)
 3. **Start playing**: Click to place towers, collect coins, and defend against enemy waves!
+
+### Option 2: Local Web Server (Recommended)
+1. **Start web server**: Run `python3 -m http.server 3456` in the project directory
+2. **Open browser**: Navigate to `http://localhost:3456`
+3. **Enable audio**: Click anywhere on the page to enable audio
+4. **Start playing**: Click to place towers, collect coins, and defend against enemy waves!
 
 ## Game Controls
 
