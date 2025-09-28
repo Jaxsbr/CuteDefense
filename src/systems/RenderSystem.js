@@ -33,9 +33,424 @@ class RenderSystem {
         return 12 * 64; // 12 rows * 64px tile size
     }
 
-    // Render tower HUD pane with enhanced styling - now positioned below tilemap
+    // Render main HUD panel - always visible below tilemap with cartoony styling
+    renderMainHUD(selectedTower, towerManager, waveInfo = null, resourceInfo = null) {
+        // Calculate HUD area below tilemap
+        const tilemapHeight = this.getTilemapHeight();
+        const hudHeight = 120; // Fixed height for HUD
+        const hudY = tilemapHeight + 10; // 10px gap below tilemap
+        const hudWidth = this.width - 20; // Full width minus margins
+        const hudX = 10; // 10px margin from left
+
+        // Cartoony HUD background with rounded corners and gradient
+        this.ctx.save();
+        this.ctx.beginPath();
+        this.ctx.roundRect(hudX, hudY, hudWidth, hudHeight, 15); // Rounded corners
+        this.ctx.clip();
+        
+        // Animated gradient background
+        const time = Date.now() / 1000;
+        const gradient = this.ctx.createLinearGradient(hudX, hudY, hudX, hudY + hudHeight);
+        gradient.addColorStop(0, `rgba(${Math.sin(time * 0.5) * 20 + 30}, ${Math.sin(time * 0.3) * 20 + 30}, ${Math.sin(time * 0.7) * 20 + 30}, 0.95)`);
+        gradient.addColorStop(1, `rgba(${Math.sin(time * 0.5) * 10 + 20}, ${Math.sin(time * 0.3) * 10 + 20}, ${Math.sin(time * 0.7) * 10 + 20}, 0.9)`);
+        
+        this.ctx.fillStyle = gradient;
+        this.ctx.fillRect(hudX, hudY, hudWidth, hudHeight);
+        this.ctx.restore();
+
+        // Cartoony border with animated glow
+        this.ctx.save();
+        const glowIntensity = Math.sin(time * 2) * 0.3 + 0.7;
+        this.ctx.shadowColor = '#FFD700';
+        this.ctx.shadowBlur = 8 * glowIntensity;
+        this.ctx.strokeStyle = '#FFD700';
+        this.ctx.lineWidth = 4;
+        this.ctx.beginPath();
+        this.ctx.roundRect(hudX, hudY, hudWidth, hudHeight, 15);
+        this.ctx.stroke();
+        this.ctx.restore();
+
+        // Inner animated border
+        this.ctx.save();
+        this.ctx.strokeStyle = `rgba(255, 215, 0, ${0.3 + Math.sin(time * 3) * 0.2})`;
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.roundRect(hudX + 2, hudY + 2, hudWidth - 4, hudHeight - 4, 13);
+        this.ctx.stroke();
+        this.ctx.restore();
+
+        // Add sparkle effects around HUD
+        this.renderHUDSparkles(hudX, hudY, hudWidth, hudHeight, time);
+
+        // Render the five HUD sections
+        this.renderHUDSections(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager, waveInfo, resourceInfo);
+    }
+
+    // Render sparkle effects around HUD for cartoony feel
+    renderHUDSparkles(hudX, hudY, hudWidth, hudHeight, time) {
+        this.ctx.save();
+        
+        // Create sparkles around the HUD border
+        for (let i = 0; i < 8; i++) {
+            const angle = (time * 0.5 + i * Math.PI / 4) % (Math.PI * 2);
+            const distance = 15 + Math.sin(time * 2 + i) * 5;
+            const sparkleX = hudX + hudWidth / 2 + Math.cos(angle) * (hudWidth / 2 + distance);
+            const sparkleY = hudY + hudHeight / 2 + Math.sin(angle) * (hudHeight / 2 + distance);
+            
+            const sparkleSize = 2 + Math.sin(time * 3 + i) * 1;
+            const sparkleAlpha = Math.sin(time * 2 + i) * 0.5 + 0.5;
+            
+            this.ctx.globalAlpha = sparkleAlpha;
+            this.ctx.fillStyle = `hsl(${(time * 60 + i * 45) % 360}, 90%, 80%)`;
+            this.ctx.beginPath();
+            this.ctx.arc(sparkleX, sparkleY, sparkleSize, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+        
+        this.ctx.restore();
+    }
+
+    // Render the five HUD sections: Wave Info, Selection Portrait, Selection Info, Selection Actions, Coin Info
+    renderHUDSections(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager, waveInfo, resourceInfo) {
+        const padding = 15;
+        const contentHeight = hudHeight - (padding * 2);
+        const contentY = hudY + padding;
+
+        // Calculate section widths (5 equal sections)
+        const sectionWidth = (hudWidth - (padding * 6)) / 5; // 5 sections with 6 gaps
+
+        // Section 1: Wave Info
+        const waveInfoX = hudX + padding;
+        this.renderWaveInfoSection(waveInfoX, contentY, sectionWidth, contentHeight, waveInfo);
+
+        // Section 2: Selection Portrait
+        const portraitX = waveInfoX + sectionWidth + padding;
+        this.renderSelectionPortraitSection(portraitX, contentY, sectionWidth, contentHeight, selectedTower);
+
+        // Section 3: Selection Info
+        const infoX = portraitX + sectionWidth + padding;
+        this.renderSelectionInfoSection(infoX, contentY, sectionWidth, contentHeight, selectedTower);
+
+        // Section 4: Selection Actions
+        const actionsX = infoX + sectionWidth + padding;
+        this.renderSelectionActionsSection(actionsX, contentY, sectionWidth, contentHeight, selectedTower, towerManager);
+
+        // Section 5: Coin Info
+        const coinX = actionsX + sectionWidth + padding;
+        this.renderCoinInfoSection(coinX, contentY, sectionWidth, contentHeight, resourceInfo);
+    }
+
+    // Render wave info section with cartoony styling
+    renderWaveInfoSection(x, y, width, height, waveInfo) {
+        this.ctx.save();
+        
+        const time = Date.now() / 1000;
+        
+        // Cartoony section background with rounded corners
+        this.ctx.beginPath();
+        this.ctx.roundRect(x, y, width, height, 8);
+        this.ctx.clip();
+        
+        // Animated gradient background
+        const gradient = this.ctx.createLinearGradient(x, y, x, y + height);
+        gradient.addColorStop(0, `rgba(0, ${100 + Math.sin(time * 0.5) * 20}, ${200 + Math.sin(time * 0.3) * 20}, 0.4)`);
+        gradient.addColorStop(1, `rgba(0, ${80 + Math.sin(time * 0.5) * 15}, ${180 + Math.sin(time * 0.3) * 15}, 0.3)`);
+        this.ctx.fillStyle = gradient;
+        this.ctx.fillRect(x, y, width, height);
+        this.ctx.restore();
+        
+        // Cartoony border with glow
+        this.ctx.save();
+        this.ctx.shadowColor = '#4CAF50';
+        this.ctx.shadowBlur = 4;
+        this.ctx.strokeStyle = '#4CAF50';
+        this.ctx.lineWidth = 3;
+        this.ctx.beginPath();
+        this.ctx.roundRect(x, y, width, height, 8);
+        this.ctx.stroke();
+        this.ctx.restore();
+        
+        // Animated title with bounce effect
+        const bounceY = y + 20 + Math.sin(time * 3) * 2;
+        this.ctx.fillStyle = '#FFF';
+        this.ctx.font = 'bold 16px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('🌊 Wave Info', x + width / 2, bounceY);
+        
+        // Display wave data with pulsing effect
+        this.ctx.font = '14px Arial';
+        const pulseAlpha = 0.7 + Math.sin(time * 2) * 0.3;
+        this.ctx.globalAlpha = pulseAlpha;
+        
+        if (waveInfo) {
+            this.ctx.fillText(`Wave: ${waveInfo.currentWave || 1}`, x + width / 2, y + 40);
+            this.ctx.fillText(`Enemies: ${waveInfo.enemiesSpawned || 0}/${waveInfo.totalEnemies || 0}`, x + width / 2, y + 60);
+            this.ctx.fillText(`Status: ${waveInfo.waveState || 'preparation'}`, x + width / 2, y + 80);
+        } else {
+            this.ctx.fillText('Wave: 1', x + width / 2, y + 40);
+            this.ctx.fillText('Enemies: 0/0', x + width / 2, y + 60);
+            this.ctx.fillText('Status: preparation', x + width / 2, y + 80);
+        }
+        
+        this.ctx.restore();
+    }
+
+    // Render selection portrait section with cartoony styling
+    renderSelectionPortraitSection(x, y, width, height, selectedTower) {
+        this.ctx.save();
+        
+        const time = Date.now() / 1000;
+        
+        // Cartoony section background with rounded corners
+        this.ctx.beginPath();
+        this.ctx.roundRect(x, y, width, height, 8);
+        this.ctx.clip();
+        
+        // Animated gradient background
+        const gradient = this.ctx.createLinearGradient(x, y, x, y + height);
+        gradient.addColorStop(0, `rgba(${200 + Math.sin(time * 0.3) * 20}, ${100 + Math.sin(time * 0.5) * 20}, 0, 0.4)`);
+        gradient.addColorStop(1, `rgba(${180 + Math.sin(time * 0.3) * 15}, ${80 + Math.sin(time * 0.5) * 15}, 0, 0.3)`);
+        this.ctx.fillStyle = gradient;
+        this.ctx.fillRect(x, y, width, height);
+        this.ctx.restore();
+        
+        // Cartoony border with glow
+        this.ctx.save();
+        this.ctx.shadowColor = '#FF9800';
+        this.ctx.shadowBlur = 4;
+        this.ctx.strokeStyle = '#FF9800';
+        this.ctx.lineWidth = 3;
+        this.ctx.beginPath();
+        this.ctx.roundRect(x, y, width, height, 8);
+        this.ctx.stroke();
+        this.ctx.restore();
+        
+        // Animated portrait title
+        const wiggleY = y + 20 + Math.sin(time * 2) * 1;
+        this.ctx.fillStyle = '#FFF';
+        this.ctx.font = 'bold 16px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('🎯 Selection', x + width / 2, wiggleY);
+        
+        if (selectedTower) {
+            // Render tower portrait with animation
+            const portraitSize = Math.min(width - 20, height - 40, 60);
+            const portraitX = x + (width - portraitSize) / 2;
+            const portraitY = y + 30 + Math.sin(time * 1.5) * 2; // Gentle bounce
+            
+            this.renderTowerPortrait(portraitX, portraitY, portraitSize, selectedTower);
+        } else {
+            // Show empty selection with pulsing effect
+            this.ctx.font = '14px Arial';
+            const pulseAlpha = 0.5 + Math.sin(time * 2) * 0.3;
+            this.ctx.globalAlpha = pulseAlpha;
+            this.ctx.fillText('No Selection', x + width / 2, y + height / 2);
+        }
+        
+        this.ctx.restore();
+    }
+
+    // Render selection info section
+    renderSelectionInfoSection(x, y, width, height, selectedTower) {
+        this.ctx.save();
+
+        // Section background
+        this.ctx.fillStyle = 'rgba(100, 0, 200, 0.3)';
+        this.ctx.fillRect(x, y, width, height);
+
+        // Section border
+        this.ctx.strokeStyle = '#9C27B0';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(x, y, width, height);
+
+        // Info title
+        this.ctx.fillStyle = '#FFF';
+        this.ctx.font = 'bold 16px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('Details', x + width / 2, y + 20);
+
+        if (selectedTower) {
+            // Render tower details
+            this.ctx.font = '14px Arial';
+            this.ctx.textAlign = 'left';
+            this.ctx.fillText(`${selectedTower.type} Tower`, x + 10, y + 40);
+            this.ctx.fillText(`Level: ${selectedTower.level}`, x + 10, y + 55);
+            this.ctx.fillText(`Damage: ${selectedTower.damage}`, x + 10, y + 70);
+            this.ctx.fillText(`Range: ${selectedTower.range}`, x + 10, y + 85);
+        } else {
+            // Show empty info
+            this.ctx.font = '14px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText('No Selection', x + width / 2, y + height / 2);
+        }
+
+        this.ctx.restore();
+    }
+
+    // Render selection actions section
+    renderSelectionActionsSection(x, y, width, height, selectedTower, towerManager) {
+        this.ctx.save();
+
+        // Section background
+        this.ctx.fillStyle = 'rgba(0, 200, 100, 0.3)';
+        this.ctx.fillRect(x, y, width, height);
+
+        // Section border
+        this.ctx.strokeStyle = '#4CAF50';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(x, y, width, height);
+
+        // Actions title
+        this.ctx.fillStyle = '#FFF';
+        this.ctx.font = 'bold 16px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('Actions', x + width / 2, y + 20);
+
+        if (selectedTower) {
+            // Render upgrade button
+            const upgradeInfo = towerManager.getTowerUpgradeInfo(selectedTower.x, selectedTower.y);
+            if (upgradeInfo) {
+                const buttonWidth = width - 20;
+                const buttonHeight = 30;
+                const buttonX = x + 10;
+                const buttonY = y + 35;
+
+                const canAfford = this.resourceSystem && this.resourceSystem.canAfford(upgradeInfo.cost);
+
+                // Button background
+                this.ctx.fillStyle = canAfford ? '#4CAF50' : '#9E9E9E';
+                this.ctx.fillRect(buttonX, buttonY, buttonWidth, buttonHeight);
+
+                // Button border
+                this.ctx.strokeStyle = canAfford ? '#2E7D32' : '#424242';
+                this.ctx.lineWidth = 2;
+                this.ctx.strokeRect(buttonX, buttonY, buttonWidth, buttonHeight);
+
+                // Button text
+                this.ctx.fillStyle = '#FFF';
+                this.ctx.font = 'bold 14px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText('⬆️ Upgrade', buttonX + buttonWidth / 2, buttonY + 20);
+
+                // Cost text
+                this.ctx.font = '12px Arial';
+                this.ctx.fillText(`💰 ${upgradeInfo.cost}`, buttonX + buttonWidth / 2, buttonY + 35);
+            }
+        } else {
+            // Show no actions
+            this.ctx.font = '14px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText('No Actions', x + width / 2, y + height / 2);
+        }
+
+        this.ctx.restore();
+    }
+
+    // Render coin info section with cartoony styling and animations
+    renderCoinInfoSection(x, y, width, height, resourceInfo) {
+        this.ctx.save();
+        
+        const time = Date.now() / 1000;
+        
+        // Cartoony section background with rounded corners
+        this.ctx.beginPath();
+        this.ctx.roundRect(x, y, width, height, 8);
+        this.ctx.clip();
+        
+        // Animated gradient background
+        const gradient = this.ctx.createLinearGradient(x, y, x, y + height);
+        gradient.addColorStop(0, `rgba(${200 + Math.sin(time * 0.4) * 30}, ${200 + Math.sin(time * 0.6) * 30}, 0, 0.4)`);
+        gradient.addColorStop(1, `rgba(${180 + Math.sin(time * 0.4) * 20}, ${180 + Math.sin(time * 0.6) * 20}, 0, 0.3)`);
+        this.ctx.fillStyle = gradient;
+        this.ctx.fillRect(x, y, width, height);
+        this.ctx.restore();
+        
+        // Cartoony border with glow
+        this.ctx.save();
+        this.ctx.shadowColor = '#FFD700';
+        this.ctx.shadowBlur = 6;
+        this.ctx.strokeStyle = '#FFD700';
+        this.ctx.lineWidth = 3;
+        this.ctx.beginPath();
+        this.ctx.roundRect(x, y, width, height, 8);
+        this.ctx.stroke();
+        this.ctx.restore();
+        
+        // Animated coin title with sparkle effect
+        const sparkleY = y + 20 + Math.sin(time * 4) * 1;
+        this.ctx.fillStyle = '#FFF';
+        this.ctx.font = 'bold 16px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('💰 Coins', x + width / 2, sparkleY);
+        
+        // Display coin count with pulsing animation
+        this.ctx.font = 'bold 18px Arial';
+        const coinCount = resourceInfo ? (resourceInfo.coins || 0) : 0;
+        const pulseScale = 1 + Math.sin(time * 3) * 0.1;
+        this.ctx.save();
+        this.ctx.translate(x + width / 2, y + 50);
+        this.ctx.scale(pulseScale, pulseScale);
+        this.ctx.fillStyle = '#FFD700';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText(`${coinCount}`, 0, 0);
+        this.ctx.restore();
+        
+        // Animated coin icon with rotation and bounce
+        const coinX = x + width / 2;
+        const coinY = y + 70 + Math.sin(time * 2) * 3; // Bounce effect
+        const coinRotation = time * 0.5; // Slow rotation
+        
+        this.ctx.save();
+        this.ctx.translate(coinX, coinY);
+        this.ctx.rotate(coinRotation);
+        
+        // Coin with glow effect
+        this.ctx.shadowColor = '#FFD700';
+        this.ctx.shadowBlur = 8;
+        this.ctx.fillStyle = '#FFD700';
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, 12, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Coin border
+        this.ctx.strokeStyle = '#B8860B';
+        this.ctx.lineWidth = 3;
+        this.ctx.stroke();
+        
+        // Coin sparkle effect
+        this.ctx.restore();
+        this.renderCoinSparkles(coinX, coinY, time);
+        
+        this.ctx.restore();
+    }
+
+    // Render sparkle effects around coin
+    renderCoinSparkles(coinX, coinY, time) {
+        this.ctx.save();
+        
+        // Create sparkles around the coin
+        for (let i = 0; i < 4; i++) {
+            const angle = (time * 2 + i * Math.PI / 2) % (Math.PI * 2);
+            const distance = 20 + Math.sin(time * 3 + i) * 5;
+            const sparkleX = coinX + Math.cos(angle) * distance;
+            const sparkleY = coinY + Math.sin(angle) * distance;
+            
+            const sparkleSize = 1 + Math.sin(time * 4 + i) * 0.5;
+            const sparkleAlpha = Math.sin(time * 3 + i) * 0.5 + 0.5;
+            
+            this.ctx.globalAlpha = sparkleAlpha;
+            this.ctx.fillStyle = '#FFD700';
+            this.ctx.beginPath();
+            this.ctx.arc(sparkleX, sparkleY, sparkleSize, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+        
+        this.ctx.restore();
+    }
+
+    // Legacy method for backward compatibility - now calls main HUD
     renderTowerHUD(selectedTower, towerManager, waveInfo = null, resourceInfo = null) {
-        if (!selectedTower) return;
+        this.renderMainHUD(selectedTower, towerManager, waveInfo, resourceInfo);
 
         // Calculate HUD area below tilemap
         const tilemapHeight = this.getTilemapHeight();

@@ -147,28 +147,15 @@ function render() {
     // Render collection effects
     gameState.renderer.renderCollectionEffects(gameState.resourceSystem.getCollectionEffectsForRendering());
 
-    // Render resource info with pulse animation (only when no tower selected)
-    if (!gameState.selectedTower) {
-        gameState.renderer.renderResourceInfo(
-            gameState.resourceSystem.getResourceInfo(),
-            gameState.resourceSystem.getCoinTotalPulse()
-        );
-
-        // Render wave info (only when no tower selected)
-        gameState.renderer.renderWaveInfo(gameState.enemyManager.getWaveInfo());
-    }
-
     // Render debug info
     if (gameState.debug.enabled) {
         gameState.renderer.renderDebugInfo(gameState.debug);
     }
 
-    // Render tower HUD if tower is selected
-    if (gameState.selectedTower) {
-        const waveInfo = gameState.enemyManager.getWaveInfo();
-        const resourceInfo = gameState.resourceSystem.getResourceInfo();
-        gameState.renderer.renderTowerHUD(gameState.selectedTower, gameState.towerManager, waveInfo, resourceInfo);
-    }
+    // Render main HUD (always visible)
+    const waveInfo = gameState.enemyManager.getWaveInfo();
+    const resourceInfo = gameState.resourceSystem.getResourceInfo();
+    gameState.renderer.renderMainHUD(gameState.selectedTower, gameState.towerManager, waveInfo, resourceInfo);
 
     // Render tower placement popup if active
     if (gameState.towerPlacementPopup) {
@@ -181,8 +168,6 @@ function render() {
 
 // Handle HUD clicks
 function handleHUDClick(clickX, clickY) {
-    if (!gameState.selectedTower) return false;
-
     // Calculate HUD area below tilemap
     const tilemapHeight = 12 * 64; // 12 rows * 64px tile size
     const hudHeight = 120;
@@ -194,41 +179,51 @@ function handleHUDClick(clickX, clickY) {
     if (clickX >= hudX && clickX <= hudX + hudWidth &&
         clickY >= hudY && clickY <= hudY + hudHeight) {
 
-        // Check if clicking upgrade button (positioned in upgrade section)
-        // Use same calculation as RenderSystem's flexible layout
+        // Calculate section layout (5 equal sections)
         const padding = 15;
         const contentHeight = hudHeight - (padding * 2);
         const contentY = hudY + padding;
+        const sectionWidth = (hudWidth - (padding * 6)) / 5; // 5 sections with 6 gaps
 
-        const portraitSize = 80;
-        const infoWidth = 200;
-        const upgradeWidth = 140; // Reduced from 180
-        const fillWidth = (hudWidth - portraitSize - infoWidth - upgradeWidth - (padding * 4)) / 2;
+        // Section 1: Wave Info (no clickable elements)
+        const waveInfoX = hudX + padding;
 
-        const fill1X = hudX + padding; // Restore margin
-        const fill1Width = fillWidth;
-        const portraitX = fill1X + fill1Width + padding;
-        const infoX = portraitX + portraitSize + padding;
-        const upgradeX = infoX + infoWidth + (padding / 2); // Reduced spacing
-        const upgradeY = contentY + 10;
+        // Section 2: Selection Portrait (no clickable elements)
+        const portraitX = waveInfoX + sectionWidth + padding;
 
-        const upgradeButtonX = upgradeX;
-        const upgradeButtonY = upgradeY;
-        const upgradeButtonWidth = 120; // Reduced to match new layout
-        const upgradeButtonHeight = 45;
+        // Section 3: Selection Info (no clickable elements)
+        const infoX = portraitX + sectionWidth + padding;
 
-        if (clickX >= upgradeButtonX && clickX <= upgradeButtonX + upgradeButtonWidth &&
-            clickY >= upgradeButtonY && clickY <= upgradeButtonY + upgradeButtonHeight) {
-            // Try to upgrade the selected tower
-            const success = gameState.towerManager.tryUpgradeTower(gameState.selectedTower.x, gameState.selectedTower.y);
-            if (success) {
-                console.log(`⬆️ Tower upgraded via HUD!`);
-                // Update selected tower reference
-                const updatedTower = gameState.towerManager.getTowerAt(gameState.selectedTower.x, gameState.selectedTower.y);
-                gameState.selectedTower = updatedTower;
+        // Section 4: Selection Actions (upgrade button)
+        const actionsX = infoX + sectionWidth + padding;
+        if (gameState.selectedTower &&
+            clickX >= actionsX && clickX <= actionsX + sectionWidth &&
+            clickY >= contentY && clickY <= contentY + contentHeight) {
+
+            // Check if clicking upgrade button
+            const buttonWidth = sectionWidth - 20;
+            const buttonHeight = 30;
+            const buttonX = actionsX + 10;
+            const buttonY = contentY + 35;
+
+            if (clickX >= buttonX && clickX <= buttonX + buttonWidth &&
+                clickY >= buttonY && clickY <= buttonY + buttonHeight) {
+                // Try to upgrade the selected tower
+                const success = gameState.towerManager.tryUpgradeTower(gameState.selectedTower.x, gameState.selectedTower.y);
+                if (success) {
+                    console.log(`⬆️ Tower upgraded via HUD!`);
+                    // Update selected tower reference
+                    const updatedTower = gameState.towerManager.getTowerAt(gameState.selectedTower.x, gameState.selectedTower.y);
+                    gameState.selectedTower = updatedTower;
+                }
+                return true;
             }
-            return true;
         }
+
+        // Section 5: Coin Info (no clickable elements)
+        const coinX = actionsX + sectionWidth + padding;
+
+        return true; // Click was in HUD area
     }
     return false;
 }
@@ -337,9 +332,9 @@ function handleInput() {
             return; // Don't try to place tower if coin was collected
         }
 
-        // Check if clicking on HUD upgrade button
-        if (gameState.selectedTower && handleHUDClick(clickPos.x, clickPos.y)) {
-            console.log('🎯 HUD click handled - tower should remain selected');
+        // Check if clicking on HUD (always check, regardless of selection)
+        if (handleHUDClick(clickPos.x, clickPos.y)) {
+            console.log('🎯 HUD click handled');
             return; // HUD click handled
         }
 
