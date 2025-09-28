@@ -85,6 +85,9 @@ function initGame() {
     // Start background music
     gameState.audioManager.startPreparationMusic();
 
+    // Show audio hint if needed
+    showAudioHintIfNeeded();
+
     // Start game loop
     gameState.isRunning = true;
     gameLoop();
@@ -333,10 +336,37 @@ function restartGame() {
     console.log('✅ Game restarted successfully!');
 }
 
+// Show audio hint if needed
+function showAudioHintIfNeeded() {
+    // Show hint after a short delay to see if audio is working
+    setTimeout(() => {
+        const audioHint = document.getElementById('audio-hint');
+        if (audioHint) {
+            audioHint.style.display = 'block';
+            // Hide hint after 3 seconds
+            setTimeout(() => {
+                audioHint.style.display = 'none';
+            }, 3000);
+        }
+    }, 1000);
+}
+
 // Handle input events
 function handleInput() {
     if (gameState.input.wasClicked()) {
         console.log('🎯 Click detected!');
+        
+        // Hide audio hint on first click
+        const audioHint = document.getElementById('audio-hint');
+        if (audioHint) {
+            audioHint.style.display = 'none';
+        }
+        
+        // Try to unlock audio on first interaction
+        if (gameState.audioManager) {
+            gameState.audioManager.checkAndUnlockAudio();
+        }
+        
         const clickPos = gameState.input.getClickPosition();
 
         console.log(`📍 Clicked at screen (${clickPos.x}, ${clickPos.y})`);

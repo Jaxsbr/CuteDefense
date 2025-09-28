@@ -8,6 +8,7 @@ class SimpleAudioManager {
         this.music = null;
         this.muted = false;
         this.audioPath = 'assets/audio/';
+        this.audioUnlocked = false;
         
         // Initialize audio system
         this.initializeAudio();
@@ -31,6 +32,9 @@ class SimpleAudioManager {
         this.loadSound('wave_complete', 'sounds/wave_complete.ogg');
         this.loadSound('countdown_thud', 'sounds/countdown_thud.ogg');
         this.loadSound('button_click', 'sounds/button_click.ogg');
+        
+        // Try to unlock audio system by playing a silent sound
+        this.unlockAudio();
         
         console.log('Audio system initialized');
     }
@@ -56,6 +60,9 @@ class SimpleAudioManager {
      */
     playSound(name) {
         if (this.muted) return;
+        
+        // Try to unlock audio on first sound attempt
+        this.checkAndUnlockAudio();
         
         if (this.sounds[name]) {
             try {
@@ -166,6 +173,43 @@ class SimpleAudioManager {
         // Don't restart music immediately - let it fade in naturally
         // The music will resume when the next preparation phase starts
         console.log('Wave complete - music will resume during next preparation phase');
+    }
+    
+    /**
+     * Try to unlock audio system by playing a very quiet sound
+     * This helps bypass browser autoplay restrictions
+     */
+    unlockAudio() {
+        // Try to play a very quiet button click sound to unlock audio
+        if (this.sounds['button_click']) {
+            try {
+                // Set volume very low and play
+                const originalVolume = this.sounds['button_click'].volume;
+                this.sounds['button_click'].volume = 0.01; // Very quiet
+                this.sounds['button_click'].play().then(() => {
+                    console.log('Audio system unlocked successfully');
+                    // Restore original volume
+                    this.sounds['button_click'].volume = originalVolume;
+                }).catch(error => {
+                    console.log('Audio unlock failed, will require user interaction:', error.message);
+                    // Restore original volume
+                    this.sounds['button_click'].volume = originalVolume;
+                });
+            } catch (error) {
+                console.log('Audio unlock attempt failed:', error.message);
+            }
+        }
+    }
+    
+    /**
+     * Check if audio is unlocked and try to unlock if needed
+     * This should be called on first user interaction
+     */
+    checkAndUnlockAudio() {
+        if (!this.audioUnlocked) {
+            this.unlockAudio();
+            this.audioUnlocked = true;
+        }
     }
 }
 
