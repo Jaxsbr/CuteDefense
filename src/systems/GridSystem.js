@@ -11,12 +11,18 @@ class GridSystem {
         this.enemyPath = [];
         this.startTile = null;
         this.endTile = null;
+        this.logger = null; // Logger reference
 
         // Path template system
         this.pathTemplates = this.initializePathTemplates();
 
         this.initializeGrid();
         this.generateEnemyPath();
+    }
+
+    // Set logger reference
+    setLogger(logger) {
+        this.logger = logger;
     }
 
     initializeGrid() {
@@ -456,7 +462,7 @@ class GridSystem {
 
         // Validate template before applying
         if (!this.validateTemplate(template)) {
-            console.error(`Invalid template: ${template.name}. Using fallback path.`);
+            if (this.logger) this.logger.error(`Invalid template: ${template.name}. Using fallback path.`);
             this.generateFallbackPath();
             return;
         }
@@ -471,31 +477,31 @@ class GridSystem {
             this.enemyPath.push({ x: point.x, y: point.y });
         }
 
-        console.log(`Applied path template: ${template.name}`);
+        if (this.logger) this.logger.info(`Applied path template: ${template.name}`);
     }
 
     // Validate a path template
     validateTemplate(template) {
         // Check if template has required properties
         if (!template.name || !template.start || !template.end || !template.path) {
-            console.error('Template missing required properties: name, start, end, path');
+            if (this.logger) this.logger.error('Template missing required properties: name, start, end, path');
             return false;
         }
 
         // Check if path array is not empty
         if (!Array.isArray(template.path) || template.path.length === 0) {
-            console.error('Template path must be a non-empty array');
+            if (this.logger) this.logger.error('Template path must be a non-empty array');
             return false;
         }
 
         // Validate start and end coordinates
         if (!this.isValidPosition(template.start.x, template.start.y)) {
-            console.error(`Template start coordinates (${template.start.x}, ${template.start.y}) are out of bounds`);
+            if (this.logger) this.logger.error(`Template start coordinates (${template.start.x}, ${template.start.y}) are out of bounds`);
             return false;
         }
 
         if (!this.isValidPosition(template.end.x, template.end.y)) {
-            console.error(`Template end coordinates (${template.end.x}, ${template.end.y}) are out of bounds`);
+            if (this.logger) this.logger.error(`Template end coordinates (${template.end.x}, ${template.end.y}) are out of bounds`);
             return false;
         }
 
@@ -503,7 +509,7 @@ class GridSystem {
         for (let i = 0; i < template.path.length; i++) {
             const point = template.path[i];
             if (!this.isValidPosition(point.x, point.y)) {
-                console.error(`Template path point ${i} coordinates (${point.x}, ${point.y}) are out of bounds`);
+                if (this.logger) this.logger.error(`Template path point ${i} coordinates (${point.x}, ${point.y}) are out of bounds`);
                 return false;
             }
         }
@@ -513,12 +519,12 @@ class GridSystem {
         const lastPoint = template.path[template.path.length - 1];
 
         if (firstPoint.x !== template.start.x || firstPoint.y !== template.start.y) {
-            console.error('Template path must start with the start coordinates');
+            if (this.logger) this.logger.error('Template path must start with the start coordinates');
             return false;
         }
 
         if (lastPoint.x !== template.end.x || lastPoint.y !== template.end.y) {
-            console.error('Template path must end with the end coordinates');
+            if (this.logger) this.logger.error('Template path must end with the end coordinates');
             return false;
         }
 
@@ -532,7 +538,7 @@ class GridSystem {
 
             // Should be adjacent (distance of 1) and orthogonal (not diagonal)
             if (dx + dy !== 1) {
-                console.error(`Template path has non-orthogonal connection between points ${i} and ${i + 1}`);
+                if (this.logger) this.logger.error(`Template path has non-orthogonal connection between points ${i} and ${i + 1}`);
                 return false;
             }
         }
@@ -554,19 +560,19 @@ class GridSystem {
             this.enemyPath.push({ x, y: startY });
         }
 
-        console.log('Applied fallback path: straight line');
+        if (this.logger) this.logger.info('Applied fallback path: straight line');
     }
 
     // Add a new path template
     addPathTemplate(template) {
         // Validate template before adding
         if (!this.validateTemplate(template)) {
-            console.error('Cannot add invalid template. Please fix the template and try again.');
+            if (this.logger) this.logger.error('Cannot add invalid template. Please fix the template and try again.');
             return false;
         }
 
         this.pathTemplates.push(template);
-        console.log(`Added new path template: ${template.name}`);
+        if (this.logger) this.logger.info(`Added new path template: ${template.name}`);
         return true;
     }
 
