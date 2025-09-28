@@ -58,7 +58,16 @@ class RenderSystem {
 
     // Update day/night phase based on wave state
     updateDayNightPhase(waveState) {
-        const targetPhase = (waveState === 'preparation' || waveState === 'complete') ? 'day' : 'night';
+        let targetPhase = 'day'; // Default to day
+        
+        // Determine target phase based on wave state
+        if (waveState === 'preparation') {
+            targetPhase = 'day';
+        } else if (waveState === 'spawning' || waveState === 'active') {
+            targetPhase = 'night';
+        } else if (waveState === 'complete') {
+            targetPhase = 'day';
+        }
         
         if (this.dayNightSystem.currentPhase !== targetPhase) {
             this.dayNightSystem.currentPhase = targetPhase;
@@ -2564,6 +2573,66 @@ class RenderSystem {
             this.ctx.fillRect(0, 0, this.width, this.height);
         }
         
+        this.ctx.restore();
+    }
+
+    // Render start and end tiles on layer 3 (after day/night lighting)
+    renderStartEndTiles(gridSystem) {
+        const tileSize = gridSystem.tileSize;
+        
+        // Render start and end tiles with enhanced visibility
+        for (let y = 0; y < gridSystem.rows; y++) {
+            for (let x = 0; x < gridSystem.cols; x++) {
+                const tile = gridSystem.getTile(x, y);
+                if (tile && (tile.type === 'start' || tile.type === 'end')) {
+                    this.renderStartEndTile(x, y, tile, tileSize);
+                }
+            }
+        }
+    }
+
+    // Render individual start or end tile with enhanced visibility
+    renderStartEndTile(gridX, gridY, tile, tileSize) {
+        const screenX = gridX * tileSize;
+        const screenY = gridY * tileSize;
+        const centerX = screenX + tileSize / 2;
+        const centerY = screenY + tileSize / 2;
+        const time = Date.now() / 1000;
+
+        this.ctx.save();
+
+        if (tile.type === 'start') {
+            // Enhanced start tile with bright colors and effects
+            const gradient = this.ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, tileSize / 2);
+            gradient.addColorStop(0, '#00FF88');
+            gradient.addColorStop(0.7, '#00CC66');
+            gradient.addColorStop(1, '#00AA44');
+            this.ctx.fillStyle = gradient;
+            this.ctx.beginPath();
+            this.ctx.roundRect(screenX, screenY, tileSize, tileSize, 4);
+            this.ctx.fill();
+
+            // Add animated sparkle effect
+            this.renderTileSparkles(centerX, centerY, time, gridX + gridY);
+
+        } else if (tile.type === 'end') {
+            // Enhanced end tile with warning colors and effects
+            const gradient = this.ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, tileSize / 2);
+            gradient.addColorStop(0, '#FF8888');
+            gradient.addColorStop(0.7, '#DD6666');
+            gradient.addColorStop(1, '#BB4444');
+            this.ctx.fillStyle = gradient;
+            this.ctx.beginPath();
+            this.ctx.roundRect(screenX, screenY, tileSize, tileSize, 4);
+            this.ctx.fill();
+
+            // Add animated warning effect
+            this.renderTileWarningEffect(centerX, centerY, time, gridX + gridY);
+        }
+
+        // Draw enhanced borders
+        this.renderTileBorder(screenX, screenY, tileSize, tile.type);
+
         this.ctx.restore();
     }
 }

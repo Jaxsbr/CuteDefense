@@ -179,6 +179,9 @@ function render() {
     // Render day/night tile lighting overlay (only affects tiles)
     gameState.renderer.renderDayNightTileLighting();
 
+    // Render start and end tiles on layer 3 (after day/night lighting)
+    gameState.renderer.renderStartEndTiles(gameState.grid);
+
     // Render enemies
     gameState.renderer.renderEnemies(gameState.enemySystem.getEnemiesForRendering(), CONFIG.TILE_SIZE);
 
