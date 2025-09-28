@@ -1042,10 +1042,10 @@ class RenderSystem {
 
     renderRankBadge(centerX, badgeY, level) {
         // Draw rank badge with vertical bars instead of text
-        const barWidth = 3;
-        const barHeight = 8;
-        const barSpacing = 2;
-        const barPadding = 2;
+        const barWidth = 4;      // Increased from 3
+        const barHeight = 10;    // Increased from 8
+        const barSpacing = 3;    // Increased from 2
+        const barPadding = 3;    // Increased from 2
         
         // Calculate total width needed for all bars with spacing
         const totalWidth = (level * barWidth) + ((level - 1) * barSpacing) + (2 * barPadding);
