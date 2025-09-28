@@ -206,9 +206,10 @@ class RenderSystem {
             
             this.renderTowerPortrait(portraitX, portraitY, portraitSize, selectedTower);
         } else {
-            // Show empty selection (no pulsing)
+            // Show clean empty selection
             this.ctx.font = '14px Arial';
-            this.ctx.globalAlpha = 0.7;
+            this.ctx.globalAlpha = 1.0;
+            this.ctx.fillStyle = '#CCC';
             this.ctx.fillText('No Selection', x + width / 2, y + height / 2);
         }
 
@@ -243,9 +244,11 @@ class RenderSystem {
             this.ctx.fillText(`Damage: ${selectedTower.damage}`, x + 10, y + 70);
             this.ctx.fillText(`Range: ${selectedTower.range}`, x + 10, y + 85);
         } else {
-            // Show empty info
+            // Show clean empty info
             this.ctx.font = '14px Arial';
             this.ctx.textAlign = 'center';
+            this.ctx.globalAlpha = 1.0;
+            this.ctx.fillStyle = '#CCC';
             this.ctx.fillText('No Selection', x + width / 2, y + height / 2);
         }
 
@@ -302,9 +305,11 @@ class RenderSystem {
                 this.ctx.fillText(`💰 ${upgradeInfo.cost}`, buttonX + buttonWidth / 2, buttonY + 35);
             }
         } else {
-            // Show no actions
+            // Show clean no actions
             this.ctx.font = '14px Arial';
             this.ctx.textAlign = 'center';
+            this.ctx.globalAlpha = 1.0;
+            this.ctx.fillStyle = '#CCC';
             this.ctx.fillText('No Actions', x + width / 2, y + height / 2);
         }
 
