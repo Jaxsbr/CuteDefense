@@ -1041,25 +1041,32 @@ class RenderSystem {
     }
 
     renderRankBadge(centerX, badgeY, level) {
-        // Draw rank badge above tower
-        const badgeWidth = 20;
-        const badgeHeight = 12;
-        const badgeX = centerX - badgeWidth / 2;
+        // Draw rank badge with vertical bars instead of text
+        const barWidth = 3;
+        const barHeight = 8;
+        const barSpacing = 2;
+        const barPadding = 2;
+        
+        // Calculate total width needed for all bars with spacing
+        const totalWidth = (level * barWidth) + ((level - 1) * barSpacing) + (2 * barPadding);
+        const startX = centerX - totalWidth / 2;
 
-        // Badge background
+        // Badge background (yellow rectangle)
         this.ctx.fillStyle = '#FFD700';
-        this.ctx.fillRect(badgeX, badgeY, badgeWidth, badgeHeight);
+        this.ctx.fillRect(startX, badgeY, totalWidth, barHeight + (2 * barPadding));
 
         // Badge border
         this.ctx.strokeStyle = '#333';
         this.ctx.lineWidth = 1;
-        this.ctx.strokeRect(badgeX, badgeY, badgeWidth, badgeHeight);
+        this.ctx.strokeRect(startX, badgeY, totalWidth, barHeight + (2 * barPadding));
 
-        // Rank number
+        // Draw vertical bars for each level
         this.ctx.fillStyle = '#333';
-        this.ctx.font = 'bold 10px Arial';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText(level.toString(), centerX, badgeY + 9);
+        for (let i = 0; i < level; i++) {
+            const barX = startX + barPadding + (i * (barWidth + barSpacing));
+            const barY = badgeY + barPadding;
+            this.ctx.fillRect(barX, barY, barWidth, barHeight);
+        }
     }
 
     renderSelectionIndicator(centerX, centerY, radius) {
