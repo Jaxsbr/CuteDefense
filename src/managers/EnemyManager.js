@@ -74,7 +74,7 @@ class EnemyManager {
         // Show dramatic countdown for last 5 seconds
         else if (remaining > 0) {
             this.waveAnnouncement = `WAVE ${this.currentWave} STARTS IN ${remaining}!`;
-            
+
             // Play countdown thud for last 5 seconds
             if (remaining <= 5 && remaining !== this.lastCountdownSecond) {
                 this.lastCountdownSecond = remaining;
@@ -189,20 +189,103 @@ class EnemyManager {
         // Apply difficulty scaling
         const scaledWavePattern = this.applyDifficultyScaling(baseWavePattern);
 
-        // Convert pattern to spawn queue
+        // Convert pattern to spawn queue with formation support
         scaledWavePattern.enemies.forEach(enemyGroup => {
-            for (let i = 0; i < enemyGroup.count; i++) {
-                this.enemiesToSpawn.push({
-                    type: this.createScaledEnemyType(enemyGroup.type),
-                    spawnTime: this.waveStartTime + this.waveConfig.PREPARATION_TIME + (this.enemiesToSpawn.length * this.waveConfig.SPAWN_INTERVAL)
-                });
-            }
+            const formation = enemyGroup.formation || 'single';
+            const baseSpawnTime = this.waveStartTime + this.waveConfig.PREPARATION_TIME + (this.enemiesToSpawn.length * this.waveConfig.SPAWN_INTERVAL);
+
+            // Create formation spawn pattern
+            const formationSpawns = this.createFormationSpawns(enemyGroup, baseSpawnTime);
+            this.enemiesToSpawn.push(...formationSpawns);
         });
 
         this.totalEnemiesInWave = this.enemiesToSpawn.length;
 
         // Store wave composition for enhanced announcements
         this.waveComposition = this.getWaveComposition(scaledWavePattern);
+    }
+
+    /**
+     * Create formation spawn patterns for enemy groups
+     */
+    createFormationSpawns(enemyGroup, baseSpawnTime) {
+        const formation = enemyGroup.formation || 'single';
+        const count = enemyGroup.count;
+        const enemyType = this.createScaledEnemyType(enemyGroup.type);
+        const spawns = [];
+
+        switch (formation) {
+            case 'single':
+                // Spawn enemies individually with normal intervals
+                for (let i = 0; i < count; i++) {
+                    spawns.push({
+                        type: enemyType,
+                        spawnTime: baseSpawnTime + (i * this.waveConfig.SPAWN_INTERVAL),
+                        formation: 'single'
+                    });
+                }
+                break;
+
+            case 'line':
+                // Spawn enemies in a line formation (close together)
+                for (let i = 0; i < count; i++) {
+                    spawns.push({
+                        type: enemyType,
+                        spawnTime: baseSpawnTime + (i * 200), // 200ms between each enemy in line
+                        formation: 'line',
+                        formationIndex: i
+                    });
+                }
+                break;
+
+            case 'wedge':
+                // Spawn enemies in a wedge formation (V-shape)
+                for (let i = 0; i < count; i++) {
+                    spawns.push({
+                        type: enemyType,
+                        spawnTime: baseSpawnTime + (i * 300), // 300ms between each enemy in wedge
+                        formation: 'wedge',
+                        formationIndex: i
+                    });
+                }
+                break;
+
+            case 'phalanx':
+                // Spawn enemies in a tight phalanx formation
+                for (let i = 0; i < count; i++) {
+                    spawns.push({
+                        type: enemyType,
+                        spawnTime: baseSpawnTime + (i * 150), // 150ms between each enemy in phalanx
+                        formation: 'phalanx',
+                        formationIndex: i
+                    });
+                }
+                break;
+
+            case 'swarm':
+                // Spawn enemies in a swarm (very close together)
+                for (let i = 0; i < count; i++) {
+                    spawns.push({
+                        type: enemyType,
+                        spawnTime: baseSpawnTime + (i * 100), // 100ms between each enemy in swarm
+                        formation: 'swarm',
+                        formationIndex: i
+                    });
+                }
+                break;
+
+            default:
+                // Fallback to single formation
+                for (let i = 0; i < count; i++) {
+                    spawns.push({
+                        type: enemyType,
+                        spawnTime: baseSpawnTime + (i * this.waveConfig.SPAWN_INTERVAL),
+                        formation: 'single'
+                    });
+                }
+        }
+
+        return spawns;
     }
 
     /**
@@ -322,12 +405,19 @@ class EnemyManager {
             const path = this.gridSystem.getEnemyPath();
             if (path.length > 0) {
                 const spawnPoint = path[0];
-                this.enemySystem.createEnemy(
+
+                // Create enemy with formation data
+                const enemy = this.enemySystem.createEnemy(
                     enemyToSpawn.type,
                     spawnPoint.x,
                     spawnPoint.y,
                     path
                 );
+
+                // Add formation behavior to enemy
+                if (enemyToSpawn.formation && enemyToSpawn.formation !== 'single') {
+                    this.addFormationBehavior(enemy, enemyToSpawn.formation, enemyToSpawn.formationIndex);
+                }
 
                 // Play enemy spawn sound
                 if (this.audioManager) {
@@ -336,6 +426,65 @@ class EnemyManager {
 
                 this.enemiesSpawned++;
             }
+        }
+    }
+
+    /**
+     * Add formation behavior to an enemy
+     */
+    addFormationBehavior(enemy, formation, formationIndex) {
+        // Add formation properties to enemy
+        enemy.formation = formation;
+        enemy.formationIndex = formationIndex;
+        enemy.formationOffset = this.calculateFormationOffset(formation, formationIndex);
+
+        // Add formation-specific behaviors
+        switch (formation) {
+            case 'line':
+                enemy.formationSpeed = enemy.speed * 0.9; // Slightly slower in formation
+                enemy.formationCohesion = 0.8; // How much they stick together
+                break;
+            case 'wedge':
+                enemy.formationSpeed = enemy.speed * 0.85; // Slower in wedge
+                enemy.formationCohesion = 0.9; // High cohesion for wedge
+                break;
+            case 'phalanx':
+                enemy.formationSpeed = enemy.speed * 0.8; // Slower in phalanx
+                enemy.formationCohesion = 0.95; // Very high cohesion
+                break;
+            case 'swarm':
+                enemy.formationSpeed = enemy.speed * 1.1; // Faster in swarm
+                enemy.formationCohesion = 0.7; // Lower cohesion for swarm
+                break;
+        }
+    }
+
+    /**
+     * Calculate formation offset for enemy positioning
+     */
+    calculateFormationOffset(formation, formationIndex) {
+        const tileSize = 64; // Grid tile size
+        const spacing = 16; // Spacing between enemies in formation
+
+        switch (formation) {
+            case 'line':
+                return { x: formationIndex * spacing, y: 0 };
+            case 'wedge':
+                const wedgeOffset = (formationIndex - Math.floor(formationIndex / 2)) * spacing;
+                return { x: wedgeOffset, y: formationIndex * 8 };
+            case 'phalanx':
+                const phalanxX = (formationIndex % 3) * spacing;
+                const phalanxY = Math.floor(formationIndex / 3) * spacing;
+                return { x: phalanxX, y: phalanxY };
+            case 'swarm':
+                const angle = (formationIndex * 2 * Math.PI) / 8; // 8 enemies per swarm
+                const radius = 12;
+                return {
+                    x: Math.cos(angle) * radius,
+                    y: Math.sin(angle) * radius
+                };
+            default:
+                return { x: 0, y: 0 };
         }
     }
 

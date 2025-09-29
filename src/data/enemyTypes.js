@@ -80,78 +80,78 @@ const WAVE_CONFIG = {
         // Wave 1: Basic enemies only
         {
             enemies: [
-                { type: 'basic', count: 5 }
+                { type: 'basic', count: 5, formation: 'single' }
             ]
         },
         // Wave 2: Mix of basic and fast
         {
             enemies: [
-                { type: 'basic', count: 3 },
-                { type: 'fast', count: 2 }
+                { type: 'basic', count: 3, formation: 'single' },
+                { type: 'fast', count: 2, formation: 'single' }
             ]
         },
-        // Wave 3: All types
+        // Wave 3: All types with formations
         {
             enemies: [
-                { type: 'basic', count: 4 },
-                { type: 'fast', count: 3 },
-                { type: 'strong', count: 1 }
+                { type: 'basic', count: 4, formation: 'line' },
+                { type: 'fast', count: 3, formation: 'single' },
+                { type: 'strong', count: 1, formation: 'single' }
             ]
         },
-        // Wave 4: More challenging
+        // Wave 4: More challenging with formations
         {
             enemies: [
-                { type: 'basic', count: 6 },
-                { type: 'fast', count: 4 },
-                { type: 'strong', count: 2 }
+                { type: 'basic', count: 6, formation: 'wedge' },
+                { type: 'fast', count: 4, formation: 'line' },
+                { type: 'strong', count: 2, formation: 'single' }
             ]
         },
-        // Wave 5: Boss wave
+        // Wave 5: Boss wave with complex formations
         {
             enemies: [
-                { type: 'basic', count: 8 },
-                { type: 'fast', count: 6 },
-                { type: 'strong', count: 3 }
+                { type: 'basic', count: 8, formation: 'phalanx' },
+                { type: 'fast', count: 6, formation: 'swarm' },
+                { type: 'strong', count: 3, formation: 'single' }
             ]
         },
-        // Wave 6: Escalating difficulty
+        // Wave 6: Escalating difficulty with mixed formations
         {
             enemies: [
-                { type: 'basic', count: 10 },
-                { type: 'fast', count: 8 },
-                { type: 'strong', count: 4 }
+                { type: 'basic', count: 10, formation: 'wedge' },
+                { type: 'fast', count: 8, formation: 'line' },
+                { type: 'strong', count: 4, formation: 'single' }
             ]
         },
-        // Wave 7: More fast enemies
+        // Wave 7: Fast enemy swarm tactics
         {
             enemies: [
-                { type: 'basic', count: 6 },
-                { type: 'fast', count: 12 },
-                { type: 'strong', count: 2 }
+                { type: 'basic', count: 6, formation: 'single' },
+                { type: 'fast', count: 12, formation: 'swarm' },
+                { type: 'strong', count: 2, formation: 'single' }
             ]
         },
-        // Wave 8: Balanced challenge
+        // Wave 8: Balanced challenge with advanced formations
         {
             enemies: [
-                { type: 'basic', count: 12 },
-                { type: 'fast', count: 8 },
-                { type: 'strong', count: 6 }
+                { type: 'basic', count: 12, formation: 'phalanx' },
+                { type: 'fast', count: 8, formation: 'swarm' },
+                { type: 'strong', count: 6, formation: 'line' }
             ]
         },
-        // Wave 9: Strong enemy focus
+        // Wave 9: Strong enemy focus with defensive formations
         {
             enemies: [
-                { type: 'basic', count: 8 },
-                { type: 'fast', count: 6 },
-                { type: 'strong', count: 8 }
+                { type: 'basic', count: 8, formation: 'single' },
+                { type: 'fast', count: 6, formation: 'line' },
+                { type: 'strong', count: 8, formation: 'phalanx' }
             ]
         },
-        // Wave 10: Ultimate challenge
+        // Wave 10: Ultimate challenge with all formation types
         {
             enemies: [
-                { type: 'basic', count: 15 },
-                { type: 'fast', count: 12 },
-                { type: 'strong', count: 8 }
+                { type: 'basic', count: 15, formation: 'phalanx' },
+                { type: 'fast', count: 12, formation: 'swarm' },
+                { type: 'strong', count: 8, formation: 'wedge' }
             ]
         }
     ]
