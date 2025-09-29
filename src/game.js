@@ -500,10 +500,10 @@ function setupInputHandlers() {
             case 'd':
                 gameState.debug.enabled = !gameState.debug.enabled;
                 gameState.logger.setDebugMode(gameState.debug.enabled);
-                // Add 200 coins when entering debug mode
+                // Add 2000 coins when entering debug mode
                 if (gameState.debug.enabled) {
-                    gameState.resourceSystem.addCoins(200);
-                    gameState.logger.info('Debug mode: Added 200 coins for testing');
+                    gameState.resourceSystem.addCoins(2000);
+                    gameState.logger.info('Debug mode: Added 2000 coins for testing');
                 }
                 break;
             case 'g':
@@ -521,6 +521,15 @@ function setupInputHandlers() {
             case 'm':
                 const muted = gameState.audioManager.toggleMute();
                 gameState.logger.info('Audio muted:', muted);
+                break;
+            case 'n':
+                // Skip to next wave (debug feature)
+                if (gameState.debug.enabled) {
+                    gameState.logger.info('🚀 Debug: Skipping to next wave');
+                    gameState.enemyManager.skipToNextWave();
+                } else {
+                    gameState.logger.info('Debug mode required for wave skip (press D first)');
+                }
                 break;
         }
     });

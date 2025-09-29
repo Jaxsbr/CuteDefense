@@ -104,22 +104,22 @@ class RenderSystem {
             this.dayNightSystem.currentPhase = targetPhase;
             this.dayNightSystem.transitionProgress = 0;
             this.dayNightSystem.transitionStartTime = Date.now();
-            
+
             // Set transition duration based on target phase
             this.dayNightSystem.transitionDuration = targetPhase === 'night' ? 4000 : 2000; // 4s for night, 2s for day
-            
+
             // Trigger phase change effect
             this.dayNightSystem.phaseChangeEffect.active = true;
             this.dayNightSystem.phaseChangeEffect.startTime = Date.now();
             this.dayNightSystem.phaseChangeEffect.type = targetPhase === 'night' ? 'flash' : 'fade';
         }
-        
+
         // Time-based transition calculation
         if (this.dayNightSystem.transitionProgress < 1.0) {
             const elapsed = Date.now() - this.dayNightSystem.transitionStartTime;
             const progress = Math.min(1.0, elapsed / this.dayNightSystem.transitionDuration);
             this.dayNightSystem.transitionProgress = progress;
-            
+
             // Debug logging for transition progress
             if (this.logger && targetPhase === 'night' && Math.floor(progress * 100) % 20 === 0) {
                 this.logger.info(`🌙 Night transition progress: ${Math.floor(progress * 100)}% (${elapsed}ms)`);
@@ -1485,7 +1485,7 @@ class RenderSystem {
     }
 
     renderWaveInfo(waveInfo) {
-        // Render wave announcement with consistent simple styling
+        // Render enhanced wave announcement with dramatic effects
         if (waveInfo.announcement) {
             const textX = this.width / 2;
             let textY = this.height / 2 - 50;
@@ -1493,82 +1493,177 @@ class RenderSystem {
             // Split announcement into lines
             const lines = waveInfo.announcement.split('\n');
 
-            // Check announcement type for font size only
-            const isCountdown = waveInfo.announcement.includes('STARTS IN');
+            // Enhanced announcement type detection
+            const isCountdown = waveInfo.announcement.includes('in:') && !waveInfo.announcement.includes('BOSS');
+            const isBossWave = waveInfo.announcement.includes('BOSS in:');
+            const isWaveComplete = waveInfo.announcement.includes('Complete');
+            const isWaveStart = waveInfo.announcement.includes('INCOMING');
 
-            // Use larger font for 5s countdown, smaller for everything else
-            const fontSize = isCountdown ? 'bold 48px Arial' : 'bold 32px Arial';
+            // Check if this is the dramatic last 5 seconds
+            const isLast5Seconds = (isCountdown || isBossWave) && (
+                waveInfo.announcement.includes('05') ||
+                waveInfo.announcement.includes('04') ||
+                waveInfo.announcement.includes('03') ||
+                waveInfo.announcement.includes('02') ||
+                waveInfo.announcement.includes('01')
+            );
 
-            // Consistent white text styling for all announcements
+            // Dynamic font sizing based on announcement type
+            let fontSize, textColor, outlineColor;
+            if (isCountdown && isLast5Seconds) {
+                fontSize = 'bold 72px Impact';
+                textColor = '#FF4444'; // Red for dramatic countdown
+                outlineColor = '#FFFFFF';
+            } else if (isBossWave && isLast5Seconds) {
+                fontSize = 'bold 68px Impact';
+                textColor = '#FF6B00'; // Orange for dramatic boss waves
+                outlineColor = '#000000';
+            } else if (isCountdown || isBossWave) {
+                fontSize = 'bold 32px Arial';
+                textColor = '#FFFFFF'; // White for normal countdown
+                outlineColor = '#000000';
+            } else if (isWaveComplete) {
+                fontSize = 'bold 48px Arial';
+                textColor = '#44FF44'; // Green for completion
+                outlineColor = '#000000';
+            } else if (isWaveStart) {
+                fontSize = 'bold 40px Arial';
+                textColor = '#FFD700'; // Gold for wave start
+                outlineColor = '#000000';
+            } else {
+                fontSize = 'bold 32px Arial';
+                textColor = '#FFFFFF';
+                outlineColor = '#000000';
+            }
+
+            // Apply dramatic visual effects
             this.ctx.font = fontSize;
             this.ctx.textAlign = 'center';
-            this.ctx.fillStyle = '#FFFFFF';
-            this.ctx.strokeStyle = '#000000';
-            this.ctx.lineWidth = 3;
+            this.ctx.lineWidth = 4;
+
+            // Add pulsing effect for countdown (only last 5 seconds)
+            if (isCountdown && isLast5Seconds) {
+                const pulseIntensity = Math.sin(Date.now() * 0.01) * 0.3 + 0.7;
+                this.ctx.shadowColor = textColor;
+                this.ctx.shadowBlur = 20 * pulseIntensity;
+            }
+
+            // Add glow effect for boss waves (only last 5 seconds)
+            if (isBossWave && isLast5Seconds) {
+                this.ctx.shadowColor = textColor;
+                this.ctx.shadowBlur = 30;
+            }
 
             lines.forEach((line, index) => {
-                const y = textY + (index * (isCountdown ? 60 : 40));
+                const y = textY + (index * (isCountdown ? 80 : 50));
 
-                // Simple black outline with white fill - no pulsing, no color changes
+                // Enhanced text rendering with effects
+                this.ctx.strokeStyle = outlineColor;
+                this.ctx.fillStyle = textColor;
+
                 this.ctx.strokeText(line, textX, y);
                 this.ctx.fillText(line, textX, y);
             });
+
+            // Reset shadow effects
+            this.ctx.shadowBlur = 0;
         }
 
-        // No visual effects for announcements - keep them clean and simple
-
-        // Render wave stats with enhanced UI
-        this.renderWaveStatsPanel(waveInfo);
+        // Wave stats are already shown in the HUD, no need for redundant panel
     }
 
     renderWaveStatsPanel(waveInfo) {
-        const panelWidth = 250;
-        const panelHeight = 100;
+        const panelWidth = 280;
+        const panelHeight = 120;
         const panelX = 20;
-        const panelY = this.height - panelHeight - 20;
+        const panelY = 20; // Move to top left to avoid HUD overlap
 
-        // Panel background with gradient
+        // Enhanced panel background with animated gradient
+        const time = Date.now() * 0.001;
         const gradient = this.ctx.createLinearGradient(panelX, panelY, panelX, panelY + panelHeight);
-        gradient.addColorStop(0, 'rgba(0, 0, 0, 0.8)');
-        gradient.addColorStop(1, 'rgba(0, 0, 0, 0.6)');
+        gradient.addColorStop(0, `rgba(0, 0, 0, ${0.9 + Math.sin(time) * 0.1})`);
+        gradient.addColorStop(1, `rgba(0, 0, 0, ${0.7 + Math.sin(time * 1.5) * 0.1})`);
 
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(panelX, panelY, panelWidth, panelHeight);
 
-        // Panel border
-        this.ctx.strokeStyle = '#4CAF50';
-        this.ctx.lineWidth = 2;
+        // Dynamic border color based on wave state
+        const borderColor = this.getWaveStateColor(waveInfo.waveState);
+        this.ctx.strokeStyle = borderColor;
+        this.ctx.lineWidth = 3;
         this.ctx.strokeRect(panelX, panelY, panelWidth, panelHeight);
 
-        // Wave number
-        this.ctx.font = 'bold 20px Arial';
+        // Add subtle glow effect
+        this.ctx.shadowColor = borderColor;
+        this.ctx.shadowBlur = 10;
+        this.ctx.strokeRect(panelX, panelY, panelWidth, panelHeight);
+        this.ctx.shadowBlur = 0;
+
+        // Enhanced wave number with icon
+        this.ctx.font = 'bold 24px Arial';
         this.ctx.fillStyle = '#FFFFFF';
         this.ctx.textAlign = 'left';
-        this.ctx.fillText(`Wave ${waveInfo.currentWave}`, panelX + 15, panelY + 25);
+        this.ctx.fillText(`🌊 Wave ${waveInfo.currentWave}`, panelX + 15, panelY + 30);
 
-        // Enemy count with progress bar - show spawned vs total, not alive vs total
-        this.ctx.font = '16px Arial';
-        this.ctx.fillText(`Enemies: ${waveInfo.enemiesSpawned}/${waveInfo.totalEnemies}`, panelX + 15, panelY + 50);
+        // Enhanced enemy count with progress visualization
+        this.ctx.font = 'bold 18px Arial';
+        this.ctx.fillStyle = '#FFD700';
+        this.ctx.fillText(`Enemies: ${waveInfo.enemiesSpawned}/${waveInfo.totalEnemies}`, panelX + 15, panelY + 55);
 
-        // Progress bar for enemies - show spawning progress
-        const barWidth = 200;
-        const barHeight = 8;
+        // Enhanced progress bar for enemies with animation
+        const barWidth = 220;
+        const barHeight = 12;
         const barX = panelX + 15;
-        const barY = panelY + 60;
+        const barY = panelY + 70;
 
-        // Background bar
-        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        // Animated background bar with gradient
+        const bgGradient = this.ctx.createLinearGradient(barX, barY, barX + barWidth, barY);
+        bgGradient.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
+        bgGradient.addColorStop(1, 'rgba(255, 255, 255, 0.4)');
+        this.ctx.fillStyle = bgGradient;
         this.ctx.fillRect(barX, barY, barWidth, barHeight);
 
-        // Progress bar - show how many enemies have been spawned
+        // Progress bar with animated gradient
         const progress = waveInfo.totalEnemies > 0 ? waveInfo.enemiesSpawned / waveInfo.totalEnemies : 0;
-        this.ctx.fillStyle = '#4CAF50';
+        const progressGradient = this.ctx.createLinearGradient(barX, barY, barX + barWidth * progress, barY);
+        progressGradient.addColorStop(0, '#4CAF50');
+        progressGradient.addColorStop(1, '#8BC34A');
+        this.ctx.fillStyle = progressGradient;
         this.ctx.fillRect(barX, barY, barWidth * progress, barHeight);
 
-        // Wave state indicator with color coding
-        this.ctx.font = '14px Arial';
-        this.ctx.fillStyle = this.getWaveStateColor(waveInfo.waveState);
-        this.ctx.fillText(`Status: ${waveInfo.waveState.toUpperCase()}`, panelX + 15, panelY + 85);
+        // Add animated glow to progress bar
+        if (progress > 0) {
+            this.ctx.shadowColor = '#4CAF50';
+            this.ctx.shadowBlur = 8;
+            this.ctx.fillRect(barX, barY, barWidth * progress, barHeight);
+            this.ctx.shadowBlur = 0;
+        }
+
+        // Enhanced wave state indicator with icon and animation
+        this.ctx.font = 'bold 16px Arial';
+        const stateColor = this.getWaveStateColor(waveInfo.waveState);
+        this.ctx.fillStyle = stateColor;
+
+        // Add pulsing effect for active states
+        if (waveInfo.waveState === 'spawning' || waveInfo.waveState === 'active') {
+            const pulseIntensity = Math.sin(time * 8) * 0.3 + 0.7;
+            this.ctx.shadowColor = stateColor;
+            this.ctx.shadowBlur = 5 * pulseIntensity;
+        }
+
+        const stateIcon = this.getWaveStateIcon(waveInfo.waveState);
+        this.ctx.fillText(`${stateIcon} ${waveInfo.waveState.toUpperCase()}`, panelX + 15, panelY + 95);
+        this.ctx.shadowBlur = 0;
+    }
+
+    getWaveStateIcon(state) {
+        switch (state) {
+            case 'preparation': return '⏰';
+            case 'spawning': return '🚀';
+            case 'active': return '⚔️';
+            case 'complete': return '✅';
+            default: return '❓';
+        }
     }
 
     getWaveStateColor(state) {

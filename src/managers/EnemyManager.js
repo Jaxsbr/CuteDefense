@@ -25,6 +25,7 @@ class EnemyManager {
         this.isActive = false;
         this.waveAnnouncement = '';
         this.announcementTime = 0;
+        this.bossAnnouncementShown = false;
     }
 
     /**
@@ -69,11 +70,25 @@ class EnemyManager {
 
         // Show simple countdown for most of preparation time
         if (remaining > 5) {
-            this.waveAnnouncement = `Next Wave in: ${remaining}s`;
+            const isBossWave = this.currentWave % 5 === 0;
+            const countdownText = remaining.toString().padStart(2, '0');
+
+            if (isBossWave) {
+                this.waveAnnouncement = `BOSS in: ${countdownText}`;
+            } else {
+                this.waveAnnouncement = `Next in: ${countdownText}`;
+            }
         }
         // Show dramatic countdown for last 5 seconds
         else if (remaining > 0) {
-            this.waveAnnouncement = `WAVE ${this.currentWave} STARTS IN ${remaining}!`;
+            const isBossWave = this.currentWave % 5 === 0;
+            const countdownText = remaining.toString().padStart(2, '0');
+
+            if (isBossWave) {
+                this.waveAnnouncement = `BOSS in: ${countdownText}`;
+            } else {
+                this.waveAnnouncement = `Next in: ${countdownText}`;
+            }
 
             // Play countdown thud for last 5 seconds
             if (remaining <= 5 && remaining !== this.lastCountdownSecond) {
@@ -169,6 +184,7 @@ class EnemyManager {
 
         // Reset countdown tracker for new wave
         this.lastCountdownSecond = 0;
+        this.bossAnnouncementShown = false;
 
         // Don't set initial announcement here - let updatePreparation() handle it
         // This prevents the flash of the initial announcement before countdown
@@ -485,6 +501,30 @@ class EnemyManager {
                 };
             default:
                 return { x: 0, y: 0 };
+        }
+    }
+
+    /**
+     * Skip to next wave (debug feature)
+     */
+    skipToNextWave() {
+        if (!this.isActive) return;
+
+        // Clear all current enemies
+        this.enemySystem.clearAllEnemies();
+
+        // Reset wave state
+        this.waveState = 'complete';
+        this.waveAnnouncement = `Wave ${this.currentWave} Complete! (Skipped)`;
+        this.announcementTime = Date.now();
+
+        // Force immediate transition to next wave
+        setTimeout(() => {
+            this.startNextWave();
+        }, 1000); // Brief delay to show the "skipped" message
+
+        if (this.logger) {
+            this.logger.info(`🚀 Debug: Skipped to next wave (${this.currentWave + 1})`);
         }
     }
 
