@@ -57,7 +57,7 @@ class TowerSystem {
         tower.level += 1;
         tower.damage += upgradeConfig.damage;
         tower.range += upgradeConfig.range;
-        tower.fireRate = Math.max(100, tower.fireRate - upgradeConfig.fireRate); // Faster firing
+        tower.fireRate = upgradeConfig.fireRate; // Set absolute fire rate value
         tower.color = upgradeConfig.color;
         tower.size = Math.min(80, tower.size + 8); // Slightly larger
 

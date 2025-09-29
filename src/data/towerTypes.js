@@ -7,10 +7,10 @@
 const TOWER_TYPES = {
     BASIC: {
         name: 'Basic Tower',
-        cost: 10,
-        damage: 25,  // Increased from 1 to 25 for easier testing
+        cost: 5,  // Cheap placement
+        damage: 8,  // Reduced base damage for balance
         range: 5,
-        fireRate: 1500, // milliseconds between shots (slower for balance with guaranteed hits)
+        fireRate: 1800, // 1.8 seconds between shots
         projectileSpeed: 800, // pixels per second (very fast for guaranteed hits)
         color: '#4A90E2', // Blue (from color palette)
         size: 48,  // Increased from 24 to 48 for better visibility
@@ -18,10 +18,10 @@ const TOWER_TYPES = {
     },
     STRONG: {
         name: 'Strong Tower',
-        cost: 25,
-        damage: 60,  // Increased from 3 to 60 for easier testing
+        cost: 15,  // More expensive placement
+        damage: 20,  // Higher damage but not overwhelming
         range: 2,
-        fireRate: 2500, // milliseconds between shots (even slower for balance with guaranteed hits)
+        fireRate: 3000, // 3 seconds between shots (slower for balance)
         projectileSpeed: 800, // pixels per second (same as basic for guaranteed hits)
         color: '#4ECDC4', // Teal
         size: 56,  // Increased from 28 to 56 for better visibility
@@ -33,33 +33,33 @@ const TOWER_TYPES = {
 const TOWER_UPGRADES = {
     BASIC: {
         level2: {
-            cost: 15,
-            damage: 2,
-            range: 4,
-            fireRate: 800,
+            cost: 50,  // Very expensive upgrade (10x base cost)
+            damage: 12,  // +4 damage (50% increase)
+            range: 6,   // +1 range
+            fireRate: 1350,  // Faster firing (25% improvement)
             color: '#7BB3F0'  // Light blue from color palette
         },
         level3: {
-            cost: 25,
-            damage: 3,
-            range: 5,
-            fireRate: 600,
+            cost: 100,  // Extremely expensive upgrade (20x base cost)
+            damage: 18,  // +10 damage (125% increase from base)
+            range: 7,   // +2 range
+            fireRate: 900,   // Much faster firing (50% faster than base)
             color: '#B0E0E6'  // Light accent blue from color palette
         }
     },
     STRONG: {
         level2: {
-            cost: 30,
-            damage: 5,
-            range: 3,
-            fireRate: 1500,
+            cost: 60,  // Very expensive upgrade (4x base cost)
+            damage: 35,  // +15 damage (75% increase)
+            range: 3,   // +1 range
+            fireRate: 2000,  // Faster firing (33% improvement)
             color: '#6EDDD6'
         },
         level3: {
-            cost: 50,
-            damage: 8,
-            range: 4,
-            fireRate: 1200,
+            cost: 120,  // Extremely expensive upgrade (8x base cost)
+            damage: 55,  // +35 damage (175% increase from base)
+            range: 4,   // +2 range
+            fireRate: 1500,  // Much faster firing (50% improvement)
             color: '#8EE5E0'
         }
     }

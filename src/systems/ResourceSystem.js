@@ -5,7 +5,7 @@
 
 class ResourceSystem {
     constructor() {
-        this.coins = 50; // Starting coins
+        this.coins = 20; // Starting coins (reduced for challenge)
         this.coinAnimations = [];
         this.lastCoinSpawn = 0;
         this.collectionEffects = []; // Particle effects for coin collection
@@ -174,7 +174,7 @@ class ResourceSystem {
             // Create satisfying collection effects
             this.createCollectionEffect(coin.x, coin.y, coin.value);
 
-                if (this.logger) this.logger.info(`Collected coin worth ${coin.value} coins`);
+            if (this.logger) this.logger.info(`Collected coin worth ${coin.value} coins`);
             return true;
         }
 

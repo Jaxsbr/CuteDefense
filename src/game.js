@@ -500,6 +500,11 @@ function setupInputHandlers() {
             case 'd':
                 gameState.debug.enabled = !gameState.debug.enabled;
                 gameState.logger.setDebugMode(gameState.debug.enabled);
+                // Add 200 coins when entering debug mode
+                if (gameState.debug.enabled) {
+                    gameState.resourceSystem.addCoins(200);
+                    gameState.logger.info('Debug mode: Added 200 coins for testing');
+                }
                 break;
             case 'g':
                 gameState.debug.showGrid = !gameState.debug.showGrid;

@@ -7,11 +7,11 @@ const ENEMY_TYPES = {
     BASIC: {
         id: 'basic',
         name: 'Basic Enemy',
-        speed: 1.0,        // tiles per second
+        speed: 1.3,        // tiles per second (increased for challenge)
         health: 100,
         color: '#FF6B6B',  // Red
         size: 0.6,         // Relative to tile size
-        reward: 10,        // Coins when defeated
+        reward: 3,         // Coins when defeated (reduced for challenge)
         // Visual enhancements
         shape: 'circle',   // Shape for rendering
         borderColor: '#FF4444', // Border color
@@ -23,11 +23,11 @@ const ENEMY_TYPES = {
     FAST: {
         id: 'fast',
         name: 'Fast Enemy',
-        speed: 2.0,        // tiles per second
+        speed: 2.4,        // tiles per second (increased for challenge)
         health: 50,
         color: '#4ECDC4',  // Teal
         size: 0.5,         // Relative to tile size
-        reward: 15,        // Coins when defeated
+        reward: 5,         // Coins when defeated (reduced for challenge)
         // Visual enhancements
         shape: 'diamond',  // Shape for rendering
         borderColor: '#2E8B8B', // Border color
@@ -39,11 +39,11 @@ const ENEMY_TYPES = {
     STRONG: {
         id: 'strong',
         name: 'Strong Enemy',
-        speed: 0.5,        // tiles per second
+        speed: 0.7,        // tiles per second (increased for challenge)
         health: 200,
         color: '#45B7D1',  // Blue
         size: 0.8,         // Relative to tile size
-        reward: 25,        // Coins when defeated
+        reward: 8,         // Coins when defeated (reduced for challenge)
         // Visual enhancements
         shape: 'square',   // Shape for rendering
         borderColor: '#2E5B7D', // Border color
@@ -59,8 +59,8 @@ const ENEMY_TYPES = {
  * Defines wave patterns and enemy spawns with progressive difficulty
  */
 const WAVE_CONFIG = {
-    WAVE_DURATION: 30000,  // 30 seconds
-    PREPARATION_TIME: 15000, // 15 seconds for more suspense
+    WAVE_DURATION: 20000,  // 20 seconds (reduced for 5-10 minute sessions)
+    PREPARATION_TIME: 8000, // 8 seconds (reduced for faster pacing)
     SPAWN_INTERVAL: 2000,  // 2 seconds between spawns
 
     // Enhanced difficulty scaling factors
