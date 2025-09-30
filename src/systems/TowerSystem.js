@@ -15,6 +15,13 @@ class TowerSystem {
 
     // Add a new tower
     addTower(x, y, type) {
+        const baseTower = TOWER_TYPES[type];
+
+        // Add shoot rate variability (±50ms for level 1, ±100ms for level 2, ±150ms for level 3)
+        const variability = 50; // Base variability
+        const randomVariation = (Math.random() - 0.5) * 2 * variability; // -variability to +variability
+        const actualFireRate = Math.max(500, baseTower.fireRate + randomVariation); // Minimum 500ms
+
         const tower = {
             id: Date.now() + Math.random(),
             x: x,
@@ -23,11 +30,14 @@ class TowerSystem {
             level: 1,
             lastShot: 0,
             target: null,
-            ...TOWER_TYPES[type]
+            baseFireRate: baseTower.fireRate, // Store original rate for reference
+            fireRate: actualFireRate, // Use variable rate
+            ...baseTower,
+            fireRate: actualFireRate // Override the base fireRate
         };
 
         this.towers.push(tower);
-        if (this.logger) this.logger.info(`Tower placed: ${type} at (${x}, ${y})`);
+        if (this.logger) this.logger.info(`Tower placed: ${type} at (${x}, ${y}) with fire rate ${actualFireRate.toFixed(0)}ms`);
         return tower;
     }
 
@@ -57,7 +67,14 @@ class TowerSystem {
         tower.level += 1;
         tower.damage += upgradeConfig.damage;
         tower.range += upgradeConfig.range;
-        tower.fireRate = upgradeConfig.fireRate; // Set absolute fire rate value
+
+        // Add shoot rate variability for upgrades (more variability for higher levels)
+        const variability = 50 + (tower.level * 25); // 50ms for level 2, 75ms for level 3
+        const randomVariation = (Math.random() - 0.5) * 2 * variability;
+        const actualFireRate = Math.max(300, upgradeConfig.fireRate + randomVariation); // Minimum 300ms
+
+        tower.baseFireRate = upgradeConfig.fireRate; // Store base rate
+        tower.fireRate = actualFireRate; // Use variable rate
         tower.color = upgradeConfig.color;
         tower.size = Math.min(80, tower.size + 8); // Slightly larger
 
@@ -111,6 +128,8 @@ class TowerSystem {
             this.updateTower(tower, enemies, deltaTime);
             this.updateUpgradeParticles(tower, deltaTime);
             this.updatePlacementAnimations(tower, deltaTime);
+            this.updateTowerIdleAnimation(tower, deltaTime);
+            this.updateTowerFiringAnimation(tower, deltaTime);
         });
 
         // Update projectiles with damage system
@@ -220,6 +239,18 @@ class TowerSystem {
         if (this.audioManager) {
             this.audioManager.playSound('projectile_fire');
         }
+
+        // Trigger firing animation
+        if (!tower.firingAnimation) {
+            tower.firingAnimation = {
+                active: false,
+                time: 0,
+                scale: 1.0,
+                duration: 200
+            };
+        }
+        tower.firingAnimation.active = true;
+        tower.firingAnimation.time = 0;
 
         // Calculate direction vector for projectile
         const startX = tower.x * 64 + 32;
@@ -554,5 +585,54 @@ class TowerSystem {
         this.towers = [];
         this.projectiles = [];
         if (this.logger) this.logger.info('🗑️ All towers and projectiles cleared');
+    }
+
+    // Update tower idle animation (subtle pulsing)
+    updateTowerIdleAnimation(tower, deltaTime) {
+        // Initialize idle animation if not present
+        if (!tower.idleAnimation) {
+            tower.idleAnimation = {
+                active: true,
+                time: 0,
+                scale: 1.0,
+                speed: 0.002 // Slow pulsing
+            };
+        }
+
+        // Update animation
+        if (tower.idleAnimation.active) {
+            tower.idleAnimation.time += deltaTime;
+            // Subtle pulsing: 0.95 to 1.05 scale
+            tower.idleAnimation.scale = 1.0 + Math.sin(tower.idleAnimation.time * tower.idleAnimation.speed) * 0.05;
+        }
+    }
+
+    // Update tower firing animation (brief flash when shooting)
+    updateTowerFiringAnimation(tower, deltaTime) {
+        // Initialize firing animation if not present
+        if (!tower.firingAnimation) {
+            tower.firingAnimation = {
+                active: false,
+                time: 0,
+                scale: 1.0,
+                duration: 200 // 200ms flash
+            };
+        }
+
+        // Update animation
+        if (tower.firingAnimation.active) {
+            tower.firingAnimation.time += deltaTime;
+
+            if (tower.firingAnimation.time >= tower.firingAnimation.duration) {
+                // Animation complete
+                tower.firingAnimation.active = false;
+                tower.firingAnimation.time = 0;
+                tower.firingAnimation.scale = 1.0;
+            } else {
+                // Brief flash effect: 1.0 to 1.2 scale
+                const progress = tower.firingAnimation.time / tower.firingAnimation.duration;
+                tower.firingAnimation.scale = 1.0 + (Math.sin(progress * Math.PI) * 0.2);
+            }
+        }
     }
 }

@@ -245,34 +245,62 @@ class RenderSystem {
 
     // Removed sparkle effects for clean HUD appearance
 
-    // Render the five HUD sections: Wave Info, Selection Portrait, Selection Info, Selection Actions, Coin Info
+    // Render the four HUD sections: Wave Info, Combined Selection (Portrait+Info), Selection Actions, Coin Info
     renderHUDSections(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager, waveInfo, resourceInfo) {
         const padding = 15;
         const contentHeight = hudHeight - (padding * 2);
         const contentY = hudY + padding;
 
-        // Calculate section widths (5 equal sections)
-        const sectionWidth = (hudWidth - (padding * 6)) / 5; // 5 sections with 6 gaps
+        // Calculate section widths using percentages
+        const availableWidth = hudWidth - (padding * 5); // Account for 5 gaps between 4 sections
+        const waveInfoWidth = availableWidth * 0.25;      // 25%
+        const selectionWidth = availableWidth * 0.35;     // 35%
+        const actionsWidth = availableWidth * 0.20;        // 20%
+        const coinWidth = availableWidth * 0.20;           // 20%
 
-        // Section 1: Wave Info
+        // Section 1: Wave Info (25%)
         const waveInfoX = hudX + padding;
-        this.renderWaveInfoSection(waveInfoX, contentY, sectionWidth, contentHeight, waveInfo);
+        this.renderWaveInfoSection(waveInfoX, contentY, waveInfoWidth, contentHeight, waveInfo);
 
-        // Section 2: Selection Portrait
-        const portraitX = waveInfoX + sectionWidth + padding;
-        this.renderSelectionPortraitSection(portraitX, contentY, sectionWidth, contentHeight, selectedTower);
+        // Section 2: Combined Selection (35%)
+        const selectionX = waveInfoX + waveInfoWidth + padding;
+        this.renderCombinedSelectionSection(selectionX, contentY, selectionWidth, contentHeight, selectedTower);
 
-        // Section 3: Selection Info
-        const infoX = portraitX + sectionWidth + padding;
-        this.renderSelectionInfoSection(infoX, contentY, sectionWidth, contentHeight, selectedTower);
+        // Section 3: Selection Actions (20%)
+        const actionsX = selectionX + selectionWidth + padding;
+        this.renderSelectionActionsSection(actionsX, contentY, actionsWidth, contentHeight, selectedTower, towerManager);
 
-        // Section 4: Selection Actions
-        const actionsX = infoX + sectionWidth + padding;
-        this.renderSelectionActionsSection(actionsX, contentY, sectionWidth, contentHeight, selectedTower, towerManager);
+        // Section 4: Coin Info (20%)
+        const coinX = actionsX + actionsWidth + padding;
+        this.renderCoinInfoSection(coinX, contentY, coinWidth, contentHeight, resourceInfo);
+    }
 
-        // Section 5: Coin Info
-        const coinX = actionsX + sectionWidth + padding;
-        this.renderCoinInfoSection(coinX, contentY, sectionWidth, contentHeight, resourceInfo);
+    // Render combined selection section (portrait + info) with more space
+    renderCombinedSelectionSection(x, y, width, height, selectedTower) {
+        if (!selectedTower) {
+            // Show placeholder when no tower selected
+            this.ctx.save();
+            this.ctx.fillStyle = '#333';
+            this.ctx.fillRect(x, y, width, height);
+            this.ctx.fillStyle = '#666';
+            this.ctx.font = '16px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText('Select a tower', x + width / 2, y + height / 2);
+            this.ctx.restore();
+            return;
+        }
+
+        // Split the combined section: portrait on left, info on right
+        const portraitWidth = 80;
+        const infoWidth = width - portraitWidth - 10; // 10px gap
+        const portraitX = x;
+        const infoX = x + portraitWidth + 10;
+
+        // Render portrait
+        this.renderTowerPortrait(portraitX, y, portraitWidth, selectedTower);
+
+        // Render tower info with more space and slight margin from top
+        this.renderTowerInfo(infoX, y + 5, selectedTower);
     }
 
     // Render wave info section with cartoony styling
@@ -667,7 +695,7 @@ class RenderSystem {
         this.renderCoinDisplayInHUD(fill2X, contentY, fill2Width, contentHeight, resourceInfo);
     }
 
-    // Render tower information section
+    // Render tower information section (now with more space)
     renderTowerInfo(x, y, tower) {
         this.ctx.fillStyle = '#FFF';
         this.ctx.font = 'bold 18px Arial';
@@ -678,6 +706,33 @@ class RenderSystem {
         this.ctx.fillText(`Level: ${tower.level}`, x, y + 25);
         this.ctx.fillText(`Damage: ${tower.damage}`, x, y + 45);
         this.ctx.fillText(`Range: ${tower.range}`, x, y + 65);
+
+        // Display fire rate as clear text stats (now has space)
+        const fireRateMs = Math.round(tower.fireRate);
+        const baseRateMs = Math.round(tower.baseFireRate || tower.fireRate);
+        const isFaster = fireRateMs < baseRateMs;
+        const isSlower = fireRateMs > baseRateMs;
+
+        // Show fire rate with inline status indicator
+        this.ctx.fillStyle = '#FFF';
+        this.ctx.font = '16px Arial';
+
+        if (isFaster || isSlower) {
+            const diff = baseRateMs - fireRateMs;
+            const sign = diff > 0 ? '+' : '';
+            const status = isFaster ? 'FAST' : 'SLOW';
+
+            // Render fire rate and status on same line
+            this.ctx.fillText(`Fire: ${fireRateMs}ms`, x, y + 85);
+
+            // Color code the status text inline
+            this.ctx.fillStyle = isFaster ? '#4CAF50' : '#FF9800';
+            this.ctx.font = '14px Arial';
+            this.ctx.fillText(`${status} ${sign}${Math.abs(diff)}ms`, x + 120, y + 85);
+        } else {
+            // Just show fire rate if no variation
+            this.ctx.fillText(`Fire: ${fireRateMs}ms`, x, y + 85);
+        }
     }
 
     renderTowerPortrait(x, y, size, tower) {
@@ -1023,6 +1078,16 @@ class RenderSystem {
         // Apply growth animation scaling
         if (tower.growthAnimation && tower.growthAnimation.active) {
             towerRadius *= tower.growthAnimation.scale;
+        }
+
+        // Apply idle animation (subtle pulsing)
+        if (tower.idleAnimation && tower.idleAnimation.active) {
+            towerRadius *= tower.idleAnimation.scale;
+        }
+
+        // Apply firing animation (brief flash)
+        if (tower.firingAnimation && tower.firingAnimation.active) {
+            towerRadius *= tower.firingAnimation.scale;
         }
 
         // Draw level rings (visual indicator for tower level) - no pulsing
