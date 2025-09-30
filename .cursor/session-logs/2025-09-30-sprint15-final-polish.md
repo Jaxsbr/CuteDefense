@@ -114,3 +114,12 @@ Sprint 15 focuses on final polish and game completion, implementing the remainin
   - Tactile button design with tower icons and clear cost information
   - Improved positioning to stay within canvas bounds
   - Enhanced visual feedback matching game's aesthetic
+
+## Next Task
+- HUD "Proposed Tower" details in selection pane when placement popup is shown:
+  - Use the popup's selected tower type to display a PROPOSED state in the HUD selection pane
+  - Make it visually distinct from an actual selected tower/enemy (e.g., "Proposed" label + dimmed frame)
+  - Add a gentle blinking/pulsing accent to draw attention (e.g., title blink or border pulse)
+  - Show brief descriptor text per type, e.g., "Basic Tower — simple bullets | very cheap"
+  - Hide when popup closes or after placement; convert to real selection if placed
+  - Mobile-safe: avoid excessive motion; cap blink at ~1Hz with low-alpha pulse
