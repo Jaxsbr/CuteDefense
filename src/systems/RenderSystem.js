@@ -2790,58 +2790,89 @@ class RenderSystem {
         this.ctx.strokeStyle = canAffordSelected ? '#FFF' : '#999';
         this.ctx.lineWidth = 2;
         this.ctx.stroke();
-        // Icon
+        // Tower glyph (simple shape)
         this.ctx.fillStyle = '#FFF';
-        const iconSize = 16;
-        const iconX = mainBtnX + 12 + iconSize / 2;
-        const iconY = mainBtnY + mainBtnH / 2;
+        const glyphSize = 18;
+        const glyphX = mainBtnX + 12 + glyphSize / 2;
+        const glyphY = mainBtnY + mainBtnH / 2;
         this.ctx.beginPath();
-        this.ctx.arc(iconX, iconY, iconSize / 2, 0, Math.PI * 2);
+        this.ctx.arc(glyphX, glyphY, glyphSize / 2, 0, Math.PI * 2);
         this.ctx.fill();
-        // Cost text centered
+        // Buy label and price pill
+        const labelX = glyphX + 22;
+        const labelY = glyphY + 5;
         this.ctx.fillStyle = '#FFF';
+        this.ctx.font = 'bold 13px Arial';
+        this.ctx.textAlign = 'left';
+        this.ctx.fillText('Buy', labelX, labelY);
+        // price pill
+        const pillText = `🪙 ${typeCfg.cost}`;
+        this.ctx.font = 'bold 12px Arial';
+        const pillPaddingX = 8;
+        const pillPaddingY = 4;
+        const pillTextWidth = this.ctx.measureText(pillText).width;
+        const pillW = pillTextWidth + pillPaddingX * 2;
+        const pillH = 18;
+        const pillX = mainBtnX + mainBtnW - pillW - 10;
+        const pillY = mainBtnY + (mainBtnH - pillH) / 2;
+        this.ctx.fillStyle = canAffordSelected ? '#2E7D32' : '#777';
+        this.ctx.beginPath();
+        this.ctx.roundRect(pillX, pillY, pillW, pillH, 9);
+        this.ctx.fill();
+        this.ctx.strokeStyle = canAffordSelected ? '#A5D6A7' : '#AAA';
+        this.ctx.lineWidth = 1;
+        this.ctx.stroke();
+        this.ctx.fillStyle = '#FFF';
+        this.ctx.textAlign = 'center';
+        this.ctx.font = 'bold 12px Arial';
+        this.ctx.fillText(pillText, pillX + pillW / 2, pillY + pillH - 5);
+        this.ctx.restore();
+
+        // Cycle and Cancel buttons compact and centered under main button
+        const smallGap = 6;
+        const smallW = 28;
+        const smallH = 28;
+        const totalSmallWidth = smallW * 2 + smallGap;
+        const smallStartX = mainBtnX + (mainBtnW - totalSmallWidth) / 2;
+        const smallY = mainBtnY + mainBtnH + 4; // tighter spacing
+
+        // Cycle button
+        const cycleX = smallStartX;
+        this.ctx.save();
+        this.ctx.fillStyle = '#1976D2';
+        this.ctx.beginPath();
+        this.ctx.roundRect(cycleX, smallY, smallW, smallH, 6);
+        this.ctx.fill();
+        this.ctx.strokeStyle = '#BBDEFB';
+        this.ctx.lineWidth = 1.5;
+        this.ctx.stroke();
+        this.ctx.fillStyle = '#FFFFFF';
         this.ctx.font = 'bold 14px Arial';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText(`💰 ${typeCfg.cost}`, mainBtnX + mainBtnW / 2 + 8, mainBtnY + mainBtnH / 2 + 5);
+        this.ctx.fillText('🔁', cycleX + smallW / 2, smallY + 19);
         this.ctx.restore();
 
-        // Cycle button (small) on left
-        const cycleW = 28;
-        const cycleH = 28;
-        const cycleX = mainBtnX;
-        const cycleY = mainBtnY + mainBtnH + 6;
+        // Cancel button
+        const cancelX = smallStartX + smallW + smallGap;
         this.ctx.save();
-        this.ctx.fillStyle = '#4A90E2';
+        this.ctx.fillStyle = '#C62828';
         this.ctx.beginPath();
-        this.ctx.roundRect(cycleX, cycleY, cycleW, cycleH, 6);
+        this.ctx.roundRect(cancelX, smallY, smallW, smallH, 6);
         this.ctx.fill();
-        this.ctx.fillStyle = '#FFF';
-        this.ctx.font = 'bold 12px Arial';
+        this.ctx.strokeStyle = '#FFCDD2';
+        this.ctx.lineWidth = 1.5;
+        this.ctx.stroke();
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.font = 'bold 14px Arial';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('⟳', cycleX + cycleW / 2, cycleY + 18);
-        this.ctx.restore();
-
-        // Cancel button (small) on right
-        const cancelW = 28;
-        const cancelH = 28;
-        const cancelX = mainBtnX + mainBtnW - cancelW;
-        const cancelY = cycleY;
-        this.ctx.save();
-        this.ctx.fillStyle = '#F44336';
-        this.ctx.beginPath();
-        this.ctx.roundRect(cancelX, cancelY, cancelW, cancelH, 6);
-        this.ctx.fill();
-        this.ctx.fillStyle = '#FFF';
-        this.ctx.font = 'bold 12px Arial';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText('✖', cancelX + cancelW / 2, cancelY + 18);
+        this.ctx.fillText('❌', cancelX + smallW / 2, smallY + 19);
         this.ctx.restore();
 
         // Store bounds
         this.placementPopupBounds = {
             selected: { x: mainBtnX, y: mainBtnY, width: mainBtnW, height: mainBtnH },
-            cycle: { x: cycleX, y: cycleY, width: cycleW, height: cycleH },
-            cancel: { x: cancelX, y: cancelY, width: cancelW, height: cancelH }
+            cycle: { x: cycleX, y: smallY, width: smallW, height: smallH },
+            cancel: { x: cancelX, y: smallY, width: smallW, height: smallH }
         };
     }
 
