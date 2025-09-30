@@ -2772,13 +2772,13 @@ class RenderSystem {
             this.ctx.fill();
         }
         
-        // Range circle with soft glow and many orbiting particles (no stroke lines)
+        // Range circle with soft glow, contrast rings, and many orbiting particles
         const rangePixels = (typeCfg.range || 0) * tileSize;
         if (rangePixels > 0) {
-            const pulseScale = 1.0 + Math.sin(time * 3) * 0.015; // Even smaller pulse
+            const pulseScale = 1.0 + Math.sin(time * 3) * 0.012; // Even smaller pulse
             const animatedRange = rangePixels * pulseScale;
             
-            // Outer glow fill (use type color, remove heavy yellow look)
+            // Outer glow fill (use type color for better palette match)
             this.ctx.shadowColor = typeCfg.color;
             this.ctx.shadowBlur = 16;
             this.ctx.globalAlpha = 0.10;
@@ -2804,18 +2804,57 @@ class RenderSystem {
             this.ctx.beginPath();
             this.ctx.arc(centerX, centerY, animatedRange * 0.9, 0, Math.PI * 2);
             this.ctx.fill();
+
+            // Contrast rings (thin strokes) to keep visibility across day/night
+            // Ring 1: subtle white ring
+            this.ctx.save();
+            this.ctx.setLineDash([]);
+            this.ctx.shadowBlur = 0;
+            this.ctx.globalAlpha = 0.18;
+            this.ctx.strokeStyle = '#FFFFFF';
+            this.ctx.lineWidth = 1.5 + (Math.sin(time * 1.7) + 1) * 0.5; // 1.5 - 2.5
+            this.ctx.beginPath();
+            this.ctx.arc(centerX, centerY, animatedRange * 0.96, 0, Math.PI * 2);
+            this.ctx.stroke();
+            this.ctx.restore();
+
+            // Ring 2: type-colored dashed ring
+            this.ctx.save();
+            this.ctx.shadowBlur = 4;
+            this.ctx.shadowColor = typeCfg.color;
+            this.ctx.globalAlpha = 0.25;
+            this.ctx.strokeStyle = typeCfg.color;
+            this.ctx.lineWidth = 1 + (Math.sin(time * 2.9 + 1) + 1) * 0.5; // 1 - 2
+            this.ctx.setLineDash([8, 6]);
+            this.ctx.beginPath();
+            this.ctx.arc(centerX, centerY, animatedRange * 0.86, 0, Math.PI * 2);
+            this.ctx.stroke();
+            this.ctx.restore();
+
+            // Ring 3: soft gold accent ring (very low alpha)
+            this.ctx.save();
+            this.ctx.setLineDash([]);
+            this.ctx.shadowBlur = 6;
+            this.ctx.shadowColor = '#FFD700';
+            this.ctx.globalAlpha = 0.08;
+            this.ctx.strokeStyle = '#FFD700';
+            this.ctx.lineWidth = 1.2;
+            this.ctx.beginPath();
+            this.ctx.arc(centerX, centerY, animatedRange * 1.02, 0, Math.PI * 2);
+            this.ctx.stroke();
+            this.ctx.restore();
             
             // Animated particles around the range circle
-            const particleCount = 48; // more particles
+            const particleCount = 64; // more particles for richness
             for (let i = 0; i < particleCount; i++) {
                 const angle = (time * 2.0 + (i / particleCount) * Math.PI * 2) % (Math.PI * 2);
                 const particleRadius = animatedRange + 6 + Math.sin(time * 5 + i) * 5;
                 const particleX = centerX + Math.cos(angle) * particleRadius;
                 const particleY = centerY + Math.sin(angle) * particleRadius;
                 
-                const baseSize = 2.4;
-                const particleSize = baseSize + Math.sin(time * 7 + i) * 0.9;
-                const particleAlpha = 0.6 + Math.sin(time * 6 + i) * 0.2;
+                const baseSize = 2.2;
+                const particleSize = baseSize + Math.sin(time * 7 + i) * 0.7;
+                const particleAlpha = 0.55 + Math.sin(time * 6 + i) * 0.2;
                 
                 this.ctx.globalAlpha = particleAlpha;
                 this.ctx.fillStyle = typeCfg.color;
