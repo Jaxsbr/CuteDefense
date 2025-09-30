@@ -2728,7 +2728,7 @@ class RenderSystem {
         const mainBtnX = finalX + 8;
         const mainBtnY = finalY + 8;
 
-        // Ghost preview behind popup (tile highlight + icon)
+        // Ghost preview behind popup (tile highlight + icon + range rings)
         const centerX = x * tileSize + tileSize / 2;
         const centerY = y * tileSize + tileSize / 2;
         this.ctx.save();
@@ -2737,6 +2737,25 @@ class RenderSystem {
         this.ctx.beginPath();
         this.ctx.arc(centerX, centerY, typeCfg.size / 2, 0, Math.PI * 2);
         this.ctx.fill();
+        // Range circle (animated subtle pulse)
+        const time = Date.now() / 1000;
+        const pulseScale = 1.0 + Math.sin(time * 3) * 0.06;
+        const rangePixels = (typeCfg.range || 0) * tileSize * pulseScale;
+        if (rangePixels > 0) {
+            this.ctx.globalAlpha = 0.45;
+            this.ctx.strokeStyle = '#FFD700';
+            this.ctx.lineWidth = 2;
+            this.ctx.beginPath();
+            this.ctx.arc(centerX, centerY, rangePixels, 0, Math.PI * 2);
+            this.ctx.stroke();
+
+            this.ctx.globalAlpha = 0.7;
+            this.ctx.strokeStyle = '#FFFFFF';
+            this.ctx.lineWidth = 1;
+            this.ctx.beginPath();
+            this.ctx.arc(centerX, centerY, rangePixels * 0.98, 0, Math.PI * 2);
+            this.ctx.stroke();
+        }
         this.ctx.restore();
 
         // Main selected button (icon + cost only)
