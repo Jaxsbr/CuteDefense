@@ -2735,55 +2735,74 @@ class RenderSystem {
         
         this.ctx.save();
         
-        // Tower ghost as pulsing glow rings (no solid circles)
-        const towerPulse = 0.9 + Math.sin(time * 4) * 0.1;
+        // Tower ghost as pulsing glow (no stroke lines, only fill effects)
+        const towerPulse = 0.95 + Math.sin(time * 4) * 0.05; // Reduced pulse
         const towerSize = (typeCfg.size / 2) * towerPulse;
+        
+        // Outer glow fill
         this.ctx.shadowColor = typeCfg.color;
-        this.ctx.shadowBlur = 18;
-        this.ctx.globalAlpha = 0.35;
-        this.ctx.strokeStyle = typeCfg.color;
-        this.ctx.lineWidth = 3;
+        this.ctx.shadowBlur = 25;
+        this.ctx.globalAlpha = 0.2;
+        this.ctx.fillStyle = typeCfg.color;
         this.ctx.beginPath();
         this.ctx.arc(centerX, centerY, towerSize, 0, Math.PI * 2);
-        this.ctx.stroke();
-        // Inner ring
-        this.ctx.shadowBlur = 10;
-        this.ctx.globalAlpha = 0.45;
-        this.ctx.lineWidth = 2;
-        this.ctx.beginPath();
-        this.ctx.arc(centerX, centerY, towerSize * 0.7, 0, Math.PI * 2);
-        this.ctx.stroke();
+        this.ctx.fill();
         
-        // Range circle with enhanced glow and particles
+        // Inner bright core
+        this.ctx.shadowBlur = 0;
+        this.ctx.globalAlpha = 0.4;
+        this.ctx.fillStyle = typeCfg.color;
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY, towerSize * 0.6, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Sparkles around tower
+        for (let i = 0; i < 6; i++) {
+            const sparkleAngle = (time * 3 + (i / 6) * Math.PI * 2) % (Math.PI * 2);
+            const sparkleRadius = towerSize + 15 + Math.sin(time * 4 + i) * 8;
+            const sparkleX = centerX + Math.cos(sparkleAngle) * sparkleRadius;
+            const sparkleY = centerY + Math.sin(sparkleAngle) * sparkleRadius;
+            
+            this.ctx.globalAlpha = 0.8 + Math.sin(time * 8 + i) * 0.2;
+            this.ctx.fillStyle = typeCfg.color;
+            this.ctx.shadowColor = typeCfg.color;
+            this.ctx.shadowBlur = 8;
+            this.ctx.beginPath();
+            this.ctx.arc(sparkleX, sparkleY, 2 + Math.sin(time * 6 + i) * 1, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+        
+        // Range circle with enhanced glow and particles (no stroke lines)
         const rangePixels = (typeCfg.range || 0) * tileSize;
         if (rangePixels > 0) {
-            const pulseScale = 1.0 + Math.sin(time * 3) * 0.08;
+            const pulseScale = 1.0 + Math.sin(time * 3) * 0.03; // Reduced pulse
             const animatedRange = rangePixels * pulseScale;
             
-            // Outer glow ring
+            // Outer glow fill (no stroke)
             this.ctx.shadowColor = '#FFD700';
-            this.ctx.shadowBlur = 15;
-            this.ctx.globalAlpha = 0.4;
-            this.ctx.strokeStyle = '#FFD700';
-            this.ctx.lineWidth = 4;
+            this.ctx.shadowBlur = 20;
+            this.ctx.globalAlpha = 0.15;
+            this.ctx.fillStyle = '#FFD700';
             this.ctx.beginPath();
             this.ctx.arc(centerX, centerY, animatedRange, 0, Math.PI * 2);
-            this.ctx.stroke();
+            this.ctx.fill();
             
-            // Inner colored ring
+            // Inner colored glow fill
             this.ctx.shadowBlur = 0;
-            this.ctx.globalAlpha = 0.7;
-            this.ctx.strokeStyle = typeCfg.color;
-            this.ctx.lineWidth = 2;
-            this.ctx.beginPath();
-            this.ctx.arc(centerX, centerY, animatedRange * 0.95, 0, Math.PI * 2);
-            this.ctx.stroke();
-
-            // Translucent inner fill for coverage area
-            this.ctx.globalAlpha = 0.10;
+            this.ctx.shadowColor = typeCfg.color;
+            this.ctx.shadowBlur = 12;
+            this.ctx.globalAlpha = 0.25;
             this.ctx.fillStyle = typeCfg.color;
             this.ctx.beginPath();
-            this.ctx.arc(centerX, centerY, animatedRange * 0.95, 0, Math.PI * 2);
+            this.ctx.arc(centerX, centerY, animatedRange * 0.9, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Translucent inner fill for coverage area
+            this.ctx.shadowBlur = 0;
+            this.ctx.globalAlpha = 0.08;
+            this.ctx.fillStyle = typeCfg.color;
+            this.ctx.beginPath();
+            this.ctx.arc(centerX, centerY, animatedRange * 0.9, 0, Math.PI * 2);
             this.ctx.fill();
             
             // Animated particles around the range circle
