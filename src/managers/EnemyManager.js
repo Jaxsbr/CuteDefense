@@ -38,6 +38,14 @@ class EnemyManager {
     }
 
     /**
+     * Stop the wave system
+     */
+    stopWaveSystem() {
+        this.isActive = false;
+        if (this.logger) this.logger.info('🛑 Wave system stopped');
+    }
+
+    /**
      * Update the wave manager
      */
     update(deltaTime) {

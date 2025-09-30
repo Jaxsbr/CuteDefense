@@ -13,6 +13,7 @@ class GameStateManager {
         this.gameOverTime = null;
         this.victoryTime = null;
         this.logger = null; // Logger reference
+        this.enemyManager = null; // Enemy manager reference for stopping wave system
     }
 
     // Set logger reference
@@ -81,9 +82,9 @@ class GameStateManager {
      * Update tracking of enemies that reached the goal
      */
     updateEnemyGoalTracking(enemyManager) {
-        // Get enemies that reached the goal since last update
+        // Get count of enemies that reached the goal
         const enemiesReached = enemyManager.getEnemiesReachedGoal();
-        this.enemiesReachedGoal = enemiesReached;
+        this.enemiesReachedGoal = enemiesReached.length;
     }
 
     /**
@@ -94,6 +95,11 @@ class GameStateManager {
         this.gameOverReason = reason;
         this.gameOverTime = Date.now();
         if (this.logger) this.logger.info(`🎮 Game Over! Reason: ${reason}`);
+
+        // Stop wave system when game ends
+        if (this.enemyManager) {
+            this.enemyManager.stopWaveSystem();
+        }
     }
 
     /**
@@ -104,6 +110,11 @@ class GameStateManager {
         this.victoryCondition = reason;
         this.victoryTime = Date.now();
         if (this.logger) this.logger.info(`🏆 Victory! Reason: ${reason}`);
+
+        // Stop wave system when game ends
+        if (this.enemyManager) {
+            this.enemyManager.stopWaveSystem();
+        }
     }
 
     /**

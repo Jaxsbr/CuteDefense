@@ -154,6 +154,13 @@ function update() {
     // Update input system
     gameState.input.update();
 
+    // Check if game is in terminal state - stop all game systems
+    if (gameState.gameStateManager.isTerminalState()) {
+        // Only update game state manager to maintain state
+        gameState.gameStateManager.update(gameState.enemyManager, gameState.resourceSystem);
+        return; // Stop all other updates
+    }
+
     // Update enemy systems
     gameState.enemySystem.update(deltaTime);
     gameState.enemyManager.update(deltaTime);
@@ -164,6 +171,11 @@ function update() {
 
     // Update game state management
     gameState.gameStateManager.update(gameState.enemyManager, gameState.resourceSystem);
+
+    // Set enemy manager reference for stopping wave system
+    if (!gameState.gameStateManager.enemyManager) {
+        gameState.gameStateManager.enemyManager = gameState.enemyManager;
+    }
 }
 
 // Render game frame
@@ -529,6 +541,24 @@ function setupInputHandlers() {
                     gameState.enemyManager.skipToNextWave();
                 } else {
                     gameState.logger.info('Debug mode required for wave skip (press D first)');
+                }
+                break;
+            case 'l':
+                // Test lose condition (debug feature)
+                if (gameState.debug.enabled) {
+                    gameState.logger.info('💀 Debug: Testing lose condition');
+                    gameState.gameStateManager.setGameOver('debugTest');
+                } else {
+                    gameState.logger.info('Debug mode required for lose test (press D first)');
+                }
+                break;
+            case 'w':
+                // Test win condition (debug feature)
+                if (gameState.debug.enabled) {
+                    gameState.logger.info('🏆 Debug: Testing win condition');
+                    gameState.gameStateManager.setVictory('debugTest');
+                } else {
+                    gameState.logger.info('Debug mode required for win test (press D first)');
                 }
                 break;
         }
