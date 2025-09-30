@@ -2690,8 +2690,8 @@ class RenderSystem {
         const currentCoins = this.resourceSystem ? this.resourceSystem.getCoins() : 0;
 
         // Calculate compact popup position (1.5-2 tiles max)
-        const popupWidth = Math.min(2 * tileSize, 180);
-        const popupHeight = Math.min(2 * tileSize, 120);
+        const popupWidth = Math.min(1.6 * tileSize, 150);
+        const popupHeight = Math.min(1.6 * tileSize, 100);
         const popupX = x * tileSize + (tileSize - popupWidth) / 2;
         const popupY = y * tileSize + (tileSize - popupHeight) / 2;
 
@@ -2746,7 +2746,7 @@ class RenderSystem {
         // Simple tower ghost - just a pulsing circle
         const towerPulse = 0.9 + Math.sin(time * 4) * 0.1;
         const towerSize = (typeCfg.size / 2) * towerPulse;
-        
+
         // Tower ghost with subtle glow
         this.ctx.shadowColor = typeCfg.color;
         this.ctx.shadowBlur = 15;
@@ -2761,7 +2761,7 @@ class RenderSystem {
         if (rangePixels > 0) {
             const pulseScale = 1.0 + Math.sin(time * 2) * 0.05;
             const animatedRange = rangePixels * pulseScale;
-            
+
             // Range circle with high contrast
             this.ctx.shadowBlur = 0;
             this.ctx.strokeStyle = '#FFFFFF';
@@ -2770,7 +2770,7 @@ class RenderSystem {
             this.ctx.beginPath();
             this.ctx.arc(centerX, centerY, animatedRange, 0, Math.PI * 2);
             this.ctx.stroke();
-            
+
             // Inner range fill for coverage area
             this.ctx.globalAlpha = 0.15;
             this.ctx.fillStyle = typeCfg.color;
@@ -2781,7 +2781,7 @@ class RenderSystem {
 
         this.ctx.restore();
 
-        // Main selected button (icon + cost only)
+        // Main selected button (text: tower letter x cost)
         this.ctx.save();
         this.ctx.fillStyle = canAffordSelected ? typeCfg.color : '#666';
         this.ctx.beginPath();
@@ -2790,51 +2790,23 @@ class RenderSystem {
         this.ctx.strokeStyle = canAffordSelected ? '#FFF' : '#999';
         this.ctx.lineWidth = 2;
         this.ctx.stroke();
-        // Tower glyph (simple shape)
+        // Centered text content
+        const towerLetter = selectedType === 'BASIC' ? 'B' : 'S';
+        const mainLabel = `${towerLetter}  x  ${typeCfg.cost}`;
         this.ctx.fillStyle = '#FFF';
-        const glyphSize = 18;
-        const glyphX = mainBtnX + 12 + glyphSize / 2;
-        const glyphY = mainBtnY + mainBtnH / 2;
-        this.ctx.beginPath();
-        this.ctx.arc(glyphX, glyphY, glyphSize / 2, 0, Math.PI * 2);
-        this.ctx.fill();
-        // Buy label and price pill
-        const labelX = glyphX + 22;
-        const labelY = glyphY + 5;
-        this.ctx.fillStyle = '#FFF';
-        this.ctx.font = 'bold 13px Arial';
-        this.ctx.textAlign = 'left';
-        this.ctx.fillText('Buy', labelX, labelY);
-        // price pill
-        const pillText = `🪙 ${typeCfg.cost}`;
-        this.ctx.font = 'bold 12px Arial';
-        const pillPaddingX = 8;
-        const pillPaddingY = 4;
-        const pillTextWidth = this.ctx.measureText(pillText).width;
-        const pillW = pillTextWidth + pillPaddingX * 2;
-        const pillH = 18;
-        const pillX = mainBtnX + mainBtnW - pillW - 10;
-        const pillY = mainBtnY + (mainBtnH - pillH) / 2;
-        this.ctx.fillStyle = canAffordSelected ? '#2E7D32' : '#777';
-        this.ctx.beginPath();
-        this.ctx.roundRect(pillX, pillY, pillW, pillH, 9);
-        this.ctx.fill();
-        this.ctx.strokeStyle = canAffordSelected ? '#A5D6A7' : '#AAA';
-        this.ctx.lineWidth = 1;
-        this.ctx.stroke();
-        this.ctx.fillStyle = '#FFF';
+        this.ctx.font = 'bold 20px Arial';
         this.ctx.textAlign = 'center';
-        this.ctx.font = 'bold 12px Arial';
-        this.ctx.fillText(pillText, pillX + pillW / 2, pillY + pillH - 5);
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText(mainLabel, mainBtnX + mainBtnW / 2, mainBtnY + mainBtnH / 2);
         this.ctx.restore();
 
         // Cycle and Cancel buttons compact and centered under main button
-        const smallGap = 6;
-        const smallW = 28;
-        const smallH = 28;
+        const smallGap = 8;
+        const smallW = 34;
+        const smallH = 34;
         const totalSmallWidth = smallW * 2 + smallGap;
         const smallStartX = mainBtnX + (mainBtnW - totalSmallWidth) / 2;
-        const smallY = mainBtnY + mainBtnH + 4; // tighter spacing
+        const smallY = mainBtnY + mainBtnH + 2; // tighter spacing
 
         // Cycle button
         const cycleX = smallStartX;
@@ -2847,9 +2819,10 @@ class RenderSystem {
         this.ctx.lineWidth = 1.5;
         this.ctx.stroke();
         this.ctx.fillStyle = '#FFFFFF';
-        this.ctx.font = 'bold 14px Arial';
+        this.ctx.font = 'bold 16px Arial';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('🔁', cycleX + smallW / 2, smallY + 19);
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText('C', cycleX + smallW / 2, smallY + smallH / 2);
         this.ctx.restore();
 
         // Cancel button
@@ -2863,9 +2836,10 @@ class RenderSystem {
         this.ctx.lineWidth = 1.5;
         this.ctx.stroke();
         this.ctx.fillStyle = '#FFFFFF';
-        this.ctx.font = 'bold 14px Arial';
+        this.ctx.font = 'bold 16px Arial';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('❌', cancelX + smallW / 2, smallY + 19);
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText('X', cancelX + smallW / 2, smallY + smallH / 2);
         this.ctx.restore();
 
         // Store bounds
