@@ -196,7 +196,7 @@ class RenderSystem {
     }
 
     // Render main HUD panel - always visible below tilemap with cartoony styling
-    renderMainHUD(selectedTower, towerManager, waveInfo = null, resourceInfo = null) {
+    renderMainHUD(selectedTower, towerManager, waveInfo = null, resourceInfo = null, selectedEnemy = null) {
         // Calculate HUD area below tilemap
         const tilemapHeight = this.getTilemapHeight();
         const hudHeight = 120; // Fixed height for HUD
@@ -240,13 +240,13 @@ class RenderSystem {
         // No sparkle effects for clean appearance
 
         // Render the five HUD sections
-        this.renderHUDSections(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager, waveInfo, resourceInfo);
+        this.renderHUDSections(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager, waveInfo, resourceInfo, selectedEnemy);
     }
 
     // Removed sparkle effects for clean HUD appearance
 
     // Render the four HUD sections: Wave Info, Combined Selection (Portrait+Info), Selection Actions, Coin Info
-    renderHUDSections(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager, waveInfo, resourceInfo) {
+    renderHUDSections(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager, waveInfo, resourceInfo, selectedEnemy) {
         const padding = 15;
         const contentHeight = hudHeight - (padding * 2);
         const contentY = hudY + padding;
@@ -264,7 +264,7 @@ class RenderSystem {
 
         // Section 2: Combined Selection (35%)
         const selectionX = waveInfoX + waveInfoWidth + padding;
-        this.renderCombinedSelectionSection(selectionX, contentY, selectionWidth, contentHeight, selectedTower);
+        this.renderCombinedSelectionSection(selectionX, contentY, selectionWidth, contentHeight, selectedTower, selectedEnemy);
 
         // Section 3: Selection Actions (20%)
         const actionsX = selectionX + selectionWidth + padding;
@@ -276,16 +276,22 @@ class RenderSystem {
     }
 
     // Render combined selection section (portrait + info) with more space
-    renderCombinedSelectionSection(x, y, width, height, selectedTower) {
+    renderCombinedSelectionSection(x, y, width, height, selectedTower, selectedEnemy) {
+        // Priority: Enemy selection overrides tower selection
+        if (selectedEnemy) {
+            this.renderEnemySelection(x, y, width, height, selectedEnemy);
+            return;
+        }
+
         if (!selectedTower) {
-            // Show placeholder when no tower selected
+            // Show placeholder when no selection
             this.ctx.save();
             this.ctx.fillStyle = '#333';
             this.ctx.fillRect(x, y, width, height);
             this.ctx.fillStyle = '#666';
             this.ctx.font = '16px Arial';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText('Select a tower', x + width / 2, y + height / 2);
+            this.ctx.fillText('Select a tower or enemy', x + width / 2, y + height / 2);
             this.ctx.restore();
             return;
         }
@@ -774,6 +780,122 @@ class RenderSystem {
         if (tower.level > 1) {
             this.renderRankBadge(centerX, centerY - radius - 5, tower.level);
         }
+    }
+
+    // Render enemy selection with portrait and stats
+    renderEnemySelection(x, y, width, height, enemy) {
+        // Split the section: portrait on left, info on right
+        const portraitWidth = 80;
+        const infoWidth = width - portraitWidth - 10; // 10px gap
+        const portraitX = x;
+        const infoX = x + portraitWidth + 10;
+
+        // Render enemy portrait
+        this.renderEnemyPortrait(portraitX, y, portraitWidth, enemy);
+
+        // Render enemy info
+        this.renderEnemyInfo(infoX, y, infoWidth, height, enemy);
+    }
+
+    // Render enemy portrait
+    renderEnemyPortrait(x, y, size, enemy) {
+        const centerX = x + size / 2;
+        const centerY = y + size / 2;
+        const radius = size / 2 - 5;
+
+        // Animated background with pulsing effect
+        const time = Date.now() / 1000;
+        const pulseRadius = radius + Math.sin(time * 3) * 2;
+
+        // Background glow
+        this.ctx.save();
+        this.ctx.globalAlpha = 0.3;
+        this.ctx.fillStyle = enemy.color;
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY, pulseRadius, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.restore();
+
+        // Enemy shape based on type
+        this.ctx.save();
+        this.ctx.fillStyle = enemy.color;
+        this.ctx.strokeStyle = enemy.borderColor || '#FFD700';
+        this.ctx.lineWidth = 3;
+
+        if (enemy.type.shape === 'diamond') {
+            // Diamond shape for fast enemies
+            this.ctx.beginPath();
+            this.ctx.moveTo(centerX, centerY - radius);
+            this.ctx.lineTo(centerX + radius, centerY);
+            this.ctx.lineTo(centerX, centerY + radius);
+            this.ctx.lineTo(centerX - radius, centerY);
+            this.ctx.closePath();
+            this.ctx.fill();
+            this.ctx.stroke();
+        } else if (enemy.type.shape === 'square') {
+            // Square shape for strong enemies
+            this.ctx.fillRect(centerX - radius, centerY - radius, radius * 2, radius * 2);
+            this.ctx.strokeRect(centerX - radius, centerY - radius, radius * 2, radius * 2);
+        } else {
+            // Circle shape for basic enemies
+            this.ctx.beginPath();
+            this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.stroke();
+        }
+        this.ctx.restore();
+
+        // Health bar overlay
+        const healthPercent = enemy.health / enemy.maxHealth;
+        const barWidth = radius * 1.5;
+        const barHeight = 6;
+        const barX = centerX - barWidth / 2;
+        const barY = centerY + radius + 8;
+
+        // Health bar background
+        this.ctx.fillStyle = '#333';
+        this.ctx.fillRect(barX, barY, barWidth, barHeight);
+
+        // Health bar fill
+        this.ctx.fillStyle = healthPercent > 0.5 ? '#4CAF50' : healthPercent > 0.25 ? '#FF9800' : '#F44336';
+        this.ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
+
+        // Health bar border
+        this.ctx.strokeStyle = '#FFF';
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeRect(barX, barY, barWidth, barHeight);
+    }
+
+    // Render enemy information
+    renderEnemyInfo(x, y, width, height, enemy) {
+        this.ctx.save();
+        this.ctx.fillStyle = '#FFF';
+        this.ctx.font = 'bold 16px Arial';
+        this.ctx.textAlign = 'left';
+
+        // Enemy name (use the name from the type object)
+        this.ctx.fillText(enemy.type.name.toUpperCase(), x, y + 20);
+
+        // Health info
+        this.ctx.font = '14px Arial';
+        this.ctx.fillText(`Health: ${Math.ceil(enemy.health)}/${enemy.maxHealth}`, x, y + 40);
+
+        // Speed info
+        this.ctx.fillText(`Speed: ${enemy.speed.toFixed(1)}`, x, y + 60);
+
+        // Reward info
+        this.ctx.fillText(`Reward: ${enemy.reward} coins`, x, y + 80);
+
+        // Special abilities (if any) - check the type id
+        if (enemy.type.id === 'fast') {
+            this.ctx.fillStyle = '#4ECDC4';
+            this.ctx.fillText('⚡ Quick Movement', x, y + 100);
+        } else if (enemy.type.id === 'strong') {
+            this.ctx.fillStyle = '#45B7D1';
+            this.ctx.fillText('🛡️ High Defense', x, y + 100);
+        }
+
+        this.ctx.restore();
     }
 
     renderUpgradeOptions(x, y, upgradeInfo) {
@@ -2472,73 +2594,180 @@ class RenderSystem {
         this.ctx.restore();
     }
 
-    // Render tower placement popup
+    // Render tower placement popup with modern design
     renderTowerPlacementPopup(popupInfo) {
         if (!popupInfo) return;
 
         const { x, y, tileSize } = popupInfo;
-        const popupSize = 60;
-        const popupX = x * tileSize + (tileSize - popupSize) / 2;
-        const popupY = y * tileSize + (tileSize - popupSize) / 2;
 
-        // Popup background
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-        this.ctx.fillRect(popupX, popupY, popupSize, popupSize);
+        // Get current coins for cost checking
+        const currentCoins = this.resourceSystem ? this.resourceSystem.getCoins() : 0;
 
-        // Popup border
+        // Calculate popup position (centered on tile)
+        const popupWidth = 200;
+        const popupHeight = 140;
+        const popupX = x * tileSize + (tileSize - popupWidth) / 2;
+        const popupY = y * tileSize + (tileSize - popupHeight) / 2;
+
+        // Ensure popup stays within canvas bounds
+        const finalX = Math.max(10, Math.min(popupX, this.width - popupWidth - 10));
+        const finalY = Math.max(10, Math.min(popupY, this.height - popupHeight - 10));
+
+        this.ctx.save();
+
+        // Modern popup background with gradient
+        this.ctx.beginPath();
+        this.ctx.roundRect(finalX, finalY, popupWidth, popupHeight, 12);
+        this.ctx.clip();
+
+        const gradient = this.ctx.createLinearGradient(finalX, finalY, finalX, finalY + popupHeight);
+        gradient.addColorStop(0, 'rgba(40, 40, 40, 0.95)');
+        gradient.addColorStop(1, 'rgba(20, 20, 20, 0.9)');
+
+        this.ctx.fillStyle = gradient;
+        this.ctx.fillRect(finalX, finalY, popupWidth, popupHeight);
+
+        this.ctx.restore();
+
+        // Popup border with glow effect
+        this.ctx.save();
         this.ctx.strokeStyle = '#FFD700';
-        this.ctx.lineWidth = 2;
-        this.ctx.strokeRect(popupX, popupY, popupSize, popupSize);
+        this.ctx.lineWidth = 3;
+        this.ctx.shadowColor = '#FFD700';
+        this.ctx.shadowBlur = 10;
+        this.ctx.beginPath();
+        this.ctx.roundRect(finalX, finalY, popupWidth, popupHeight, 12);
+        this.ctx.stroke();
+        this.ctx.restore();
 
-        // + button (place tower)
-        const plusButtonSize = 20;
-        const plusButtonX = popupX + 10;
-        const plusButtonY = popupY + 10;
-
-        this.ctx.fillStyle = '#4CAF50';
-        this.ctx.fillRect(plusButtonX, plusButtonY, plusButtonSize, plusButtonSize);
-        this.ctx.strokeStyle = '#2E7D32';
-        this.ctx.lineWidth = 1;
-        this.ctx.strokeRect(plusButtonX, plusButtonY, plusButtonSize, plusButtonSize);
-
-        // + symbol
-        this.ctx.fillStyle = '#FFF';
+        // Title
+        this.ctx.save();
+        this.ctx.fillStyle = '#FFD700';
         this.ctx.font = 'bold 16px Arial';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('+', plusButtonX + plusButtonSize / 2, plusButtonY + plusButtonSize / 2 + 5);
+        this.ctx.fillText('Place Tower', finalX + popupWidth / 2, finalY + 25);
+        this.ctx.restore();
 
-        // X button (cancel)
-        const xButtonSize = 20;
-        const xButtonX = popupX + 30;
-        const xButtonY = popupY + 10;
+        // Tower options
+        const buttonWidth = 80;
+        const buttonHeight = 60;
+        const buttonSpacing = 10;
+        const startX = finalX + (popupWidth - (buttonWidth * 2 + buttonSpacing)) / 2;
+        const buttonY = finalY + 40;
 
+        // Basic Tower button
+        const basicButtonX = startX;
+        const canAffordBasic = currentCoins >= TOWER_TYPES.BASIC.cost;
+        this.renderTowerOptionButton(
+            basicButtonX, buttonY, buttonWidth, buttonHeight,
+            'Basic Tower', TOWER_TYPES.BASIC.cost, TOWER_TYPES.BASIC.color,
+            canAffordBasic, 'basic'
+        );
+
+        // Strong Tower button
+        const strongButtonX = startX + buttonWidth + buttonSpacing;
+        const canAffordStrong = currentCoins >= TOWER_TYPES.STRONG.cost;
+        this.renderTowerOptionButton(
+            strongButtonX, buttonY, buttonWidth, buttonHeight,
+            'Strong Tower', TOWER_TYPES.STRONG.cost, TOWER_TYPES.STRONG.color,
+            canAffordStrong, 'strong'
+        );
+
+        // Cancel button
+        const cancelButtonWidth = 60;
+        const cancelButtonHeight = 30;
+        const cancelButtonX = finalX + (popupWidth - cancelButtonWidth) / 2;
+        const cancelButtonY = finalY + popupHeight - 40;
+
+        this.ctx.save();
         this.ctx.fillStyle = '#F44336';
-        this.ctx.fillRect(xButtonX, xButtonY, xButtonSize, xButtonSize);
+        this.ctx.beginPath();
+        this.ctx.roundRect(cancelButtonX, cancelButtonY, cancelButtonWidth, cancelButtonHeight, 6);
+        this.ctx.fill();
         this.ctx.strokeStyle = '#D32F2F';
-        this.ctx.lineWidth = 1;
-        this.ctx.strokeRect(xButtonX, xButtonY, xButtonSize, xButtonSize);
+        this.ctx.lineWidth = 2;
+        this.ctx.stroke();
+        this.ctx.restore();
 
-        // X symbol
+        // Cancel text
+        this.ctx.save();
         this.ctx.fillStyle = '#FFF';
-        this.ctx.font = 'bold 16px Arial';
+        this.ctx.font = 'bold 14px Arial';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('×', xButtonX + xButtonSize / 2, xButtonY + xButtonSize / 2 + 5);
+        this.ctx.fillText('Cancel', cancelButtonX + cancelButtonWidth / 2, cancelButtonY + 20);
+        this.ctx.restore();
 
         // Store button bounds for click detection
         this.placementPopupBounds = {
-            plus: {
-                x: plusButtonX,
-                y: plusButtonY,
-                width: plusButtonSize,
-                height: plusButtonSize
+            basic: {
+                x: basicButtonX,
+                y: buttonY,
+                width: buttonWidth,
+                height: buttonHeight
+            },
+            strong: {
+                x: strongButtonX,
+                y: buttonY,
+                width: buttonWidth,
+                height: buttonHeight
             },
             cancel: {
-                x: xButtonX,
-                y: xButtonY,
-                width: xButtonSize,
-                height: xButtonSize
+                x: cancelButtonX,
+                y: cancelButtonY,
+                width: cancelButtonWidth,
+                height: cancelButtonHeight
             }
         };
+    }
+
+    // Render individual tower option button
+    renderTowerOptionButton(x, y, width, height, name, cost, color, canAfford, towerType) {
+        this.ctx.save();
+
+        // Button background
+        if (canAfford) {
+            this.ctx.fillStyle = color;
+        } else {
+            this.ctx.fillStyle = '#666';
+        }
+
+        this.ctx.beginPath();
+        this.ctx.roundRect(x, y, width, height, 8);
+        this.ctx.fill();
+
+        // Button border
+        this.ctx.strokeStyle = canAfford ? '#FFF' : '#999';
+        this.ctx.lineWidth = 2;
+        this.ctx.stroke();
+
+        // Tower icon (simple circle/square based on type)
+        const iconSize = 20;
+        const iconX = x + width / 2;
+        const iconY = y + 15;
+
+        this.ctx.fillStyle = canAfford ? '#FFF' : '#999';
+        if (towerType === 'strong') {
+            // Square for strong tower
+            this.ctx.fillRect(iconX - iconSize / 2, iconY - iconSize / 2, iconSize, iconSize);
+        } else {
+            // Circle for basic tower
+            this.ctx.beginPath();
+            this.ctx.arc(iconX, iconY, iconSize / 2, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+
+        // Tower name
+        this.ctx.fillStyle = canAfford ? '#FFF' : '#999';
+        this.ctx.font = 'bold 12px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText(name, x + width / 2, y + 35);
+
+        // Cost
+        this.ctx.font = 'bold 10px Arial';
+        this.ctx.fillStyle = canAfford ? '#FFD700' : '#999';
+        this.ctx.fillText(`${cost} coins`, x + width / 2, y + 50);
+
+        this.ctx.restore();
     }
 
     // Render resource info with enhanced UI

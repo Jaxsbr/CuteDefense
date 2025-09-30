@@ -64,12 +64,13 @@ Sprint 15 focuses on final polish and game completion, implementing the remainin
 - **Scope Defined**: Final polish and game completion
 
 ## Sprint 15 Progress Tracking
-- **Current Focus**: Tower animation implementation
-- **Next Priority**: Tower placement feedback enhancement
-- **Status**: Visual alignment skipped, moving to tower animations
+- **Current Focus**: Enemy selection and tower placement popup enhancements
+- **Next Priority**: Final balance testing and comprehensive validation
+- **Status**: Major UI enhancements completed, moving to final testing
 
 ## Commit History
 - **b82e279**: fix(game): stop wave system and enemy movement on win/lose conditions
+- **3b34384**: feat(towers): add shoot rate variability with improved HUD layout
 
 ## Completed Work
 - **Win/Lose System**: Fully implemented and working
@@ -98,3 +99,18 @@ Sprint 15 focuses on final polish and game completion, implementing the remainin
   - Fire rate display: "Fire: 1750ms" with "FAST +25ms" status indicator
   - Color-coded status: Green for faster, orange for slower towers
   - Strategic depth: players can easily see which towers are performing better
+
+- **Enemy Selection System**: Complete implementation
+  - Click on enemies to select them and view detailed stats in HUD
+  - Enemy portrait with health bar, speed, reward, and special abilities
+  - Visual feedback with pulsing animations and shape-based identification
+  - Priority system: Enemy selection overrides tower selection
+  - Clear selection when clicking empty space or placing towers
+
+- **Tower Placement Popup Redesign**: Complete implementation
+  - Modern popup design with gradient background and glow effects
+  - Two tower options: Basic Tower (5 coins) and Strong Tower (15 coins)
+  - Cost display and grayed-out buttons for insufficient funds
+  - Tactile button design with tower icons and clear cost information
+  - Improved positioning to stay within canvas bounds
+  - Enhanced visual feedback matching game's aesthetic

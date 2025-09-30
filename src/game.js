@@ -32,6 +32,7 @@ let gameState = {
     resourceSystem: null,
     gameStateManager: null, // Track game state (win/lose/restart)
     selectedTower: null, // Track selected tower for HUD
+    selectedEnemy: null, // Track selected enemy for HUD
     towerPlacementPopup: null, // Track tower placement popup state
     audioManager: null, // Audio system for sound effects and music
     logger: null, // System logger for centralized logging
@@ -172,6 +173,17 @@ function update() {
     // Update game state management
     gameState.gameStateManager.update(gameState.enemyManager, gameState.resourceSystem);
 
+    // Clear enemy selection if selected enemy is dead or no longer alive
+    if (gameState.selectedEnemy) {
+        // Check if enemy is still in the active enemies list
+        const isEnemyStillActive = gameState.enemySystem.getEnemiesForRendering().some(enemy => enemy.id === gameState.selectedEnemy.id);
+
+        if (!isEnemyStillActive || !gameState.selectedEnemy.isAlive || gameState.selectedEnemy.health <= 0) {
+            gameState.selectedEnemy = null;
+            gameState.logger.info('💀 Selected enemy died or removed, clearing selection');
+        }
+    }
+
     // Set enemy manager reference for stopping wave system
     if (!gameState.gameStateManager.enemyManager) {
         gameState.gameStateManager.enemyManager = gameState.enemyManager;
@@ -237,7 +249,7 @@ function render() {
 
     // Render main HUD (always visible)
     const resourceInfo = gameState.resourceSystem.getResourceInfo();
-    gameState.renderer.renderMainHUD(gameState.selectedTower, gameState.towerManager, waveInfo, resourceInfo);
+    gameState.renderer.renderMainHUD(gameState.selectedTower, gameState.towerManager, waveInfo, resourceInfo, gameState.selectedEnemy);
 
     // Render tower placement popup if active
     if (gameState.towerPlacementPopup) {
@@ -321,15 +333,15 @@ function handleTowerPlacementPopupClick(clickX, clickY) {
 
     const bounds = gameState.renderer.placementPopupBounds;
 
-    // Check + button (place tower)
-    if (clickX >= bounds.plus.x && clickX <= bounds.plus.x + bounds.plus.width &&
-        clickY >= bounds.plus.y && clickY <= bounds.plus.y + bounds.plus.height) {
+    // Check Basic Tower button
+    if (bounds.basic && clickX >= bounds.basic.x && clickX <= bounds.basic.x + bounds.basic.width &&
+        clickY >= bounds.basic.y && clickY <= bounds.basic.y + bounds.basic.height) {
 
-        gameState.logger.info('🏗️ Place tower button clicked!');
+        gameState.logger.info('🏗️ Basic tower button clicked!');
         const gridPos = gameState.towerPlacementPopup;
-        const placementSuccess = gameState.towerManager.tryPlaceTower(gridPos.x, gridPos.y);
+        const placementSuccess = gameState.towerManager.tryPlaceTower(gridPos.x, gridPos.y, 'BASIC');
         if (placementSuccess) {
-            gameState.logger.info(`🏗️ Tower placed at (${gridPos.x}, ${gridPos.y})`);
+            gameState.logger.info(`🏗️ Basic tower placed at (${gridPos.x}, ${gridPos.y})`);
             // Play tower placement sound
             gameState.audioManager.playSound('tower_place');
 
@@ -342,8 +354,29 @@ function handleTowerPlacementPopupClick(clickX, clickY) {
         return true;
     }
 
-    // Check X button (cancel)
-    if (clickX >= bounds.cancel.x && clickX <= bounds.cancel.x + bounds.cancel.width &&
+    // Check Strong Tower button
+    if (bounds.strong && clickX >= bounds.strong.x && clickX <= bounds.strong.x + bounds.strong.width &&
+        clickY >= bounds.strong.y && clickY <= bounds.strong.y + bounds.strong.height) {
+
+        gameState.logger.info('🏗️ Strong tower button clicked!');
+        const gridPos = gameState.towerPlacementPopup;
+        const placementSuccess = gameState.towerManager.tryPlaceTower(gridPos.x, gridPos.y, 'STRONG');
+        if (placementSuccess) {
+            gameState.logger.info(`🏗️ Strong tower placed at (${gridPos.x}, ${gridPos.y})`);
+            // Play tower placement sound
+            gameState.audioManager.playSound('tower_place');
+
+            // Select the newly placed tower
+            const newTower = gameState.towerManager.getTowerAt(gridPos.x, gridPos.y);
+            gameState.selectedTower = newTower;
+        }
+        // Clear popup
+        gameState.towerPlacementPopup = null;
+        return true;
+    }
+
+    // Check Cancel button
+    if (bounds.cancel && clickX >= bounds.cancel.x && clickX <= bounds.cancel.x + bounds.cancel.width &&
         clickY >= bounds.cancel.y && clickY <= bounds.cancel.y + bounds.cancel.height) {
 
         gameState.logger.info('❌ Cancel tower placement');
@@ -386,8 +419,9 @@ function restartGame() {
     // Reset resource system
     gameState.resourceSystem.reset();
 
-    // Clear tower selection
+    // Clear selections
     gameState.selectedTower = null;
+    gameState.selectedEnemy = null;
 
     // Restart wave system
     gameState.enemyManager.startWaveSystem();
@@ -479,7 +513,20 @@ function handleInput() {
         if (towerAtPosition) {
             // Tower exists - select it for HUD display
             gameState.selectedTower = towerAtPosition;
+            gameState.selectedEnemy = null; // Clear enemy selection
             gameState.logger.info(`🎯 Tower selected at (${gridPos.x}, ${gridPos.y}) - Level ${towerAtPosition.level}`);
+            // Clear any popup
+            gameState.towerPlacementPopup = null;
+            return;
+        }
+
+        // Check if there's an enemy at this position
+        const enemyAtPosition = gameState.enemySystem.getEnemyAtPosition(clickPos.x, clickPos.y);
+        if (enemyAtPosition) {
+            // Enemy exists - select it for HUD display
+            gameState.selectedEnemy = enemyAtPosition;
+            gameState.selectedTower = null; // Clear tower selection
+            gameState.logger.info(`🎯 Enemy selected: ${enemyAtPosition.type} - Health: ${enemyAtPosition.health}`);
             // Clear any popup
             gameState.towerPlacementPopup = null;
             return;
@@ -487,18 +534,20 @@ function handleInput() {
 
         // No tower at position - show placement popup if buildable
         if (gameState.grid.canPlaceTower(gridPos.x, gridPos.y)) {
-            // Clear any existing tower selection when showing placement popup
+            // Clear any existing selections when showing placement popup
             gameState.selectedTower = null;
+            gameState.selectedEnemy = null;
             gameState.towerPlacementPopup = {
                 x: gridPos.x,
                 y: gridPos.y,
                 tileSize: CONFIG.TILE_SIZE
             };
-            gameState.logger.info(`🏗️ Show placement popup at (${gridPos.x}, ${gridPos.y}) - cleared tower selection`);
+            gameState.logger.info(`🏗️ Show placement popup at (${gridPos.x}, ${gridPos.y}) - cleared selections`);
         } else {
             gameState.logger.info(`❌ Cannot build at (${gridPos.x}, ${gridPos.y})`);
-            // Clear selection and popup if clicking non-buildable space
+            // Clear all selections and popup if clicking non-buildable space
             gameState.selectedTower = null;
+            gameState.selectedEnemy = null;
             gameState.towerPlacementPopup = null;
         }
     }

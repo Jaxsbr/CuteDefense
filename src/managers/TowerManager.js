@@ -19,7 +19,7 @@ class TowerManager {
 
     // Try to place a tower at the given position
     tryPlaceTower(x, y, towerType = null) {
-        const type = towerType || this.selectedTowerType;
+        const type = towerType || this.selectedTowerType || 'BASIC';
         const towerConfig = TOWER_TYPES[type];
 
         if (this.logger) this.logger.info(`Attempting to place ${type} tower at (${x}, ${y})`);

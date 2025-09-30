@@ -225,6 +225,34 @@ class EnemySystem {
     }
 
     /**
+     * Get enemy at specific screen position
+     */
+    getEnemyAtPosition(screenX, screenY) {
+        const tileSize = 64; // Should match CONFIG.TILE_SIZE
+        const tolerance = tileSize * 0.4; // 40% of tile size for click tolerance
+
+        for (let enemy of this.enemies) {
+            if (!enemy.isAlive || enemy.reachedGoal) continue;
+
+            // Convert enemy position to screen coordinates
+            const enemyScreenX = enemy.x * tileSize + tileSize / 2;
+            const enemyScreenY = enemy.y * tileSize + tileSize / 2;
+
+            // Check if click is within enemy bounds
+            const distance = Math.sqrt(
+                Math.pow(screenX - enemyScreenX, 2) +
+                Math.pow(screenY - enemyScreenY, 2)
+            );
+
+            if (distance <= tolerance) {
+                return enemy;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Add damage indicator to enemy
      */
     addDamageIndicator(enemy, damage) {
@@ -239,7 +267,7 @@ class EnemySystem {
             size: 16,
             alpha: 1.0
         };
-        
+
         if (!enemy.damageIndicators) {
             enemy.damageIndicators = [];
         }
@@ -281,7 +309,7 @@ class EnemySystem {
         if (enemy.spawnAnimation && enemy.spawnAnimation.active) {
             enemy.spawnAnimation.time += deltaTime;
             const progress = enemy.spawnAnimation.time / enemy.spawnAnimation.duration;
-            
+
             if (progress >= 1) {
                 enemy.spawnAnimation.active = false;
             } else {
@@ -297,7 +325,7 @@ class EnemySystem {
                 indicator.y += indicator.velocityY * deltaTime;
                 indicator.velocityY += 50 * deltaTime; // Gravity
                 indicator.alpha = indicator.life;
-                
+
                 if (indicator.life <= 0) {
                     enemy.damageIndicators.splice(i, 1);
                 }
@@ -308,7 +336,7 @@ class EnemySystem {
         if (enemy.deathAnimation) {
             enemy.deathAnimation.time += deltaTime;
             const progress = enemy.deathAnimation.time / enemy.deathAnimation.duration;
-            
+
             if (progress >= 1) {
                 enemy.isAlive = false;
             } else {
@@ -322,7 +350,7 @@ class EnemySystem {
         if (enemy.endReachedAnimation && enemy.endReachedAnimation.active) {
             enemy.endReachedAnimation.time += deltaTime;
             const progress = enemy.endReachedAnimation.time / enemy.endReachedAnimation.duration;
-            
+
             if (progress >= 1) {
                 enemy.endReachedAnimation.active = false;
             } else {
