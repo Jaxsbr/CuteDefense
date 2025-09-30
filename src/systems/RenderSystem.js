@@ -2672,6 +2672,14 @@ class RenderSystem {
         this.ctx.restore();
     }
 
+    // Helper to convert hex color to RGB string
+    hexToRgb(hex) {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? 
+            `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : 
+            '74, 144, 226'; // fallback to blue
+    }
+
     // Render redesigned tower placement popup: [Selected] [Cycle] [Cancel] + ghost
     renderTowerPlacementPopup(popupInfo) {
         if (!popupInfo) return;
@@ -2797,13 +2805,22 @@ class RenderSystem {
             this.ctx.arc(centerX, centerY, animatedRange * 0.9, 0, Math.PI * 2);
             this.ctx.fill();
 
-            // Translucent inner fill for coverage area
+            // Gradient inner fill for coverage area (dark center to lighter edge)
+            this.ctx.save();
             this.ctx.shadowBlur = 0;
-            this.ctx.globalAlpha = 0.05; // lighter coverage
-            this.ctx.fillStyle = typeCfg.color;
+            const gradient = this.ctx.createRadialGradient(
+                centerX, centerY, 0,
+                centerX, centerY, animatedRange * 0.9
+            );
+            // Dark center
+            gradient.addColorStop(0, `rgba(${this.hexToRgb(typeCfg.color)}, 0.12)`);
+            // Lighter edge
+            gradient.addColorStop(1, `rgba(${this.hexToRgb(typeCfg.color)}, 0.02)`);
+            this.ctx.fillStyle = gradient;
             this.ctx.beginPath();
             this.ctx.arc(centerX, centerY, animatedRange * 0.9, 0, Math.PI * 2);
             this.ctx.fill();
+            this.ctx.restore();
 
             // Contrast rings (thin strokes) to keep visibility across day/night
             // Ring 1: subtle white ring
