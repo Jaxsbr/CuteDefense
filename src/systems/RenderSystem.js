@@ -2781,7 +2781,7 @@ class RenderSystem {
 
         this.ctx.restore();
 
-        // Main selected button (text: tower letter x cost)
+        // Main selected button (coin graphic + cost only, centered)
         this.ctx.save();
         this.ctx.fillStyle = canAffordSelected ? typeCfg.color : '#666';
         this.ctx.beginPath();
@@ -2790,14 +2790,33 @@ class RenderSystem {
         this.ctx.strokeStyle = canAffordSelected ? '#FFF' : '#999';
         this.ctx.lineWidth = 2;
         this.ctx.stroke();
-        // Centered text content
-        const towerLetter = selectedType === 'BASIC' ? 'B' : 'S';
-        const mainLabel = `${towerLetter}  x  ${typeCfg.cost}`;
-        this.ctx.fillStyle = '#FFF';
-        this.ctx.font = 'bold 20px Arial';
-        this.ctx.textAlign = 'center';
+
+        // Compute centered layout for coin + cost text
+        const costText = `${typeCfg.cost}`;
+        this.ctx.font = 'bold 18px Arial';
+        const textWidth = this.ctx.measureText(costText).width;
+        const coinRadius = 10;
+        const spacing = 8;
+        const totalWidth = coinRadius * 2 + spacing + textWidth;
+        const contentStartX = mainBtnX + (mainBtnW - totalWidth) / 2;
+        const contentCenterY = mainBtnY + mainBtnH / 2;
+
+        // Draw coin (match HUD coin style)
+        const coinCenterX = contentStartX + coinRadius;
+        this.ctx.fillStyle = '#FFD700';
+        this.ctx.beginPath();
+        this.ctx.arc(coinCenterX, contentCenterY, coinRadius, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.strokeStyle = '#B8860B';
+        this.ctx.lineWidth = 2;
+        this.ctx.stroke();
+
+        // Draw cost text
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.textAlign = 'left';
         this.ctx.textBaseline = 'middle';
-        this.ctx.fillText(mainLabel, mainBtnX + mainBtnW / 2, mainBtnY + mainBtnH / 2);
+        const textX = coinCenterX + coinRadius + spacing;
+        this.ctx.fillText(costText, textX, contentCenterY);
         this.ctx.restore();
 
         // Cycle and Cancel buttons compact and centered under main button
@@ -2823,6 +2842,8 @@ class RenderSystem {
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'middle';
         this.ctx.fillText('C', cycleX + smallW / 2, smallY + smallH / 2);
+        // Use refresh symbol for cycle
+        this.ctx.fillText('⟳', cycleX + smallW / 2, smallY + smallH / 2);
         this.ctx.restore();
 
         // Cancel button
