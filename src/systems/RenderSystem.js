@@ -2675,8 +2675,8 @@ class RenderSystem {
     // Helper to convert hex color to RGB string
     hexToRgb(hex) {
         const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-        return result ? 
-            `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : 
+        return result ?
+            `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` :
             '74, 144, 226'; // fallback to blue
     }
 
@@ -2736,153 +2736,49 @@ class RenderSystem {
         const mainBtnX = finalX + 8;
         const mainBtnY = finalY + 8;
 
-        // Enhanced ghost preview with glow and animated particles
+        // Simple ghost preview with clear range indication
         const centerX = x * tileSize + tileSize / 2;
         const centerY = y * tileSize + tileSize / 2;
         const time = Date.now() / 1000;
-        
+
         this.ctx.save();
-        
-        // Tower ghost as pulsing glow (no stroke lines, only fill effects)
-        const towerPulse = 0.98 + Math.sin(time * 4) * 0.02; // Further reduced pulse
+
+        // Simple tower ghost - just a pulsing circle
+        const towerPulse = 0.9 + Math.sin(time * 4) * 0.1;
         const towerSize = (typeCfg.size / 2) * towerPulse;
         
-        // Outer glow fill
+        // Tower ghost with subtle glow
         this.ctx.shadowColor = typeCfg.color;
-        this.ctx.shadowBlur = 22;
-        this.ctx.globalAlpha = 0.15;
-        this.ctx.fillStyle = typeCfg.color; // color-coded by tower type
+        this.ctx.shadowBlur = 15;
+        this.ctx.globalAlpha = 0.4;
+        this.ctx.fillStyle = typeCfg.color;
         this.ctx.beginPath();
         this.ctx.arc(centerX, centerY, towerSize, 0, Math.PI * 2);
         this.ctx.fill();
-        
-        // Inner bright core
-        this.ctx.shadowBlur = 0;
-        this.ctx.globalAlpha = 0.3;
-        this.ctx.fillStyle = typeCfg.color;
-        this.ctx.beginPath();
-        this.ctx.arc(centerX, centerY, towerSize * 0.6, 0, Math.PI * 2);
-        this.ctx.fill();
-        
-        // Sparkles around tower
-        for (let i = 0; i < 8; i++) {
-            const sparkleAngle = (time * 3 + (i / 6) * Math.PI * 2) % (Math.PI * 2);
-            const sparkleRadius = towerSize + 15 + Math.sin(time * 4 + i) * 8;
-            const sparkleX = centerX + Math.cos(sparkleAngle) * sparkleRadius;
-            const sparkleY = centerY + Math.sin(sparkleAngle) * sparkleRadius;
-            
-            this.ctx.globalAlpha = 0.8 + Math.sin(time * 8 + i) * 0.2;
-            this.ctx.fillStyle = typeCfg.color;
-            this.ctx.shadowColor = typeCfg.color;
-            this.ctx.shadowBlur = 8;
-            this.ctx.beginPath();
-            this.ctx.arc(sparkleX, sparkleY, 2 + Math.sin(time * 6 + i) * 1, 0, Math.PI * 2);
-            this.ctx.fill();
-        }
-        
-        // Range circle with soft glow, contrast rings, and many orbiting particles
+
+        // Range circle - clear and simple
         const rangePixels = (typeCfg.range || 0) * tileSize;
         if (rangePixels > 0) {
-            const pulseScale = 1.0 + Math.sin(time * 3) * 0.012; // Even smaller pulse
+            const pulseScale = 1.0 + Math.sin(time * 2) * 0.05;
             const animatedRange = rangePixels * pulseScale;
             
-            // Outer glow fill (use type color for better palette match)
-            this.ctx.shadowColor = typeCfg.color;
-            this.ctx.shadowBlur = 16;
-            this.ctx.globalAlpha = 0.10;
+            // Range circle with high contrast
+            this.ctx.shadowBlur = 0;
+            this.ctx.strokeStyle = '#FFFFFF';
+            this.ctx.lineWidth = 3;
+            this.ctx.globalAlpha = 0.8;
+            this.ctx.beginPath();
+            this.ctx.arc(centerX, centerY, animatedRange, 0, Math.PI * 2);
+            this.ctx.stroke();
+            
+            // Inner range fill for coverage area
+            this.ctx.globalAlpha = 0.15;
             this.ctx.fillStyle = typeCfg.color;
             this.ctx.beginPath();
             this.ctx.arc(centerX, centerY, animatedRange, 0, Math.PI * 2);
             this.ctx.fill();
-            
-            // Inner colored glow fill
-            this.ctx.shadowBlur = 0;
-            this.ctx.shadowColor = typeCfg.color;
-            this.ctx.shadowBlur = 10;
-            this.ctx.globalAlpha = 0.15; // more transparent inner glow
-            this.ctx.fillStyle = typeCfg.color;
-            this.ctx.beginPath();
-            this.ctx.arc(centerX, centerY, animatedRange * 0.9, 0, Math.PI * 2);
-            this.ctx.fill();
-
-            // Gradient inner fill for coverage area (dark center to lighter edge)
-            this.ctx.save();
-            this.ctx.shadowBlur = 0;
-            const gradient = this.ctx.createRadialGradient(
-                centerX, centerY, 0,
-                centerX, centerY, animatedRange * 0.9
-            );
-            // Dark center
-            gradient.addColorStop(0, `rgba(${this.hexToRgb(typeCfg.color)}, 0.12)`);
-            // Lighter edge
-            gradient.addColorStop(1, `rgba(${this.hexToRgb(typeCfg.color)}, 0.02)`);
-            this.ctx.fillStyle = gradient;
-            this.ctx.beginPath();
-            this.ctx.arc(centerX, centerY, animatedRange * 0.9, 0, Math.PI * 2);
-            this.ctx.fill();
-            this.ctx.restore();
-
-            // Contrast rings (thin strokes) to keep visibility across day/night
-            // Ring 1: subtle white ring
-            this.ctx.save();
-            this.ctx.setLineDash([]);
-            this.ctx.shadowBlur = 0;
-            this.ctx.globalAlpha = 0.18;
-            this.ctx.strokeStyle = '#FFFFFF';
-            this.ctx.lineWidth = 1.5 + (Math.sin(time * 1.7) + 1) * 0.5; // 1.5 - 2.5
-            this.ctx.beginPath();
-            this.ctx.arc(centerX, centerY, animatedRange * 0.96, 0, Math.PI * 2);
-            this.ctx.stroke();
-            this.ctx.restore();
-
-            // Ring 2: type-colored dashed ring
-            this.ctx.save();
-            this.ctx.shadowBlur = 4;
-            this.ctx.shadowColor = typeCfg.color;
-            this.ctx.globalAlpha = 0.25;
-            this.ctx.strokeStyle = typeCfg.color;
-            this.ctx.lineWidth = 1 + (Math.sin(time * 2.9 + 1) + 1) * 0.5; // 1 - 2
-            this.ctx.setLineDash([8, 6]);
-            this.ctx.beginPath();
-            this.ctx.arc(centerX, centerY, animatedRange * 0.86, 0, Math.PI * 2);
-            this.ctx.stroke();
-            this.ctx.restore();
-
-            // Ring 3: soft gold accent ring (very low alpha)
-            this.ctx.save();
-            this.ctx.setLineDash([]);
-            this.ctx.shadowBlur = 6;
-            this.ctx.shadowColor = '#FFD700';
-            this.ctx.globalAlpha = 0.08;
-            this.ctx.strokeStyle = '#FFD700';
-            this.ctx.lineWidth = 1.2;
-            this.ctx.beginPath();
-            this.ctx.arc(centerX, centerY, animatedRange * 1.02, 0, Math.PI * 2);
-            this.ctx.stroke();
-            this.ctx.restore();
-            
-            // Animated particles around the range circle
-            const particleCount = 64; // more particles for richness
-            for (let i = 0; i < particleCount; i++) {
-                const angle = (time * 2.0 + (i / particleCount) * Math.PI * 2) % (Math.PI * 2);
-                const particleRadius = animatedRange + 6 + Math.sin(time * 5 + i) * 5;
-                const particleX = centerX + Math.cos(angle) * particleRadius;
-                const particleY = centerY + Math.sin(angle) * particleRadius;
-                
-                const baseSize = 2.2;
-                const particleSize = baseSize + Math.sin(time * 7 + i) * 0.7;
-                const particleAlpha = 0.55 + Math.sin(time * 6 + i) * 0.2;
-                
-                this.ctx.globalAlpha = particleAlpha;
-                this.ctx.fillStyle = typeCfg.color;
-                this.ctx.shadowColor = typeCfg.color;
-                this.ctx.shadowBlur = 8;
-                this.ctx.beginPath();
-                this.ctx.arc(particleX, particleY, particleSize, 0, Math.PI * 2);
-                this.ctx.fill();
-            }
         }
-        
+
         this.ctx.restore();
 
         // Main selected button (icon + cost only)
