@@ -2728,34 +2728,78 @@ class RenderSystem {
         const mainBtnX = finalX + 8;
         const mainBtnY = finalY + 8;
 
-        // Ghost preview behind popup (tile highlight + icon + range rings)
+        // Enhanced ghost preview with glow and animated particles
         const centerX = x * tileSize + tileSize / 2;
         const centerY = y * tileSize + tileSize / 2;
+        const time = Date.now() / 1000;
+        
         this.ctx.save();
-        this.ctx.globalAlpha = 0.25;
+        
+        // Tower ghost with pulsing glow effect
+        const towerPulse = 0.8 + Math.sin(time * 4) * 0.2;
+        const towerSize = (typeCfg.size / 2) * towerPulse;
+        
+        // Outer glow
+        this.ctx.shadowColor = typeCfg.color;
+        this.ctx.shadowBlur = 20;
+        this.ctx.globalAlpha = 0.3;
         this.ctx.fillStyle = typeCfg.color;
         this.ctx.beginPath();
-        this.ctx.arc(centerX, centerY, typeCfg.size / 2, 0, Math.PI * 2);
+        this.ctx.arc(centerX, centerY, towerSize, 0, Math.PI * 2);
         this.ctx.fill();
-        // Range circle (animated subtle pulse)
-        const time = Date.now() / 1000;
-        const pulseScale = 1.0 + Math.sin(time * 3) * 0.06;
-        const rangePixels = (typeCfg.range || 0) * tileSize * pulseScale;
+        
+        // Inner solid tower
+        this.ctx.shadowBlur = 0;
+        this.ctx.globalAlpha = 0.6;
+        this.ctx.fillStyle = typeCfg.color;
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY, towerSize * 0.7, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Range circle with enhanced glow and particles
+        const rangePixels = (typeCfg.range || 0) * tileSize;
         if (rangePixels > 0) {
-            this.ctx.globalAlpha = 0.45;
+            const pulseScale = 1.0 + Math.sin(time * 3) * 0.08;
+            const animatedRange = rangePixels * pulseScale;
+            
+            // Outer glow ring
+            this.ctx.shadowColor = '#FFD700';
+            this.ctx.shadowBlur = 15;
+            this.ctx.globalAlpha = 0.4;
             this.ctx.strokeStyle = '#FFD700';
+            this.ctx.lineWidth = 4;
+            this.ctx.beginPath();
+            this.ctx.arc(centerX, centerY, animatedRange, 0, Math.PI * 2);
+            this.ctx.stroke();
+            
+            // Inner bright ring
+            this.ctx.shadowBlur = 0;
+            this.ctx.globalAlpha = 0.8;
+            this.ctx.strokeStyle = '#FFFFFF';
             this.ctx.lineWidth = 2;
             this.ctx.beginPath();
-            this.ctx.arc(centerX, centerY, rangePixels, 0, Math.PI * 2);
+            this.ctx.arc(centerX, centerY, animatedRange * 0.95, 0, Math.PI * 2);
             this.ctx.stroke();
-
-            this.ctx.globalAlpha = 0.7;
-            this.ctx.strokeStyle = '#FFFFFF';
-            this.ctx.lineWidth = 1;
-            this.ctx.beginPath();
-            this.ctx.arc(centerX, centerY, rangePixels * 0.98, 0, Math.PI * 2);
-            this.ctx.stroke();
+            
+            // Animated particles around the range circle
+            const particleCount = 8;
+            for (let i = 0; i < particleCount; i++) {
+                const angle = (time * 2 + (i / particleCount) * Math.PI * 2) % (Math.PI * 2);
+                const particleRadius = animatedRange + 10 + Math.sin(time * 4 + i) * 5;
+                const particleX = centerX + Math.cos(angle) * particleRadius;
+                const particleY = centerY + Math.sin(angle) * particleRadius;
+                
+                const particleSize = 2 + Math.sin(time * 6 + i) * 1;
+                const particleAlpha = 0.6 + Math.sin(time * 5 + i) * 0.3;
+                
+                this.ctx.globalAlpha = particleAlpha;
+                this.ctx.fillStyle = '#FFD700';
+                this.ctx.beginPath();
+                this.ctx.arc(particleX, particleY, particleSize, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
         }
+        
         this.ctx.restore();
 
         // Main selected button (icon + cost only)
