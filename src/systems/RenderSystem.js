@@ -1424,18 +1424,46 @@ class RenderSystem {
     }
 
     renderSelectionIndicator(centerX, centerY, radius) {
-        // Draw darker, more subtle selection ring for better contrast
+        // Enhanced prominent selection effect for towers
         const time = Date.now() / 1000;
-        const pulseRadius = radius + 6 + Math.sin(time * 2) * 2; // Slower, smaller pulse
-        const alpha = 0.7 + Math.sin(time * 2) * 0.2; // More subtle alpha change
+        const pulseScale = 1.0 + Math.sin(time * 3) * 0.1;
+        const selectionRadius = radius * 1.6 * pulseScale;
 
         this.ctx.save();
-        this.ctx.globalAlpha = alpha;
-        this.ctx.strokeStyle = '#2C3E50'; // Darker color for better contrast with grass
-        this.ctx.lineWidth = 4; // Thicker for better visibility
+
+        // Outer glowing ring
+        this.ctx.strokeStyle = '#FFD700';
+        this.ctx.lineWidth = 5;
+        this.ctx.shadowColor = '#FFD700';
+        this.ctx.shadowBlur = 12;
         this.ctx.beginPath();
-        this.ctx.arc(centerX, centerY, pulseRadius, 0, Math.PI * 2);
+        this.ctx.arc(centerX, centerY, selectionRadius, 0, Math.PI * 2);
         this.ctx.stroke();
+
+        // Inner bright ring
+        this.ctx.strokeStyle = '#FFFFFF';
+        this.ctx.lineWidth = 3;
+        this.ctx.shadowBlur = 6;
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY, selectionRadius * 0.85, 0, Math.PI * 2);
+        this.ctx.stroke();
+
+        // Corner markers for towers (different from enemies)
+        const markerSize = 6;
+        const markerDistance = selectionRadius + 8;
+        const angles = [Math.PI / 4, 3 * Math.PI / 4, 5 * Math.PI / 4, 7 * Math.PI / 4]; // Diagonal positions
+
+        this.ctx.fillStyle = '#FFD700';
+        this.ctx.shadowBlur = 4;
+        angles.forEach((angle, index) => {
+            const markerX = centerX + Math.cos(angle + time * 1.5) * markerDistance;
+            const markerY = centerY + Math.sin(angle + time * 1.5) * markerDistance;
+
+            this.ctx.beginPath();
+            this.ctx.arc(markerX, markerY, markerSize, 0, Math.PI * 2);
+            this.ctx.fill();
+        });
+
         this.ctx.restore();
     }
 
@@ -1515,15 +1543,16 @@ class RenderSystem {
         }
     }
 
-    renderEnemies(enemies, tileSize) {
+    renderEnemies(enemies, tileSize, selectedEnemy = null) {
         enemies.forEach(enemy => {
             if (enemy.isAlive) {
-                this.renderEnemy(enemy, tileSize);
+                const isSelected = selectedEnemy && selectedEnemy.id === enemy.id;
+                this.renderEnemy(enemy, tileSize, isSelected);
             }
         });
     }
 
-    renderEnemy(enemy, tileSize) {
+    renderEnemy(enemy, tileSize, isSelected = false) {
         const screenX = enemy.x * tileSize;
         const screenY = enemy.y * tileSize;
         const centerX = screenX + tileSize / 2;
@@ -1607,6 +1636,11 @@ class RenderSystem {
             this.renderEnemyHealthBar(enemy, centerX, centerY, radius, tileSize);
         }
 
+        // Draw selection effect for selected enemies
+        if (isSelected) {
+            this.renderEnemySelectionEffect(centerX, centerY, radius);
+        }
+
         // Restore context state
         this.ctx.restore();
     }
@@ -1669,6 +1703,50 @@ class RenderSystem {
             this.ctx.fillStyle = healthPercent > 0.5 ? '#4CAF50' : healthPercent > 0.25 ? '#FF9800' : '#F44336';
             this.ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
         }
+    }
+
+    // Render prominent selection effect for selected enemies
+    renderEnemySelectionEffect(centerX, centerY, radius) {
+        this.ctx.save();
+
+        const time = Date.now() / 1000;
+        const pulseScale = 1.0 + Math.sin(time * 4) * 0.1; // Subtle pulsing
+        const selectionRadius = radius * 1.8 * pulseScale;
+
+        // Outer glowing ring
+        this.ctx.strokeStyle = '#FFD700';
+        this.ctx.lineWidth = 4;
+        this.ctx.shadowColor = '#FFD700';
+        this.ctx.shadowBlur = 15;
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY, selectionRadius, 0, Math.PI * 2);
+        this.ctx.stroke();
+
+        // Inner bright ring
+        this.ctx.strokeStyle = '#FFFFFF';
+        this.ctx.lineWidth = 2;
+        this.ctx.shadowBlur = 8;
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY, selectionRadius * 0.8, 0, Math.PI * 2);
+        this.ctx.stroke();
+
+        // Animated corner markers
+        const markerSize = 8;
+        const markerDistance = selectionRadius + 10;
+        const angles = [0, Math.PI / 2, Math.PI, 3 * Math.PI / 2];
+
+        this.ctx.fillStyle = '#FFD700';
+        this.ctx.shadowBlur = 6;
+        angles.forEach((angle, index) => {
+            const markerX = centerX + Math.cos(angle + time * 2) * markerDistance;
+            const markerY = centerY + Math.sin(angle + time * 2) * markerDistance;
+
+            this.ctx.beginPath();
+            this.ctx.arc(markerX, markerY, markerSize, 0, Math.PI * 2);
+            this.ctx.fill();
+        });
+
+        this.ctx.restore();
     }
 
     renderWaveInfo(waveInfo) {
