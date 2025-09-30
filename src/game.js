@@ -33,7 +33,8 @@ let gameState = {
     gameStateManager: null, // Track game state (win/lose/restart)
     selectedTower: null, // Track selected tower for HUD
     selectedEnemy: null, // Track selected enemy for HUD
-    towerPlacementPopup: null, // Track tower placement popup state
+    towerPlacementPopup: null, // Track tower placement popup state {x,y,tileSize,selectedType}
+    lastPlacedTowerType: 'BASIC', // Remember last placed type for UX
     audioManager: null, // Audio system for sound effects and music
     logger: null, // System logger for centralized logging
     lastDebugSecond: 0 // Debug timing for wave state logging
@@ -333,54 +334,43 @@ function handleTowerPlacementPopupClick(clickX, clickY) {
 
     const bounds = gameState.renderer.placementPopupBounds;
 
-    // Check Basic Tower button
-    if (bounds.basic && clickX >= bounds.basic.x && clickX <= bounds.basic.x + bounds.basic.width &&
-        clickY >= bounds.basic.y && clickY <= bounds.basic.y + bounds.basic.height) {
+    // Selected button: place tower of current selectedType
+    if (bounds.selected && clickX >= bounds.selected.x && clickX <= bounds.selected.x + bounds.selected.width &&
+        clickY >= bounds.selected.y && clickY <= bounds.selected.y + bounds.selected.height) {
 
-        gameState.logger.info('🏗️ Basic tower button clicked!');
         const gridPos = gameState.towerPlacementPopup;
-        const placementSuccess = gameState.towerManager.tryPlaceTower(gridPos.x, gridPos.y, 'BASIC');
+        const type = gridPos.selectedType || 'BASIC';
+        gameState.logger.info(`🏗️ Place selected tower: ${type}`);
+        const placementSuccess = gameState.towerManager.tryPlaceTower(gridPos.x, gridPos.y, type);
         if (placementSuccess) {
-            gameState.logger.info(`🏗️ Basic tower placed at (${gridPos.x}, ${gridPos.y})`);
-            // Play tower placement sound
+            // Play SFX and select new tower
             gameState.audioManager.playSound('tower_place');
-
-            // Select the newly placed tower
             const newTower = gameState.towerManager.getTowerAt(gridPos.x, gridPos.y);
             gameState.selectedTower = newTower;
+            gameState.lastPlacedTowerType = type;
         }
-        // Clear popup
         gameState.towerPlacementPopup = null;
         return true;
     }
 
-    // Check Strong Tower button
-    if (bounds.strong && clickX >= bounds.strong.x && clickX <= bounds.strong.x + bounds.strong.width &&
-        clickY >= bounds.strong.y && clickY <= bounds.strong.y + bounds.strong.height) {
-
-        gameState.logger.info('🏗️ Strong tower button clicked!');
-        const gridPos = gameState.towerPlacementPopup;
-        const placementSuccess = gameState.towerManager.tryPlaceTower(gridPos.x, gridPos.y, 'STRONG');
-        if (placementSuccess) {
-            gameState.logger.info(`🏗️ Strong tower placed at (${gridPos.x}, ${gridPos.y})`);
-            // Play tower placement sound
-            gameState.audioManager.playSound('tower_place');
-
-            // Select the newly placed tower
-            const newTower = gameState.towerManager.getTowerAt(gridPos.x, gridPos.y);
-            gameState.selectedTower = newTower;
+    // Cycle button: toggle selectedType between BASIC and STRONG
+    if (bounds.cycle && clickX >= bounds.cycle.x && clickX <= bounds.cycle.x + bounds.cycle.width &&
+        clickY >= bounds.cycle.y && clickY <= bounds.cycle.y + bounds.cycle.height) {
+        if (gameState.towerPlacementPopup) {
+            const current = gameState.towerPlacementPopup.selectedType || 'BASIC';
+            const next = current === 'BASIC' ? 'STRONG' : 'BASIC';
+            gameState.towerPlacementPopup.selectedType = next;
+            gameState.logger.info(`🔁 Cycle tower type: ${current} -> ${next}`);
+            // Soft click sound
+            if (gameState.audioManager) gameState.audioManager.playSound('button_click');
         }
-        // Clear popup
-        gameState.towerPlacementPopup = null;
         return true;
     }
 
-    // Check Cancel button
+    // Cancel button
     if (bounds.cancel && clickX >= bounds.cancel.x && clickX <= bounds.cancel.x + bounds.cancel.width &&
         clickY >= bounds.cancel.y && clickY <= bounds.cancel.y + bounds.cancel.height) {
-
         gameState.logger.info('❌ Cancel tower placement');
-        // Clear popup
         gameState.towerPlacementPopup = null;
         return true;
     }
@@ -540,7 +530,8 @@ function handleInput() {
             gameState.towerPlacementPopup = {
                 x: gridPos.x,
                 y: gridPos.y,
-                tileSize: CONFIG.TILE_SIZE
+                tileSize: CONFIG.TILE_SIZE,
+                selectedType: gameState.lastPlacedTowerType || 'BASIC'
             };
             gameState.logger.info(`🏗️ Show placement popup at (${gridPos.x}, ${gridPos.y}) - cleared selections`);
         } else {

@@ -2672,7 +2672,7 @@ class RenderSystem {
         this.ctx.restore();
     }
 
-    // Render tower placement popup with modern design
+    // Render redesigned tower placement popup: [Selected] [Cycle] [Cancel] + ghost
     renderTowerPlacementPopup(popupInfo) {
         if (!popupInfo) return;
 
@@ -2681,9 +2681,9 @@ class RenderSystem {
         // Get current coins for cost checking
         const currentCoins = this.resourceSystem ? this.resourceSystem.getCoins() : 0;
 
-        // Calculate popup position (centered on tile)
-        const popupWidth = 200;
-        const popupHeight = 140;
+        // Calculate compact popup position (1.5-2 tiles max)
+        const popupWidth = Math.min(2 * tileSize, 180);
+        const popupHeight = Math.min(2 * tileSize, 120);
         const popupX = x * tileSize + (tileSize - popupWidth) / 2;
         const popupY = y * tileSize + (tileSize - popupHeight) / 2;
 
@@ -2718,83 +2718,88 @@ class RenderSystem {
         this.ctx.stroke();
         this.ctx.restore();
 
-        // Title
+
+        // Selected type main button
+        const selectedType = (popupInfo.selectedType && TOWER_TYPES[popupInfo.selectedType]) ? popupInfo.selectedType : 'BASIC';
+        const typeCfg = TOWER_TYPES[selectedType];
+        const canAffordSelected = currentCoins >= typeCfg.cost;
+        const mainBtnW = popupWidth - 16;
+        const mainBtnH = Math.max(40, Math.min(60, popupHeight - 48));
+        const mainBtnX = finalX + 8;
+        const mainBtnY = finalY + 8;
+
+        // Ghost preview behind popup (tile highlight + icon)
+        const centerX = x * tileSize + tileSize / 2;
+        const centerY = y * tileSize + tileSize / 2;
         this.ctx.save();
-        this.ctx.fillStyle = '#FFD700';
-        this.ctx.font = 'bold 16px Arial';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText('Place Tower', finalX + popupWidth / 2, finalY + 25);
+        this.ctx.globalAlpha = 0.25;
+        this.ctx.fillStyle = typeCfg.color;
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY, typeCfg.size / 2, 0, Math.PI * 2);
+        this.ctx.fill();
         this.ctx.restore();
 
-        // Tower options
-        const buttonWidth = 80;
-        const buttonHeight = 60;
-        const buttonSpacing = 10;
-        const startX = finalX + (popupWidth - (buttonWidth * 2 + buttonSpacing)) / 2;
-        const buttonY = finalY + 40;
-
-        // Basic Tower button
-        const basicButtonX = startX;
-        const canAffordBasic = currentCoins >= TOWER_TYPES.BASIC.cost;
-        this.renderTowerOptionButton(
-            basicButtonX, buttonY, buttonWidth, buttonHeight,
-            'Basic Tower', TOWER_TYPES.BASIC.cost, TOWER_TYPES.BASIC.color,
-            canAffordBasic, 'basic'
-        );
-
-        // Strong Tower button
-        const strongButtonX = startX + buttonWidth + buttonSpacing;
-        const canAffordStrong = currentCoins >= TOWER_TYPES.STRONG.cost;
-        this.renderTowerOptionButton(
-            strongButtonX, buttonY, buttonWidth, buttonHeight,
-            'Strong Tower', TOWER_TYPES.STRONG.cost, TOWER_TYPES.STRONG.color,
-            canAffordStrong, 'strong'
-        );
-
-        // Cancel button
-        const cancelButtonWidth = 60;
-        const cancelButtonHeight = 30;
-        const cancelButtonX = finalX + (popupWidth - cancelButtonWidth) / 2;
-        const cancelButtonY = finalY + popupHeight - 40;
-
+        // Main selected button (icon + cost only)
         this.ctx.save();
-        this.ctx.fillStyle = '#F44336';
+        this.ctx.fillStyle = canAffordSelected ? typeCfg.color : '#666';
         this.ctx.beginPath();
-        this.ctx.roundRect(cancelButtonX, cancelButtonY, cancelButtonWidth, cancelButtonHeight, 6);
+        this.ctx.roundRect(mainBtnX, mainBtnY, mainBtnW, mainBtnH, 8);
         this.ctx.fill();
-        this.ctx.strokeStyle = '#D32F2F';
+        this.ctx.strokeStyle = canAffordSelected ? '#FFF' : '#999';
         this.ctx.lineWidth = 2;
         this.ctx.stroke();
-        this.ctx.restore();
-
-        // Cancel text
-        this.ctx.save();
+        // Icon
+        this.ctx.fillStyle = '#FFF';
+        const iconSize = 16;
+        const iconX = mainBtnX + 12 + iconSize / 2;
+        const iconY = mainBtnY + mainBtnH / 2;
+        this.ctx.beginPath();
+        this.ctx.arc(iconX, iconY, iconSize / 2, 0, Math.PI * 2);
+        this.ctx.fill();
+        // Cost text centered
         this.ctx.fillStyle = '#FFF';
         this.ctx.font = 'bold 14px Arial';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('Cancel', cancelButtonX + cancelButtonWidth / 2, cancelButtonY + 20);
+        this.ctx.fillText(`💰 ${typeCfg.cost}`, mainBtnX + mainBtnW / 2 + 8, mainBtnY + mainBtnH / 2 + 5);
         this.ctx.restore();
 
-        // Store button bounds for click detection
+        // Cycle button (small) on left
+        const cycleW = 28;
+        const cycleH = 28;
+        const cycleX = mainBtnX;
+        const cycleY = mainBtnY + mainBtnH + 6;
+        this.ctx.save();
+        this.ctx.fillStyle = '#4A90E2';
+        this.ctx.beginPath();
+        this.ctx.roundRect(cycleX, cycleY, cycleW, cycleH, 6);
+        this.ctx.fill();
+        this.ctx.fillStyle = '#FFF';
+        this.ctx.font = 'bold 12px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('⟳', cycleX + cycleW / 2, cycleY + 18);
+        this.ctx.restore();
+
+        // Cancel button (small) on right
+        const cancelW = 28;
+        const cancelH = 28;
+        const cancelX = mainBtnX + mainBtnW - cancelW;
+        const cancelY = cycleY;
+        this.ctx.save();
+        this.ctx.fillStyle = '#F44336';
+        this.ctx.beginPath();
+        this.ctx.roundRect(cancelX, cancelY, cancelW, cancelH, 6);
+        this.ctx.fill();
+        this.ctx.fillStyle = '#FFF';
+        this.ctx.font = 'bold 12px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('✖', cancelX + cancelW / 2, cancelY + 18);
+        this.ctx.restore();
+
+        // Store bounds
         this.placementPopupBounds = {
-            basic: {
-                x: basicButtonX,
-                y: buttonY,
-                width: buttonWidth,
-                height: buttonHeight
-            },
-            strong: {
-                x: strongButtonX,
-                y: buttonY,
-                width: buttonWidth,
-                height: buttonHeight
-            },
-            cancel: {
-                x: cancelButtonX,
-                y: cancelButtonY,
-                width: cancelButtonWidth,
-                height: cancelButtonHeight
-            }
+            selected: { x: mainBtnX, y: mainBtnY, width: mainBtnW, height: mainBtnH },
+            cycle: { x: cycleX, y: cycleY, width: cycleW, height: cycleH },
+            cancel: { x: cancelX, y: cancelY, width: cancelW, height: cancelH }
         };
     }
 
