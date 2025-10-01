@@ -122,8 +122,40 @@ Analyze first alpha tester feedback (adult with TD experience) and extract actio
 3. **Kids Feedback**: Collect feedback from 5 & 8 year old target audience
 4. **Phase A1.2 Planning**: Wait for kids' feedback to plan next improvements
 
+## Bugfix Summary - A1.1 Critical Issues
+
+### User Feedback on A1.1 Implementation
+1. ❌ Pause system partially working - could pause but not unpause
+2. ❌ Lives system showing but not tracking - enemies escaping didn't reduce hearts
+3. ⚠️ Some text too big now - defer to Phase A1.2 after kids' feedback
+4. ❌ Path glow/color change not desired - wanted separate layer like start/end tiles
+5. ⏳ Deployment not tested yet - repo not on remote
+
+### ✅ Bugfixes Applied
+1. **Pause System Fix** (Commit: 519950c)
+   - Fixed `setPaused()` to allow transitions from both 'playing' and 'paused' states
+   - ESC key now properly toggles pause/unpause
+   - Issue: Method only checked `if (gameState === 'playing')` which blocked unpausing
+
+2. **Lives Tracking Fix** (Commit: e371806)
+   - Added persistent counter `enemiesReachedGoalCount` to EnemySystem
+   - Counter increments when enemy reaches goal (once per enemy)
+   - Counter resets on game restart
+   - Fixed issue: Enemies were being removed from array, losing count
+   - Lives now properly deduct and game over triggers at 0 lives
+
+3. **Path Rendering Fix** (Commit: 3eeef40)
+   - Reverted path tile color and glow changes
+   - Created new `renderPathTiles()` method on separate layer
+   - Renders path overlay after start/end tiles
+   - Only shows golden glow outline during night cycle
+   - Maintains original path appearance, adds visibility layer
+
+### Deferred Items
+- **Text Scaling Review**: Will revisit after kids' feedback to fine-tune sizes
+
 ## Notes
-- All game-breaking issues addressed
+- All critical bugs fixed and tested
 - Ready for user testing and kids' feedback
 - Target audience is kids 5-8, so their feedback will be critical
 - Adult feedback provides good technical/balance insights
