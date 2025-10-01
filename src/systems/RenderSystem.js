@@ -296,7 +296,7 @@ class RenderSystem {
             this.ctx.fillStyle = '#333';
             this.ctx.fillRect(x, y, width, height);
             this.ctx.fillStyle = '#666';
-            this.ctx.font = '16px Arial';
+            this.ctx.font = '20px Arial';  // Increased from 16px
             this.ctx.textAlign = 'center';
             this.ctx.fillText('Select a tower or enemy', x + width / 2, y + height / 2);
             this.ctx.restore();
@@ -346,12 +346,12 @@ class RenderSystem {
 
         // Static title
         this.ctx.fillStyle = '#FFF';
-        this.ctx.font = 'bold 18px Arial';
+        this.ctx.font = 'bold 22px Arial';  // Increased from 18px
         this.ctx.textAlign = 'center';
         this.ctx.fillText('🌊 Wave Info', x + width / 2, y + 20);
 
         // Display lives with hearts (kid-friendly)
-        this.ctx.font = 'bold 16px Arial';
+        this.ctx.font = 'bold 20px Arial';  // Increased from 16px
         if (gameStateInfo) {
             const livesRemaining = gameStateInfo.maxEnemiesAllowed - gameStateInfo.enemiesReachedGoal;
             const hearts = '❤️'.repeat(Math.max(0, livesRemaining));
@@ -371,7 +371,7 @@ class RenderSystem {
 
         // Display wave data (no pulsing)
         this.ctx.fillStyle = '#FFF';
-        this.ctx.font = '14px Arial';
+        this.ctx.font = '18px Arial';  // Increased from 14px
         this.ctx.globalAlpha = 1.0;
 
         if (waveInfo) {
@@ -583,12 +583,12 @@ class RenderSystem {
 
         // Static coin title
         this.ctx.fillStyle = '#FFF';
-        this.ctx.font = 'bold 16px Arial';
+        this.ctx.font = 'bold 22px Arial';  // Increased from 16px
         this.ctx.textAlign = 'center';
         this.ctx.fillText('💰 Coins', x + width / 2, y + 20);
 
         // Display coin count (no pulsing)
-        this.ctx.font = 'bold 18px Arial';
+        this.ctx.font = 'bold 28px Arial';  // Increased from 18px
         const coinCount = resourceInfo ? (resourceInfo.coins || 0) : 0;
         this.ctx.fillStyle = '#FFD700';
         this.ctx.textAlign = 'center';

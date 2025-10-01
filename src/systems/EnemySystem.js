@@ -264,7 +264,7 @@ class EnemySystem {
             maxLife: 1.0,
             velocityY: -30,
             color: '#FF4444',
-            size: 16,
+            size: 24,  // Increased from 16 for better readability
             alpha: 1.0
         };
 
