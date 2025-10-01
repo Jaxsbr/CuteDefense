@@ -1152,32 +1152,14 @@ class RenderSystem {
         } else if (tile.type === 'path') {
             // Enhanced path tile with lighter texture
             const currentColors = this.getCurrentColors();
-            
-            // Add glow effect for better night visibility
-            if (this.dayNightSystem.currentPhase === 'night') {
-                this.ctx.save();
-                this.ctx.shadowColor = '#FFD700';  // Golden glow
-                this.ctx.shadowBlur = 15;
-                this.ctx.shadowOffsetX = 0;
-                this.ctx.shadowOffsetY = 0;
-            }
-            
             const gradient = this.ctx.createLinearGradient(screenX, screenY, screenX + tileSize, screenY + tileSize);
-            // Make path lighter at night for better visibility
-            const pathColor = this.dayNightSystem.currentPhase === 'night' 
-                ? '#A0826D'  // Lighter brown for night visibility
-                : currentColors.path;
-            gradient.addColorStop(0, pathColor);
-            gradient.addColorStop(0.5, this.interpolateColor(pathColor, '#DEB887', 0.3));
-            gradient.addColorStop(1, pathColor);
+            gradient.addColorStop(0, currentColors.path);
+            gradient.addColorStop(0.5, this.interpolateColor(currentColors.path, '#DEB887', 0.3));
+            gradient.addColorStop(1, currentColors.path);
             this.ctx.fillStyle = gradient;
             this.ctx.beginPath();
             this.ctx.roundRect(screenX, screenY, tileSize, tileSize, 4);
             this.ctx.fill();
-            
-            if (this.dayNightSystem.currentPhase === 'night') {
-                this.ctx.restore();
-            }
 
             // Add path texture pattern
             this.renderPathTexture(screenX, screenY, tileSize, time, gridX + gridY);
@@ -3366,6 +3348,43 @@ class RenderSystem {
                 }
             }
         }
+    }
+
+    // Render path tiles on a separate layer for better night visibility
+    renderPathTiles(gridSystem) {
+        const tileSize = gridSystem.tileSize;
+
+        // Render path tiles with overlay for night visibility
+        for (let y = 0; y < gridSystem.rows; y++) {
+            for (let x = 0; x < gridSystem.cols; x++) {
+                const tile = gridSystem.getTile(x, y);
+                if (tile && tile.type === 'path') {
+                    this.renderPathTileOverlay(x, y, tileSize);
+                }
+            }
+        }
+    }
+
+    // Render path tile overlay for better visibility
+    renderPathTileOverlay(gridX, gridY, tileSize) {
+        const screenX = gridX * tileSize;
+        const screenY = gridY * tileSize;
+        
+        this.ctx.save();
+        
+        // Add subtle glow overlay for night visibility
+        if (this.dayNightSystem.currentPhase === 'night') {
+            this.ctx.shadowColor = '#FFD700';  // Golden glow
+            this.ctx.shadowBlur = 12;
+            this.ctx.strokeStyle = '#A0826D';  // Lighter path outline
+            this.ctx.lineWidth = 3;
+            this.ctx.globalAlpha = 0.6;
+            this.ctx.beginPath();
+            this.ctx.roundRect(screenX + 2, screenY + 2, tileSize - 4, tileSize - 4, 3);
+            this.ctx.stroke();
+        }
+        
+        this.ctx.restore();
     }
 
     // Render individual start or end tile with enhanced visibility

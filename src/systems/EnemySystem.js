@@ -5,6 +5,7 @@ class EnemySystem {
     constructor() {
         this.enemies = [];
         this.removedEnemies = [];
+        this.enemiesReachedGoalCount = 0; // Persistent counter for enemies that reached goal
         this.audioManager = null; // Audio manager reference
     }
 
@@ -81,10 +82,13 @@ class EnemySystem {
     updateEnemyMovement(enemy, deltaTime) {
         if (enemy.pathIndex >= enemy.path.length - 1) {
             // Reached the end of the path
-            enemy.reachedGoal = true;
-            // Play enemy reach end sound
-            if (this.audioManager) {
-                this.audioManager.playSound('enemy_reach_end');
+            if (!enemy.reachedGoal) {
+                enemy.reachedGoal = true;
+                this.enemiesReachedGoalCount++; // Increment persistent counter
+                // Play enemy reach end sound
+                if (this.audioManager) {
+                    this.audioManager.playSound('enemy_reach_end');
+                }
             }
             // Start end reached animation
             this.startEndReachedAnimation(enemy);
@@ -189,9 +193,19 @@ class EnemySystem {
 
     /**
      * Get all enemies that reached the goal
+     * Returns array with length equal to the count for compatibility
      */
     getEnemiesReachedGoal() {
-        return this.enemies.filter(enemy => enemy.reachedGoal);
+        // Return an array with length matching the count
+        // This maintains compatibility with existing code that checks .length
+        return Array(this.enemiesReachedGoalCount).fill(null);
+    }
+    
+    /**
+     * Get the count of enemies that reached the goal
+     */
+    getEnemiesReachedGoalCount() {
+        return this.enemiesReachedGoalCount;
     }
 
     /**
@@ -215,6 +229,7 @@ class EnemySystem {
     clearAllEnemies() {
         this.enemies = [];
         this.removedEnemies = [];
+        this.enemiesReachedGoalCount = 0; // Reset goal counter
     }
 
     /**

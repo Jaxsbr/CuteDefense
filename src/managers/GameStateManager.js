@@ -135,7 +135,8 @@ class GameStateManager {
      * Pause/unpause game
      */
     setPaused(paused) {
-        if (this.gameState === 'playing') {
+        // Allow toggling between playing and paused states
+        if (this.gameState === 'playing' || this.gameState === 'paused') {
             this.gameState = paused ? 'paused' : 'playing';
         }
     }
