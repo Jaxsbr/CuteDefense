@@ -196,7 +196,7 @@ class RenderSystem {
     }
 
     // Render main HUD panel - always visible below tilemap with cartoony styling
-    renderMainHUD(selectedTower, towerManager, waveInfo = null, resourceInfo = null, selectedEnemy = null) {
+    renderMainHUD(selectedTower, towerManager, waveInfo = null, resourceInfo = null, selectedEnemy = null, popupInfo = null) {
         // Calculate HUD area below tilemap
         const tilemapHeight = this.getTilemapHeight();
         const hudHeight = 120; // Fixed height for HUD
@@ -239,14 +239,14 @@ class RenderSystem {
 
         // No sparkle effects for clean appearance
 
-        // Render the five HUD sections
-        this.renderHUDSections(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager, waveInfo, resourceInfo, selectedEnemy);
+        // Render the five HUD sections (pass popupInfo for proposed tower preview)
+        this.renderHUDSections(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager, waveInfo, resourceInfo, selectedEnemy, popupInfo);
     }
 
     // Removed sparkle effects for clean HUD appearance
 
     // Render the four HUD sections: Wave Info, Combined Selection (Portrait+Info), Selection Actions, Coin Info
-    renderHUDSections(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager, waveInfo, resourceInfo, selectedEnemy) {
+    renderHUDSections(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager, waveInfo, resourceInfo, selectedEnemy, popupInfo) {
         const padding = 15;
         const contentHeight = hudHeight - (padding * 2);
         const contentY = hudY + padding;
@@ -262,9 +262,9 @@ class RenderSystem {
         const waveInfoX = hudX + padding;
         this.renderWaveInfoSection(waveInfoX, contentY, waveInfoWidth, contentHeight, waveInfo);
 
-        // Section 2: Combined Selection (35%)
+        // Section 2: Combined Selection (35%) - pass popupInfo for proposed tower preview
         const selectionX = waveInfoX + waveInfoWidth + padding;
-        this.renderCombinedSelectionSection(selectionX, contentY, selectionWidth, contentHeight, selectedTower, selectedEnemy);
+        this.renderCombinedSelectionSection(selectionX, contentY, selectionWidth, contentHeight, selectedTower, selectedEnemy, popupInfo);
 
         // Section 3: Selection Actions (20%)
         const actionsX = selectionX + selectionWidth + padding;
@@ -276,10 +276,17 @@ class RenderSystem {
     }
 
     // Render combined selection section (portrait + info) with more space
-    renderCombinedSelectionSection(x, y, width, height, selectedTower, selectedEnemy) {
+    renderCombinedSelectionSection(x, y, width, height, selectedTower, selectedEnemy, popupInfo) {
         // Priority: Enemy selection overrides tower selection
         if (selectedEnemy) {
             this.renderEnemySelection(x, y, width, height, selectedEnemy);
+            return;
+        }
+
+        // Show proposed tower preview when placement popup is open
+        if (popupInfo && !selectedTower && !selectedEnemy) {
+            const proposedType = popupInfo.selectedType || 'BASIC';
+            this.renderProposedTowerPreview(x, y, width, height, proposedType);
             return;
         }
 
@@ -895,6 +902,111 @@ class RenderSystem {
             this.ctx.fillText('🛡️ High Defense', x, y + 100);
         }
 
+        this.ctx.restore();
+    }
+
+    // Render proposed tower preview when placement popup is shown
+    renderProposedTowerPreview(x, y, width, height, towerType) {
+        const time = Date.now() / 1000;
+        const typeCfg = TOWER_TYPES[towerType];
+        
+        if (!typeCfg) return;
+
+        // Split the section: portrait on left, info on right
+        const portraitWidth = 80;
+        const infoWidth = width - portraitWidth - 10; // 10px gap
+        const portraitX = x;
+        const infoX = x + portraitWidth + 10;
+
+        // Render proposed tower portrait with special styling
+        this.renderProposedTowerPortrait(portraitX, y, portraitWidth, typeCfg, time);
+
+        // Render proposed tower info
+        this.renderProposedTowerInfo(infoX, y, infoWidth, height, typeCfg, towerType, time);
+    }
+
+    // Render proposed tower portrait with pulsing animation
+    renderProposedTowerPortrait(x, y, size, typeCfg, time) {
+        const centerX = x + size / 2;
+        const centerY = y + size / 2;
+        const radius = size / 2 - 5;
+
+        // Dimmed background with pulsing effect (~1Hz)
+        const pulseAlpha = 0.15 + Math.sin(time * 2 * Math.PI) * 0.1; // 1Hz blink
+        this.ctx.save();
+        this.ctx.globalAlpha = pulseAlpha;
+        this.ctx.fillStyle = typeCfg.color;
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY, radius + 5, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.restore();
+
+        // Dimmed tower circle
+        this.ctx.save();
+        this.ctx.globalAlpha = 0.5; // Dimmed appearance
+        this.ctx.fillStyle = typeCfg.color;
+        this.ctx.strokeStyle = '#FFD700';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.stroke();
+        this.ctx.restore();
+
+        // "PROPOSED" label at bottom
+        this.ctx.save();
+        this.ctx.fillStyle = '#FFD700';
+        this.ctx.font = 'bold 10px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('PROPOSED', centerX, y + size - 5);
+        this.ctx.restore();
+    }
+
+    // Render proposed tower info with descriptors
+    renderProposedTowerInfo(x, y, width, height, typeCfg, towerType, time) {
+        this.ctx.save();
+        
+        // Pulsing title (~1Hz)
+        const titleAlpha = 0.7 + Math.sin(time * 2 * Math.PI) * 0.3; // 1Hz blink
+        this.ctx.globalAlpha = titleAlpha;
+        this.ctx.fillStyle = '#FFD700';
+        this.ctx.font = 'bold 16px Arial';
+        this.ctx.textAlign = 'left';
+        this.ctx.fillText('PROPOSED TOWER', x, y + 20);
+        this.ctx.restore();
+
+        // Tower type name
+        this.ctx.save();
+        this.ctx.fillStyle = '#FFF';
+        this.ctx.font = 'bold 14px Arial';
+        this.ctx.textAlign = 'left';
+        this.ctx.fillText(typeCfg.name, x, y + 40);
+        this.ctx.restore();
+
+        // Brief descriptor based on tower type
+        this.ctx.save();
+        this.ctx.fillStyle = '#AAA';
+        this.ctx.font = '12px Arial';
+        this.ctx.textAlign = 'left';
+        
+        let descriptor = '';
+        if (towerType === 'BASIC') {
+            descriptor = 'Simple bullets | Very cheap';
+        } else if (towerType === 'STRONG') {
+            descriptor = 'High damage | Slow fire';
+        }
+        
+        this.ctx.fillText(descriptor, x, y + 58);
+        this.ctx.restore();
+
+        // Tower stats (dimmed)
+        this.ctx.save();
+        this.ctx.globalAlpha = 0.7;
+        this.ctx.fillStyle = '#CCC';
+        this.ctx.font = '12px Arial';
+        this.ctx.textAlign = 'left';
+        this.ctx.fillText(`Cost: ${typeCfg.cost} coins`, x, y + 76);
+        this.ctx.fillText(`Range: ${typeCfg.range} tiles`, x, y + 92);
         this.ctx.restore();
     }
 

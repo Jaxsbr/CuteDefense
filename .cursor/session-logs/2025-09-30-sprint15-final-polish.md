@@ -115,11 +115,35 @@ Sprint 15 focuses on final polish and game completion, implementing the remainin
   - Improved positioning to stay within canvas bounds
   - Enhanced visual feedback matching game's aesthetic
 
-## Next Task
-- HUD "Proposed Tower" details in selection pane when placement popup is shown:
-  - Use the popup's selected tower type to display a PROPOSED state in the HUD selection pane
-  - Make it visually distinct from an actual selected tower/enemy (e.g., "Proposed" label + dimmed frame)
-  - Add a gentle blinking/pulsing accent to draw attention (e.g., title blink or border pulse)
-  - Show brief descriptor text per type, e.g., "Basic Tower — simple bullets | very cheap"
-  - Hide when popup closes or after placement; convert to real selection if placed
-  - Mobile-safe: avoid excessive motion; cap blink at ~1Hz with low-alpha pulse
+## Latest Implementation - Proposed Tower HUD Preview
+
+### Implementation Complete
+- **Feature**: HUD "Proposed Tower" preview when placement popup is shown
+- **Files Modified**: 
+  - `src/game.js` - Pass popup info to HUD renderer
+  - `src/systems/RenderSystem.js` - Add proposed tower preview rendering
+
+### Feature Details
+✅ **Proposed Tower State**: Shows selected tower type from popup in HUD selection pane
+✅ **Visual Distinction**: 
+  - Dimmed portrait (50% opacity) with pulsing background glow
+  - "PROPOSED" label in gold at bottom of portrait
+  - "PROPOSED TOWER" title with 1Hz pulsing animation
+✅ **Descriptive Text**:
+  - Basic Tower: "Simple bullets | Very cheap"
+  - Strong Tower: "High damage | Slow fire"
+✅ **Tower Stats**: Cost and range displayed with dimmed appearance
+✅ **Pulsing Animation**: 
+  - Title blinks at ~1Hz (0.7-1.0 alpha)
+  - Background glow pulses at 1Hz (0.05-0.25 alpha)
+  - Mobile-safe with low alpha values
+✅ **Auto-Hide**: Preview automatically hides when popup closes or after placement
+✅ **Priority System**: Enemies and selected towers override proposed preview
+
+### Testing Required
+- Open placement popup and verify proposed tower preview appears
+- Toggle between Basic and Strong tower types using cycle button
+- Verify preview disappears when popup is closed
+- Verify preview disappears when tower is placed
+- Check that placed tower becomes selected after placement
+- Verify pulsing animations are smooth and not excessive
