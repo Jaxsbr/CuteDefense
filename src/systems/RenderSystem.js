@@ -2844,7 +2844,7 @@ class RenderSystem {
         this.ctx.lineWidth = 1.5;
         this.ctx.stroke();
         this.ctx.fillStyle = '#FFFFFF';
-        this.ctx.font = 'bold 16px Arial';
+        this.ctx.font = 'bold 32px Arial';
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'middle';
         this.ctx.fillText('⟳', cycleX + cycleW / 2, bottomBtnY + bottomBtnH / 2);
