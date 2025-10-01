@@ -1152,14 +1152,32 @@ class RenderSystem {
         } else if (tile.type === 'path') {
             // Enhanced path tile with lighter texture
             const currentColors = this.getCurrentColors();
+            
+            // Add glow effect for better night visibility
+            if (this.dayNightSystem.currentPhase === 'night') {
+                this.ctx.save();
+                this.ctx.shadowColor = '#FFD700';  // Golden glow
+                this.ctx.shadowBlur = 15;
+                this.ctx.shadowOffsetX = 0;
+                this.ctx.shadowOffsetY = 0;
+            }
+            
             const gradient = this.ctx.createLinearGradient(screenX, screenY, screenX + tileSize, screenY + tileSize);
-            gradient.addColorStop(0, currentColors.path);
-            gradient.addColorStop(0.5, this.interpolateColor(currentColors.path, '#DEB887', 0.3));
-            gradient.addColorStop(1, currentColors.path);
+            // Make path lighter at night for better visibility
+            const pathColor = this.dayNightSystem.currentPhase === 'night' 
+                ? '#A0826D'  // Lighter brown for night visibility
+                : currentColors.path;
+            gradient.addColorStop(0, pathColor);
+            gradient.addColorStop(0.5, this.interpolateColor(pathColor, '#DEB887', 0.3));
+            gradient.addColorStop(1, pathColor);
             this.ctx.fillStyle = gradient;
             this.ctx.beginPath();
             this.ctx.roundRect(screenX, screenY, tileSize, tileSize, 4);
             this.ctx.fill();
+            
+            if (this.dayNightSystem.currentPhase === 'night') {
+                this.ctx.restore();
+            }
 
             // Add path texture pattern
             this.renderPathTexture(screenX, screenY, tileSize, time, gridX + gridY);
