@@ -2246,6 +2246,41 @@ class RenderSystem {
         this.renderRestartButton(centerX, centerY + 80, instructions.buttonText);
     }
 
+    renderPauseOverlay() {
+        // Semi-transparent dark overlay
+        this.ctx.save();
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        this.ctx.fillRect(0, 0, this.width, this.height);
+        this.ctx.restore();
+
+        const centerX = this.width / 2;
+        const centerY = this.height / 2;
+
+        // Render "PAUSED" title
+        this.ctx.save();
+        this.ctx.font = 'bold 72px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillStyle = '#FFD700'; // Gold color
+        this.ctx.strokeStyle = '#FFFFFF';
+        this.ctx.lineWidth = 5;
+
+        this.ctx.strokeText('PAUSED', centerX, centerY - 40);
+        this.ctx.fillText('PAUSED', centerX, centerY - 40);
+        this.ctx.restore();
+
+        // Render instructions
+        this.ctx.save();
+        this.ctx.font = '28px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.strokeStyle = '#000000';
+        this.ctx.lineWidth = 2;
+
+        this.ctx.strokeText('Press ESC to resume', centerX, centerY + 40);
+        this.ctx.fillText('Press ESC to resume', centerX, centerY + 40);
+        this.ctx.restore();
+    }
+
     getGameStateInstructions(gameStateInfo) {
         if (gameStateInfo.gameState === 'gameOver') {
             return {

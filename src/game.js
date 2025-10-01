@@ -156,6 +156,11 @@ function update() {
     // Update input system
     gameState.input.update();
 
+    // Check if game is paused - stop all game systems except rendering
+    if (gameState.gameStateManager.isPaused()) {
+        return; // Stop all updates when paused
+    }
+
     // Check if game is in terminal state - stop all game systems
     if (gameState.gameStateManager.isTerminalState()) {
         // Only update game state manager to maintain state
@@ -259,6 +264,11 @@ function render() {
 
     // Render game state overlay (game over, victory, etc.)
     gameState.renderer.renderGameStateOverlay(gameState.gameStateManager.getGameStateInfo());
+
+    // Render pause overlay if paused
+    if (gameState.gameStateManager.isPaused()) {
+        gameState.renderer.renderPauseOverlay();
+    }
 
     // Render phase change transition effects (full screen)
     gameState.renderer.renderPhaseChangeEffect();
@@ -549,6 +559,14 @@ function setupInputHandlers() {
     // Debug key handlers
     document.addEventListener('keydown', (e) => {
         switch (e.key.toLowerCase()) {
+            case 'escape':
+                // Toggle pause (only if not in terminal state)
+                if (!gameState.gameStateManager.isTerminalState()) {
+                    const isPaused = gameState.gameStateManager.isPaused();
+                    gameState.gameStateManager.setPaused(!isPaused);
+                    gameState.logger.info(isPaused ? '▶️ Game resumed' : '⏸️ Game paused');
+                }
+                break;
             case 'd':
                 gameState.debug.enabled = !gameState.debug.enabled;
                 gameState.logger.setDebugMode(gameState.debug.enabled);
