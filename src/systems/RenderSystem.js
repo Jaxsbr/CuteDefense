@@ -2732,7 +2732,7 @@ class RenderSystem {
         const typeCfg = TOWER_TYPES[selectedType];
         const canAffordSelected = currentCoins >= typeCfg.cost;
         const mainBtnW = popupWidth - 16;
-        const mainBtnH = Math.max(40, Math.min(60, popupHeight - 48));
+        const mainBtnH = Math.max(30, Math.min(40, popupHeight - 40));
         const mainBtnX = finalX + 8;
         const mainBtnY = finalY + 8;
 
@@ -2819,20 +2819,26 @@ class RenderSystem {
         this.ctx.fillText(costText, textX, contentCenterY);
         this.ctx.restore();
 
-        // Cycle and Cancel buttons compact and centered under main button
-        const smallGap = 8;
-        const smallW = 34;
-        const smallH = 34;
-        const totalSmallWidth = smallW * 2 + smallGap;
-        const smallStartX = mainBtnX + (mainBtnW - totalSmallWidth) / 2;
-        const smallY = mainBtnY + mainBtnH + 2; // tighter spacing
+        // Cycle and Cancel buttons aligned and stretched under main button
+        const bottomMargin = 4; // margin between selected button and bottom row
+        const buttonGap = 6; // small gap between cycle and cancel
+        const bottomBtnY = mainBtnY + mainBtnH + bottomMargin;
+        const bottomBtnH = mainBtnH; // same height as selected button
+
+        // Calculate widths: cycle and cancel fill remaining space
+        const availableWidth = mainBtnW;
+        const cycleW = (availableWidth - buttonGap) / 2;
+        const cancelW = (availableWidth - buttonGap) / 2;
+
+        // Align cycle to left edge of selected button, cancel to right edge
+        const cycleX = mainBtnX;
+        const cancelX = mainBtnX + cycleW + buttonGap;
 
         // Cycle button
-        const cycleX = smallStartX;
         this.ctx.save();
         this.ctx.fillStyle = '#1976D2';
         this.ctx.beginPath();
-        this.ctx.roundRect(cycleX, smallY, smallW, smallH, 6);
+        this.ctx.roundRect(cycleX, bottomBtnY, cycleW, bottomBtnH, 6);
         this.ctx.fill();
         this.ctx.strokeStyle = '#BBDEFB';
         this.ctx.lineWidth = 1.5;
@@ -2841,17 +2847,14 @@ class RenderSystem {
         this.ctx.font = 'bold 16px Arial';
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'middle';
-        this.ctx.fillText('C', cycleX + smallW / 2, smallY + smallH / 2);
-        // Use refresh symbol for cycle
-        this.ctx.fillText('⟳', cycleX + smallW / 2, smallY + smallH / 2);
+        this.ctx.fillText('⟳', cycleX + cycleW / 2, bottomBtnY + bottomBtnH / 2);
         this.ctx.restore();
 
         // Cancel button
-        const cancelX = smallStartX + smallW + smallGap;
         this.ctx.save();
         this.ctx.fillStyle = '#C62828';
         this.ctx.beginPath();
-        this.ctx.roundRect(cancelX, smallY, smallW, smallH, 6);
+        this.ctx.roundRect(cancelX, bottomBtnY, cancelW, bottomBtnH, 6);
         this.ctx.fill();
         this.ctx.strokeStyle = '#FFCDD2';
         this.ctx.lineWidth = 1.5;
@@ -2860,14 +2863,14 @@ class RenderSystem {
         this.ctx.font = 'bold 16px Arial';
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'middle';
-        this.ctx.fillText('X', cancelX + smallW / 2, smallY + smallH / 2);
+        this.ctx.fillText('X', cancelX + cancelW / 2, bottomBtnY + bottomBtnH / 2);
         this.ctx.restore();
 
         // Store bounds
         this.placementPopupBounds = {
             selected: { x: mainBtnX, y: mainBtnY, width: mainBtnW, height: mainBtnH },
-            cycle: { x: cycleX, y: smallY, width: smallW, height: smallH },
-            cancel: { x: cancelX, y: smallY, width: smallW, height: smallH }
+            cycle: { x: cycleX, y: bottomBtnY, width: cycleW, height: bottomBtnH },
+            cancel: { x: cancelX, y: bottomBtnY, width: cancelW, height: bottomBtnH }
         };
     }
 
