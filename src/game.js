@@ -255,7 +255,8 @@ function render() {
 
     // Render main HUD (always visible) - pass popup info for proposed tower preview
     const resourceInfo = gameState.resourceSystem.getResourceInfo();
-    gameState.renderer.renderMainHUD(gameState.selectedTower, gameState.towerManager, waveInfo, resourceInfo, gameState.selectedEnemy, gameState.towerPlacementPopup);
+    const gameStateInfo = gameState.gameStateManager.getGameStateInfo();
+    gameState.renderer.renderMainHUD(gameState.selectedTower, gameState.towerManager, waveInfo, resourceInfo, gameState.selectedEnemy, gameState.towerPlacementPopup, gameStateInfo);
 
     // Render tower placement popup if active
     if (gameState.towerPlacementPopup) {

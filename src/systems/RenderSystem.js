@@ -196,7 +196,7 @@ class RenderSystem {
     }
 
     // Render main HUD panel - always visible below tilemap with cartoony styling
-    renderMainHUD(selectedTower, towerManager, waveInfo = null, resourceInfo = null, selectedEnemy = null, popupInfo = null) {
+    renderMainHUD(selectedTower, towerManager, waveInfo = null, resourceInfo = null, selectedEnemy = null, popupInfo = null, gameStateInfo = null) {
         // Calculate HUD area below tilemap
         const tilemapHeight = this.getTilemapHeight();
         const hudHeight = 120; // Fixed height for HUD
@@ -239,14 +239,14 @@ class RenderSystem {
 
         // No sparkle effects for clean appearance
 
-        // Render the five HUD sections (pass popupInfo for proposed tower preview)
-        this.renderHUDSections(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager, waveInfo, resourceInfo, selectedEnemy, popupInfo);
+        // Render the five HUD sections (pass popupInfo for proposed tower preview and gameStateInfo for lives)
+        this.renderHUDSections(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager, waveInfo, resourceInfo, selectedEnemy, popupInfo, gameStateInfo);
     }
 
     // Removed sparkle effects for clean HUD appearance
 
     // Render the four HUD sections: Wave Info, Combined Selection (Portrait+Info), Selection Actions, Coin Info
-    renderHUDSections(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager, waveInfo, resourceInfo, selectedEnemy, popupInfo) {
+    renderHUDSections(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager, waveInfo, resourceInfo, selectedEnemy, popupInfo, gameStateInfo) {
         const padding = 15;
         const contentHeight = hudHeight - (padding * 2);
         const contentY = hudY + padding;
@@ -258,9 +258,9 @@ class RenderSystem {
         const actionsWidth = availableWidth * 0.20;        // 20%
         const coinWidth = availableWidth * 0.20;           // 20%
 
-        // Section 1: Wave Info (25%)
+        // Section 1: Wave Info (25%) - now includes lives display
         const waveInfoX = hudX + padding;
-        this.renderWaveInfoSection(waveInfoX, contentY, waveInfoWidth, contentHeight, waveInfo);
+        this.renderWaveInfoSection(waveInfoX, contentY, waveInfoWidth, contentHeight, waveInfo, gameStateInfo);
 
         // Section 2: Combined Selection (35%) - pass popupInfo for proposed tower preview
         const selectionX = waveInfoX + waveInfoWidth + padding;
@@ -317,7 +317,7 @@ class RenderSystem {
     }
 
     // Render wave info section with cartoony styling
-    renderWaveInfoSection(x, y, width, height, waveInfo) {
+    renderWaveInfoSection(x, y, width, height, waveInfo, gameStateInfo) {
         this.ctx.save();
 
         const time = Date.now() / 1000;
@@ -346,22 +346,40 @@ class RenderSystem {
 
         // Static title
         this.ctx.fillStyle = '#FFF';
-        this.ctx.font = 'bold 16px Arial';
+        this.ctx.font = 'bold 18px Arial';
         this.ctx.textAlign = 'center';
         this.ctx.fillText('🌊 Wave Info', x + width / 2, y + 20);
 
+        // Display lives with hearts (kid-friendly)
+        this.ctx.font = 'bold 16px Arial';
+        if (gameStateInfo) {
+            const livesRemaining = gameStateInfo.maxEnemiesAllowed - gameStateInfo.enemiesReachedGoal;
+            const hearts = '❤️'.repeat(Math.max(0, livesRemaining));
+            const emptyHearts = '🖤'.repeat(Math.max(0, gameStateInfo.enemiesReachedGoal));
+            
+            // Color text based on lives remaining
+            if (livesRemaining <= 1) {
+                this.ctx.fillStyle = '#FF4444'; // Red - critical
+            } else if (livesRemaining <= 2) {
+                this.ctx.fillStyle = '#FFA500'; // Orange - warning
+            } else {
+                this.ctx.fillStyle = '#4CAF50'; // Green - safe
+            }
+            
+            this.ctx.fillText(`Lives: ${hearts}${emptyHearts}`, x + width / 2, y + 40);
+        }
+
         // Display wave data (no pulsing)
+        this.ctx.fillStyle = '#FFF';
         this.ctx.font = '14px Arial';
         this.ctx.globalAlpha = 1.0;
 
         if (waveInfo) {
-            this.ctx.fillText(`Wave: ${waveInfo.currentWave || 1}`, x + width / 2, y + 40);
-            this.ctx.fillText(`Enemies: ${waveInfo.enemiesSpawned || 0}/${waveInfo.totalEnemies || 0}`, x + width / 2, y + 60);
-            this.ctx.fillText(`Status: ${waveInfo.waveState || 'preparation'}`, x + width / 2, y + 80);
+            this.ctx.fillText(`Wave: ${waveInfo.currentWave || 1}`, x + width / 2, y + 60);
+            this.ctx.fillText(`Enemies: ${waveInfo.enemiesSpawned || 0}/${waveInfo.totalEnemies || 0}`, x + width / 2, y + 80);
         } else {
-            this.ctx.fillText('Wave: 1', x + width / 2, y + 40);
-            this.ctx.fillText('Enemies: 0/0', x + width / 2, y + 60);
-            this.ctx.fillText('Status: preparation', x + width / 2, y + 80);
+            this.ctx.fillText('Wave: 1', x + width / 2, y + 60);
+            this.ctx.fillText('Enemies: 0/0', x + width / 2, y + 80);
         }
 
         this.ctx.restore();
