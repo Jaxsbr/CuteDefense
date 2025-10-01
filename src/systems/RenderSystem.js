@@ -196,7 +196,7 @@ class RenderSystem {
     }
 
     // Render main HUD panel - always visible below tilemap with cartoony styling
-    renderMainHUD(selectedTower, towerManager, waveInfo = null, resourceInfo = null, selectedEnemy = null, popupInfo = null) {
+    renderMainHUD(selectedTower, towerManager, waveInfo = null, resourceInfo = null, selectedEnemy = null, popupInfo = null, gameStateInfo = null) {
         // Calculate HUD area below tilemap
         const tilemapHeight = this.getTilemapHeight();
         const hudHeight = 120; // Fixed height for HUD
@@ -239,14 +239,14 @@ class RenderSystem {
 
         // No sparkle effects for clean appearance
 
-        // Render the five HUD sections (pass popupInfo for proposed tower preview)
-        this.renderHUDSections(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager, waveInfo, resourceInfo, selectedEnemy, popupInfo);
+        // Render the five HUD sections (pass popupInfo for proposed tower preview and gameStateInfo for lives)
+        this.renderHUDSections(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager, waveInfo, resourceInfo, selectedEnemy, popupInfo, gameStateInfo);
     }
 
     // Removed sparkle effects for clean HUD appearance
 
     // Render the four HUD sections: Wave Info, Combined Selection (Portrait+Info), Selection Actions, Coin Info
-    renderHUDSections(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager, waveInfo, resourceInfo, selectedEnemy, popupInfo) {
+    renderHUDSections(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager, waveInfo, resourceInfo, selectedEnemy, popupInfo, gameStateInfo) {
         const padding = 15;
         const contentHeight = hudHeight - (padding * 2);
         const contentY = hudY + padding;
@@ -258,9 +258,9 @@ class RenderSystem {
         const actionsWidth = availableWidth * 0.20;        // 20%
         const coinWidth = availableWidth * 0.20;           // 20%
 
-        // Section 1: Wave Info (25%)
+        // Section 1: Wave Info (25%) - now includes lives display
         const waveInfoX = hudX + padding;
-        this.renderWaveInfoSection(waveInfoX, contentY, waveInfoWidth, contentHeight, waveInfo);
+        this.renderWaveInfoSection(waveInfoX, contentY, waveInfoWidth, contentHeight, waveInfo, gameStateInfo);
 
         // Section 2: Combined Selection (35%) - pass popupInfo for proposed tower preview
         const selectionX = waveInfoX + waveInfoWidth + padding;
@@ -296,7 +296,7 @@ class RenderSystem {
             this.ctx.fillStyle = '#333';
             this.ctx.fillRect(x, y, width, height);
             this.ctx.fillStyle = '#666';
-            this.ctx.font = '16px Arial';
+            this.ctx.font = '20px Arial';  // Increased from 16px
             this.ctx.textAlign = 'center';
             this.ctx.fillText('Select a tower or enemy', x + width / 2, y + height / 2);
             this.ctx.restore();
@@ -317,7 +317,7 @@ class RenderSystem {
     }
 
     // Render wave info section with cartoony styling
-    renderWaveInfoSection(x, y, width, height, waveInfo) {
+    renderWaveInfoSection(x, y, width, height, waveInfo, gameStateInfo) {
         this.ctx.save();
 
         const time = Date.now() / 1000;
@@ -346,22 +346,40 @@ class RenderSystem {
 
         // Static title
         this.ctx.fillStyle = '#FFF';
-        this.ctx.font = 'bold 16px Arial';
+        this.ctx.font = 'bold 22px Arial';  // Increased from 18px
         this.ctx.textAlign = 'center';
         this.ctx.fillText('🌊 Wave Info', x + width / 2, y + 20);
 
+        // Display lives with hearts (kid-friendly)
+        this.ctx.font = 'bold 20px Arial';  // Increased from 16px
+        if (gameStateInfo) {
+            const livesRemaining = gameStateInfo.maxEnemiesAllowed - gameStateInfo.enemiesReachedGoal;
+            const hearts = '❤️'.repeat(Math.max(0, livesRemaining));
+            const emptyHearts = '🖤'.repeat(Math.max(0, gameStateInfo.enemiesReachedGoal));
+            
+            // Color text based on lives remaining
+            if (livesRemaining <= 1) {
+                this.ctx.fillStyle = '#FF4444'; // Red - critical
+            } else if (livesRemaining <= 2) {
+                this.ctx.fillStyle = '#FFA500'; // Orange - warning
+            } else {
+                this.ctx.fillStyle = '#4CAF50'; // Green - safe
+            }
+            
+            this.ctx.fillText(`Lives: ${hearts}${emptyHearts}`, x + width / 2, y + 40);
+        }
+
         // Display wave data (no pulsing)
-        this.ctx.font = '14px Arial';
+        this.ctx.fillStyle = '#FFF';
+        this.ctx.font = '18px Arial';  // Increased from 14px
         this.ctx.globalAlpha = 1.0;
 
         if (waveInfo) {
-            this.ctx.fillText(`Wave: ${waveInfo.currentWave || 1}`, x + width / 2, y + 40);
-            this.ctx.fillText(`Enemies: ${waveInfo.enemiesSpawned || 0}/${waveInfo.totalEnemies || 0}`, x + width / 2, y + 60);
-            this.ctx.fillText(`Status: ${waveInfo.waveState || 'preparation'}`, x + width / 2, y + 80);
+            this.ctx.fillText(`Wave: ${waveInfo.currentWave || 1}`, x + width / 2, y + 60);
+            this.ctx.fillText(`Enemies: ${waveInfo.enemiesSpawned || 0}/${waveInfo.totalEnemies || 0}`, x + width / 2, y + 80);
         } else {
-            this.ctx.fillText('Wave: 1', x + width / 2, y + 40);
-            this.ctx.fillText('Enemies: 0/0', x + width / 2, y + 60);
-            this.ctx.fillText('Status: preparation', x + width / 2, y + 80);
+            this.ctx.fillText('Wave: 1', x + width / 2, y + 60);
+            this.ctx.fillText('Enemies: 0/0', x + width / 2, y + 80);
         }
 
         this.ctx.restore();
@@ -565,12 +583,12 @@ class RenderSystem {
 
         // Static coin title
         this.ctx.fillStyle = '#FFF';
-        this.ctx.font = 'bold 16px Arial';
+        this.ctx.font = 'bold 22px Arial';  // Increased from 16px
         this.ctx.textAlign = 'center';
         this.ctx.fillText('💰 Coins', x + width / 2, y + 20);
 
         // Display coin count (no pulsing)
-        this.ctx.font = 'bold 18px Arial';
+        this.ctx.font = 'bold 28px Arial';  // Increased from 18px
         const coinCount = resourceInfo ? (resourceInfo.coins || 0) : 0;
         this.ctx.fillStyle = '#FFD700';
         this.ctx.textAlign = 'center';
@@ -1134,14 +1152,32 @@ class RenderSystem {
         } else if (tile.type === 'path') {
             // Enhanced path tile with lighter texture
             const currentColors = this.getCurrentColors();
+            
+            // Add glow effect for better night visibility
+            if (this.dayNightSystem.currentPhase === 'night') {
+                this.ctx.save();
+                this.ctx.shadowColor = '#FFD700';  // Golden glow
+                this.ctx.shadowBlur = 15;
+                this.ctx.shadowOffsetX = 0;
+                this.ctx.shadowOffsetY = 0;
+            }
+            
             const gradient = this.ctx.createLinearGradient(screenX, screenY, screenX + tileSize, screenY + tileSize);
-            gradient.addColorStop(0, currentColors.path);
-            gradient.addColorStop(0.5, this.interpolateColor(currentColors.path, '#DEB887', 0.3));
-            gradient.addColorStop(1, currentColors.path);
+            // Make path lighter at night for better visibility
+            const pathColor = this.dayNightSystem.currentPhase === 'night' 
+                ? '#A0826D'  // Lighter brown for night visibility
+                : currentColors.path;
+            gradient.addColorStop(0, pathColor);
+            gradient.addColorStop(0.5, this.interpolateColor(pathColor, '#DEB887', 0.3));
+            gradient.addColorStop(1, pathColor);
             this.ctx.fillStyle = gradient;
             this.ctx.beginPath();
             this.ctx.roundRect(screenX, screenY, tileSize, tileSize, 4);
             this.ctx.fill();
+            
+            if (this.dayNightSystem.currentPhase === 'night') {
+                this.ctx.restore();
+            }
 
             // Add path texture pattern
             this.renderPathTexture(screenX, screenY, tileSize, time, gridX + gridY);
@@ -2244,6 +2280,41 @@ class RenderSystem {
 
         // Render restart button
         this.renderRestartButton(centerX, centerY + 80, instructions.buttonText);
+    }
+
+    renderPauseOverlay() {
+        // Semi-transparent dark overlay
+        this.ctx.save();
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        this.ctx.fillRect(0, 0, this.width, this.height);
+        this.ctx.restore();
+
+        const centerX = this.width / 2;
+        const centerY = this.height / 2;
+
+        // Render "PAUSED" title
+        this.ctx.save();
+        this.ctx.font = 'bold 72px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillStyle = '#FFD700'; // Gold color
+        this.ctx.strokeStyle = '#FFFFFF';
+        this.ctx.lineWidth = 5;
+
+        this.ctx.strokeText('PAUSED', centerX, centerY - 40);
+        this.ctx.fillText('PAUSED', centerX, centerY - 40);
+        this.ctx.restore();
+
+        // Render instructions
+        this.ctx.save();
+        this.ctx.font = '28px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.strokeStyle = '#000000';
+        this.ctx.lineWidth = 2;
+
+        this.ctx.strokeText('Press ESC to resume', centerX, centerY + 40);
+        this.ctx.fillText('Press ESC to resume', centerX, centerY + 40);
+        this.ctx.restore();
     }
 
     getGameStateInstructions(gameStateInfo) {

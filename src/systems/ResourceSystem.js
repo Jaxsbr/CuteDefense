@@ -72,7 +72,7 @@ class ResourceSystem {
                 maxLife: 1500,
                 text: `+${coinValue}`,
                 alpha: 1.0,
-                size: 16
+                size: 24  // Increased from 16 for better readability
             };
             this.collectionEffects.push(floatingText);
         }
