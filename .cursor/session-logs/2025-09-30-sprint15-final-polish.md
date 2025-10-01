@@ -17,11 +17,11 @@ Sprint 15 focuses on final polish and game completion, implementing the remainin
 
 ## Sprint 15 Definition of Done
 
-### Remaining Core Features
-- [ ] **Win/Lose Conditions**: Clear game ending mechanics and feedback
-- [ ] **Visual Style Alignment**: Convert to 32x32 sprites or adjust spec to match current 64x64
-- [ ] **Tower Animation**: Idle animations and firing effects
-- [ ] **Tower Placement Feedback**: Enhanced visual feedback for placement/upgrade actions
+### Core Features
+- [x] **Win/Lose Conditions**: Clear game ending mechanics and feedback ✅
+- [x] **Visual Style Alignment**: Skipped - current 64x64 is satisfactory ✅
+- [x] **Tower Animation**: Idle animations and firing effects ✅
+- [x] **Tower Placement Feedback**: Enhanced visual feedback including HUD preview ✅
 
 ### Game Completion Requirements
 - [ ] **Final Game Balance**: Ensure all systems work harmoniously
@@ -69,6 +69,7 @@ Sprint 15 focuses on final polish and game completion, implementing the remainin
 - **Status**: Major UI enhancements completed, moving to final testing
 
 ## Commit History
+- **8e74734**: feat(ui): add proposed tower HUD preview with pulsing animation
 - **b82e279**: fix(game): stop wave system and enemy movement on win/lose conditions
 - **3b34384**: feat(towers): add shoot rate variability with improved HUD layout
 
@@ -114,6 +115,16 @@ Sprint 15 focuses on final polish and game completion, implementing the remainin
   - Tactile button design with tower icons and clear cost information
   - Improved positioning to stay within canvas bounds
   - Enhanced visual feedback matching game's aesthetic
+
+- **Proposed Tower HUD Preview**: Complete implementation (Commit: 8e74734)
+  - Shows proposed tower type in HUD selection pane when placement popup is open
+  - Dimmed portrait (50% opacity) with "PROPOSED" label in gold
+  - Pulsing animations: title blinks at 1Hz, background glow pulses smoothly
+  - Brief descriptors: "Simple bullets | Very cheap" for Basic, "High damage | Slow fire" for Strong
+  - Tower stats (cost, range) displayed with dimmed appearance
+  - Auto-hides when popup closes or after placement
+  - Mobile-safe animations with low alpha values
+  - Priority system: enemies and selected towers override proposed preview
 
 ## Latest Implementation - Proposed Tower HUD Preview
 
