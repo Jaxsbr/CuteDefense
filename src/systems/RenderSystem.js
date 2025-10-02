@@ -875,25 +875,49 @@ class RenderSystem {
         }
         this.ctx.restore();
 
-        // Health bar overlay
+        // Draw enemy mean face
+        this.renderEnemyMeanFace(enemy, centerX, centerY, radius);
+
+        // Cartoony health bar overlay
         const healthPercent = enemy.health / enemy.maxHealth;
-        const barWidth = radius * 1.5;
-        const barHeight = 6;
+        const barWidth = radius * 1.6; // Reduced width (was 2.0)
+        const barHeight = 14; // Increased height (was 10)
         const barX = centerX - barWidth / 2;
-        const barY = centerY + radius + 8;
+        const barY = centerY + radius + 10;
 
-        // Health bar background
-        this.ctx.fillStyle = '#333';
-        this.ctx.fillRect(barX, barY, barWidth, barHeight);
+        // Cartoony health bar background with rounded corners
+        this.ctx.save();
+        this.ctx.fillStyle = '#444444';
+        this.ctx.strokeStyle = '#222222';
+        this.ctx.lineWidth = 2;
+        this.roundedRect(barX, barY, barWidth, barHeight, 5);
+        this.ctx.fill();
+        this.ctx.stroke();
 
-        // Health bar fill
-        this.ctx.fillStyle = healthPercent > 0.5 ? '#4CAF50' : healthPercent > 0.25 ? '#FF9800' : '#F44336';
-        this.ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
+        // Health bar fill with cartoony colors
+        const healthWidth = barWidth * healthPercent;
+        if (healthWidth > 0) {
+            // Cartoony health colors
+            let healthColor = '#FF6B6B'; // Bright red for low health
+            if (healthPercent > 0.6) {
+                healthColor = '#4ECDC4'; // Bright teal for high health
+            } else if (healthPercent > 0.3) {
+                healthColor = '#FFE66D'; // Bright yellow for medium health
+            }
 
-        // Health bar border
-        this.ctx.strokeStyle = '#FFF';
-        this.ctx.lineWidth = 1;
-        this.ctx.strokeRect(barX, barY, barWidth, barHeight);
+            this.ctx.fillStyle = healthColor;
+            this.roundedRect(barX, barY, healthWidth, barHeight, 5);
+            this.ctx.fill();
+
+            // Add a subtle glow effect
+            this.ctx.shadowColor = healthColor;
+            this.ctx.shadowBlur = 4;
+            this.ctx.fillStyle = healthColor;
+            this.roundedRect(barX, barY, healthWidth, barHeight, 5);
+            this.ctx.fill();
+        }
+
+        this.ctx.restore();
     }
 
     // Render enemy information
@@ -1283,16 +1307,53 @@ class RenderSystem {
             this.ctx.stroke();
         }
 
-        // Add animated flowers/weeds
-        for (let i = 0; i < 2; i++) {
-            const flowerX = screenX + 10 + (i * 20) + Math.sin(time * 2 + seed + i) * 3;
-            const flowerY = screenY + 8 + Math.cos(time * 1.5 + seed + i) * 2;
-            const flowerSize = 1.5 + Math.sin(time * 3 + i) * 0.5;
+        // Add larger, more visible flower variants for environmental detail
+        const flowerVariants = [
+            { color: '#FFB6C1', size: 3.5, type: 'pink' },    // Pink flowers (much larger)
+            { color: '#FFC0CB', size: 3.0, type: 'light-pink' }, // Light pink
+            { color: '#FFE4B5', size: 4.0, type: 'yellow' },  // Yellow flowers
+            { color: '#DDA0DD', size: 3.2, type: 'purple' },  // Purple flowers
+            { color: '#F0E68C', size: 3.8, type: 'gold' },    // Gold flowers
+            { color: '#FFA07A', size: 3.3, type: 'orange' }   // Orange flowers
+        ];
 
-            this.ctx.fillStyle = '#FFB6C1';
+        // Randomly select 2-3 flowers per tile based on seed
+        const numFlowers = 2 + (seed % 2); // 2 or 3 flowers
+
+        for (let i = 0; i < numFlowers; i++) {
+            const flowerVariant = flowerVariants[(seed + i) % flowerVariants.length];
+            const flowerX = screenX + 10 + (i * 20) + Math.sin(time * 2 + seed + i) * 5;
+            const flowerY = screenY + 8 + Math.cos(time * 1.5 + seed + i) * 4;
+            const flowerSize = flowerVariant.size + Math.sin(time * 3 + i) * 0.5;
+
+            // Draw flower with variant color (larger and more visible)
+            this.ctx.fillStyle = flowerVariant.color;
             this.ctx.beginPath();
             this.ctx.arc(flowerX, flowerY, flowerSize, 0, Math.PI * 2);
             this.ctx.fill();
+
+            // Add white center dot for flower detail (larger)
+            this.ctx.fillStyle = '#FFFFFF';
+            this.ctx.beginPath();
+            this.ctx.arc(flowerX, flowerY, flowerSize * 0.4, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Add flower petal details for more realistic look
+            this.ctx.fillStyle = flowerVariant.color;
+            this.ctx.globalAlpha = 0.8;
+
+            // Draw 4 petals around the center
+            for (let p = 0; p < 4; p++) {
+                const petalAngle = (p * Math.PI) / 2;
+                const petalX = flowerX + Math.cos(petalAngle) * flowerSize * 0.6;
+                const petalY = flowerY + Math.sin(petalAngle) * flowerSize * 0.6;
+
+                this.ctx.beginPath();
+                this.ctx.arc(petalX, petalY, flowerSize * 0.3, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+
+            this.ctx.globalAlpha = 1.0; // Reset alpha
         }
         this.ctx.restore();
     }
@@ -1399,17 +1460,17 @@ class RenderSystem {
         // Add visual details ON the tower face that are visible at small scale
         this.ctx.save();
 
-        // All levels: Add 3D dome effect in center
-        this.renderTowerLevel1Detail(centerX, centerY, radius);
+        // All levels: Add smiley face for friendly appearance
+        this.renderTowerSmileyFace(centerX, centerY, radius, level);
 
         // Level 2: Add small circular knobs/ports on the face
         if (level >= 2) {
             this.renderTowerFaceKnobs(centerX, centerY, radius, 2);
         }
 
-        // Level 3: Add armor plating lines across the face
+        // Level 3: Add sparkle effects around the face
         if (level >= 3) {
-            this.renderTowerFaceArmor(centerX, centerY, radius, 3);
+            this.renderTowerLevel3Sparkles(centerX, centerY, radius);
         }
 
         this.ctx.restore();
@@ -1477,43 +1538,117 @@ class RenderSystem {
         });
     }
 
-    renderTowerFaceArmor(centerX, centerY, radius, level) {
-        // Draw friendly smiley face for Level 3 towers instead of creepy armor lines
-        const smileyColor = '#FFD700'; // Golden yellow for happy face
+    // Render cartoony smiley face for all tower levels
+    renderTowerSmileyFace(centerX, centerY, radius, level) {
         const eyeColor = '#000000'; // Black eyes
         const smileColor = '#000000'; // Black smile
 
         this.ctx.save();
 
-        // Draw happy eyes (two small circles)
-        this.ctx.fillStyle = eyeColor;
-        const eyeRadius = radius * 0.08;
+        // Draw larger, more cartoony eyes with white highlights
+        this.ctx.fillStyle = '#FFFFFF'; // White eye base
+        const eyeRadius = radius * 0.12; // Larger eyes (was 0.08)
         const eyeOffset = radius * 0.25;
 
-        // Left eye
+        // Left eye base (white)
         this.ctx.beginPath();
         this.ctx.arc(centerX - eyeOffset, centerY - eyeOffset, eyeRadius, 0, Math.PI * 2);
         this.ctx.fill();
 
-        // Right eye
+        // Right eye base (white)
         this.ctx.beginPath();
         this.ctx.arc(centerX + eyeOffset, centerY - eyeOffset, eyeRadius, 0, Math.PI * 2);
         this.ctx.fill();
 
-        // Draw happy smile (curved line)
+        // Draw pupils - sharp/mean for Level 3, round for others
+        this.ctx.fillStyle = eyeColor;
+        const pupilRadius = radius * 0.08;
+
+        if (level >= 3) {
+            // Level 3: Sharp, mean eyes (diamond shape)
+            this.ctx.beginPath();
+            // Left sharp eye
+            this.ctx.moveTo(centerX - eyeOffset, centerY - eyeOffset - pupilRadius);
+            this.ctx.lineTo(centerX - eyeOffset + pupilRadius, centerY - eyeOffset);
+            this.ctx.lineTo(centerX - eyeOffset, centerY - eyeOffset + pupilRadius);
+            this.ctx.lineTo(centerX - eyeOffset - pupilRadius, centerY - eyeOffset);
+            this.ctx.closePath();
+            this.ctx.fill();
+
+            // Right sharp eye
+            this.ctx.beginPath();
+            this.ctx.moveTo(centerX + eyeOffset, centerY - eyeOffset - pupilRadius);
+            this.ctx.lineTo(centerX + eyeOffset + pupilRadius, centerY - eyeOffset);
+            this.ctx.lineTo(centerX + eyeOffset, centerY - eyeOffset + pupilRadius);
+            this.ctx.lineTo(centerX + eyeOffset - pupilRadius, centerY - eyeOffset);
+            this.ctx.closePath();
+            this.ctx.fill();
+        } else {
+            // Level 1-2: Round pupils
+            // Left pupil
+            this.ctx.beginPath();
+            this.ctx.arc(centerX - eyeOffset, centerY - eyeOffset, pupilRadius, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Right pupil
+            this.ctx.beginPath();
+            this.ctx.arc(centerX + eyeOffset, centerY - eyeOffset, pupilRadius, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+
+        // Add white eye highlights for cartoony look (only for round eyes)
+        if (level < 3) {
+            this.ctx.fillStyle = '#FFFFFF';
+            const highlightRadius = radius * 0.03;
+
+            // Left eye highlight
+            this.ctx.beginPath();
+            this.ctx.arc(centerX - eyeOffset - pupilRadius * 0.3, centerY - eyeOffset - pupilRadius * 0.3, highlightRadius, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Right eye highlight
+            this.ctx.beginPath();
+            this.ctx.arc(centerX + eyeOffset - pupilRadius * 0.3, centerY - eyeOffset - pupilRadius * 0.3, highlightRadius, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+
+        // Draw bigger, more expressive smile
         this.ctx.strokeStyle = smileColor;
-        this.ctx.lineWidth = Math.max(2, radius * 0.06);
+        this.ctx.lineWidth = Math.max(3, radius * 0.08); // Thicker smile
         this.ctx.lineCap = 'round';
 
-        const smileRadius = radius * 0.35;
-        const smileStartAngle = 0.3 * Math.PI; // Start angle for smile
-        const smileEndAngle = 0.7 * Math.PI;   // End angle for smile
+        const smileRadius = radius * 0.4; // Bigger smile
+        const smileStartAngle = 0.2 * Math.PI; // Wider smile
+        const smileEndAngle = 0.8 * Math.PI;
 
         this.ctx.beginPath();
-        this.ctx.arc(centerX, centerY + radius * 0.1, smileRadius, smileStartAngle, smileEndAngle);
+        this.ctx.arc(centerX, centerY + radius * 0.05, smileRadius, smileStartAngle, smileEndAngle);
         this.ctx.stroke();
 
-        // Add sparkle effect around the smiley face
+        // Add cheek blushes for extra cartoony look (only for friendly levels)
+        if (level < 3) {
+            this.ctx.fillStyle = '#FFB6C1'; // Light pink
+            const cheekRadius = radius * 0.08;
+
+            // Left cheek
+            this.ctx.beginPath();
+            this.ctx.arc(centerX - radius * 0.5, centerY + radius * 0.1, cheekRadius, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Right cheek
+            this.ctx.beginPath();
+            this.ctx.arc(centerX + radius * 0.5, centerY + radius * 0.1, cheekRadius, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+
+        this.ctx.restore();
+    }
+
+    // Render sparkle effects for Level 3 towers
+    renderTowerLevel3Sparkles(centerX, centerY, radius) {
+        const smileyColor = '#FFD700'; // Golden yellow for sparkles
+
+        this.ctx.save();
         this.ctx.fillStyle = smileyColor;
         const sparkleSize = radius * 0.05;
 
@@ -1771,6 +1906,9 @@ class RenderSystem {
             this.ctx.stroke();
         }
 
+        // Draw mean face on enemy
+        this.renderEnemyMeanFace(enemy, centerX, centerY, radius);
+
         // Draw health bar for damaged enemies
         if (enemy.health < enemy.maxHealth) {
             this.renderEnemyHealthBar(enemy, centerX, centerY, radius, tileSize);
@@ -1782,6 +1920,94 @@ class RenderSystem {
         }
 
         // Restore context state
+        this.ctx.restore();
+    }
+
+    // Helper function to draw rounded rectangles
+    roundedRect(x, y, width, height, radius) {
+        this.ctx.beginPath();
+        this.ctx.moveTo(x + radius, y);
+        this.ctx.lineTo(x + width - radius, y);
+        this.ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+        this.ctx.lineTo(x + width, y + height - radius);
+        this.ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        this.ctx.lineTo(x + radius, y + height);
+        this.ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+        this.ctx.lineTo(x, y + radius);
+        this.ctx.quadraticCurveTo(x, y, x + radius, y);
+        this.ctx.closePath();
+    }
+
+    // Render mean face on enemy for visual enhancement
+    renderEnemyMeanFace(enemy, centerX, centerY, radius) {
+        this.ctx.save();
+
+        // Check if enemy has hit animation active
+        const isHitAnimation = enemy.hitAnimation && enemy.hitAnimation.active;
+        const hitProgress = isHitAnimation ? enemy.hitAnimation.progress : 0;
+
+        // Draw larger angry eyes (moved down to center)
+        this.ctx.fillStyle = '#000000'; // Black eyes
+        const eyeRadius = radius * 0.12; // Increased from 0.08 (50% larger)
+        const eyeOffset = radius * 0.25;
+        const faceYOffset = radius * 0.1; // Move face features down to center
+
+        // Adjust eye size for hit animation (squint effect)
+        const currentEyeRadius = isHitAnimation ? eyeRadius * (0.3 + 0.7 * (1 - hitProgress)) : eyeRadius;
+
+        // Left eye (angry) - moved down
+        this.ctx.beginPath();
+        this.ctx.arc(centerX - eyeOffset, centerY - eyeOffset + faceYOffset, currentEyeRadius, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Right eye (angry) - moved down
+        this.ctx.beginPath();
+        this.ctx.arc(centerX + eyeOffset, centerY - eyeOffset + faceYOffset, currentEyeRadius, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Draw larger angry eyebrows (angled lines above eyes)
+        this.ctx.strokeStyle = '#000000';
+        this.ctx.lineWidth = Math.max(3, radius * 0.08); // Increased from 0.05 (60% thicker)
+        this.ctx.lineCap = 'round';
+
+        // Left eyebrow (angry angle) - moved down
+        this.ctx.beginPath();
+        this.ctx.moveTo(centerX - eyeOffset - eyeRadius, centerY - eyeOffset - eyeRadius + faceYOffset);
+        this.ctx.lineTo(centerX - eyeOffset + eyeRadius, centerY - eyeOffset - eyeRadius * 1.5 + faceYOffset);
+        this.ctx.stroke();
+
+        // Right eyebrow (angry angle) - moved down
+        this.ctx.beginPath();
+        this.ctx.moveTo(centerX + eyeOffset - eyeRadius, centerY - eyeOffset - eyeRadius * 1.5 + faceYOffset);
+        this.ctx.lineTo(centerX + eyeOffset + eyeRadius, centerY - eyeOffset - eyeRadius + faceYOffset);
+        this.ctx.stroke();
+
+        // Draw mouth - different for hit animation (open mouth) vs normal (frown)
+        this.ctx.strokeStyle = '#000000';
+        this.ctx.lineWidth = Math.max(3, radius * 0.08); // Increased from 0.06 (33% thicker)
+        this.ctx.lineCap = 'round';
+
+        const mouthRadius = radius * 0.3; // Increased from 0.25 (20% larger)
+        const mouthY = centerY + radius * 0.2 + faceYOffset;
+
+        if (isHitAnimation) {
+            // Hit animation: Open mouth (oval shape)
+            const openMouthWidth = mouthRadius * 0.8;
+            const openMouthHeight = mouthRadius * 1.5 * hitProgress; // Grows during animation
+
+            this.ctx.beginPath();
+            this.ctx.ellipse(centerX, mouthY, openMouthWidth, openMouthHeight, 0, 0, Math.PI * 2);
+            this.ctx.stroke();
+        } else {
+            // Normal: Mean frown mouth (upside-down curve)
+            const mouthStartAngle = 1.2 * Math.PI; // Start angle for frown
+            const mouthEndAngle = 1.8 * Math.PI;   // End angle for frown
+
+            this.ctx.beginPath();
+            this.ctx.arc(centerX, mouthY, mouthRadius, mouthStartAngle, mouthEndAngle);
+            this.ctx.stroke();
+        }
+
         this.ctx.restore();
     }
 
@@ -1827,21 +2053,48 @@ class RenderSystem {
         this.ctx.lineWidth = 2;
         this.ctx.stroke();
 
-        // Draw health bar above enemy
+        // Draw cartoony health bar above enemy
         if (enemy.health < enemy.maxHealth) {
-            const barWidth = tileSize * 0.8;
-            const barHeight = 4;
+            const barWidth = tileSize * 0.9; // Reduced width (was 1.2)
+            const barHeight = 12; // Increased height (was 8)
             const barX = centerX - barWidth / 2;
-            const barY = centerY - radius - 10;
+            const barY = centerY - radius - 15; // Moved up a bit
 
-            // Background
-            this.ctx.fillStyle = '#333';
-            this.ctx.fillRect(barX, barY, barWidth, barHeight);
+            // Cartoony background with rounded corners
+            this.ctx.save();
+            this.ctx.fillStyle = '#444444';
+            this.ctx.strokeStyle = '#222222';
+            this.ctx.lineWidth = 2;
+            this.roundedRect(barX, barY, barWidth, barHeight, 4);
+            this.ctx.fill();
+            this.ctx.stroke();
 
-            // Health
+            // Health with cartoony colors and rounded corners
             const healthPercent = enemy.health / enemy.maxHealth;
-            this.ctx.fillStyle = healthPercent > 0.5 ? '#4CAF50' : healthPercent > 0.25 ? '#FF9800' : '#F44336';
-            this.ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
+            const healthWidth = barWidth * healthPercent;
+
+            if (healthWidth > 0) {
+                // Cartoony health colors
+                let healthColor = '#FF6B6B'; // Bright red for low health
+                if (healthPercent > 0.6) {
+                    healthColor = '#4ECDC4'; // Bright teal for high health
+                } else if (healthPercent > 0.3) {
+                    healthColor = '#FFE66D'; // Bright yellow for medium health
+                }
+
+                this.ctx.fillStyle = healthColor;
+                this.roundedRect(barX, barY, healthWidth, barHeight, 4);
+                this.ctx.fill();
+
+                // Add a subtle glow effect
+                this.ctx.shadowColor = healthColor;
+                this.ctx.shadowBlur = 4;
+                this.ctx.fillStyle = healthColor;
+                this.roundedRect(barX, barY, healthWidth, barHeight, 4);
+                this.ctx.fill();
+            }
+
+            this.ctx.restore();
         }
     }
 

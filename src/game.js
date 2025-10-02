@@ -321,11 +321,20 @@ function handleHUDClick(clickX, clickY) {
             if (clickX >= buttonX && clickX <= buttonX + buttonWidth &&
                 clickY >= buttonY && clickY <= buttonY + buttonHeight) {
                 // Try to upgrade the selected tower
-                const success = gameState.towerManager.tryUpgradeTower(gameState.selectedTower.x, gameState.selectedTower.y);
-                if (success) {
+                const upgradeResult = gameState.towerManager.tryUpgradeTower(gameState.selectedTower.x, gameState.selectedTower.y);
+                if (upgradeResult) {
                     gameState.logger.info(`⬆️ Tower upgraded via HUD!`);
-                    // Play upgrade sound
-                    gameState.audioManager.playSound('tower_upgrade');
+
+                    // Play single dramatic upgrade sound based on tower level
+                    const towerLevel = typeof upgradeResult === 'number' ? upgradeResult : 1;
+                    if (towerLevel === 2) {
+                        gameState.audioManager.playSound('tower_upgrade_level2'); // "Wow" zoomy sound
+                    } else if (towerLevel === 3) {
+                        gameState.audioManager.playSound('tower_upgrade_level3'); // "Super wow" zoomy sound
+                    } else {
+                        gameState.audioManager.playSound('tower_upgrade'); // Default zoomy sound
+                    }
+
                     // Update selected tower reference
                     const updatedTower = gameState.towerManager.getTowerAt(gameState.selectedTower.x, gameState.selectedTower.y);
                     gameState.selectedTower = updatedTower;

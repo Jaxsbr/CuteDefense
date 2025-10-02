@@ -10,7 +10,7 @@ const ENEMY_TYPES = {
         speed: 1.3,        // tiles per second (increased for challenge)
         health: 100,
         color: '#FF6B6B',  // Red
-        size: 0.6,         // Relative to tile size
+        size: 0.8,         // Relative to tile size (increased from 0.6 for better face visibility)
         reward: 3,         // Coins when defeated (reduced for challenge)
         // Visual enhancements
         shape: 'circle',   // Shape for rendering
@@ -26,7 +26,7 @@ const ENEMY_TYPES = {
         speed: 2.0,        // tiles per second (reduced for better balance)
         health: 50,
         color: '#4ECDC4',  // Teal
-        size: 0.5,         // Relative to tile size
+        size: 0.7,         // Relative to tile size (increased from 0.5 for better face visibility)
         reward: 5,         // Coins when defeated (reduced for challenge)
         // Visual enhancements
         shape: 'diamond',  // Shape for rendering
@@ -42,7 +42,7 @@ const ENEMY_TYPES = {
         speed: 0.7,        // tiles per second (increased for challenge)
         health: 200,
         color: '#45B7D1',  // Blue
-        size: 0.8,         // Relative to tile size
+        size: 1.0,         // Relative to tile size (increased from 0.8 for better face visibility)
         reward: 8,         // Coins when defeated (reduced for challenge)
         // Visual enhancements
         shape: 'square',   // Shape for rendering

@@ -197,8 +197,11 @@ class TowerManager {
         const success = this.towerSystem.upgradeTower(tower.id, this.resourceSystem);
         if (success) {
             if (this.logger) this.logger.info(`Tower upgraded successfully at (${x}, ${y})`);
+            // Return the new tower level for sound selection
+            const updatedTower = this.towerSystem.getTowerAt(x, y);
+            return updatedTower ? updatedTower.level : true;
         }
-        return success;
+        return false;
     }
 
     // Get upgrade info for tower at position

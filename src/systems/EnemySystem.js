@@ -72,6 +72,9 @@ class EnemySystem {
             }
         });
 
+        // Update hit animations for all enemies (alive and dead)
+        this.updateHitAnimations(deltaTime);
+
         // Remove dead enemies
         this.cleanupDeadEnemies();
     }
@@ -172,6 +175,9 @@ class EnemySystem {
             enemy.lastDamageTime = Date.now();
             enemy.isFlashing = true;
 
+            // Start hit face animation (with timer to prevent overlap)
+            this.startHitAnimation(enemy);
+
             if (enemy.health <= 0) {
                 enemy.isAlive = false;
                 // Play enemy death sound
@@ -182,6 +188,38 @@ class EnemySystem {
             }
         }
         return 0;
+    }
+
+    /**
+     * Start hit face animation for enemy
+     */
+    startHitAnimation(enemy) {
+        // Only start new animation if none is active or if current one is almost done
+        if (!enemy.hitAnimation || enemy.hitAnimation.progress > 0.8) {
+            enemy.hitAnimation = {
+                active: true,
+                duration: 300, // 300ms animation
+                elapsed: 0,
+                progress: 0
+            };
+        }
+    }
+
+    /**
+     * Update hit animations for all enemies
+     */
+    updateHitAnimations(deltaTime) {
+        this.enemies.forEach(enemy => {
+            if (enemy.hitAnimation && enemy.hitAnimation.active) {
+                enemy.hitAnimation.elapsed += deltaTime;
+                enemy.hitAnimation.progress = Math.min(enemy.hitAnimation.elapsed / enemy.hitAnimation.duration, 1.0);
+
+                // End animation when complete
+                if (enemy.hitAnimation.progress >= 1.0) {
+                    enemy.hitAnimation.active = false;
+                }
+            }
+        });
     }
 
     /**
@@ -200,7 +238,7 @@ class EnemySystem {
         // This maintains compatibility with existing code that checks .length
         return Array(this.enemiesReachedGoalCount).fill(null);
     }
-    
+
     /**
      * Get the count of enemies that reached the goal
      */

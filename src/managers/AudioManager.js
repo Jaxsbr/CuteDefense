@@ -22,6 +22,8 @@ class SimpleAudioManager {
         // Load all sound effects
         this.loadSound('tower_place', 'sounds/tower_place.ogg');
         this.loadSound('tower_upgrade', 'sounds/tower_upgrade.ogg');
+        this.loadSound('tower_upgrade_level2', 'sounds/tower_upgrade_level2.ogg');
+        this.loadSound('tower_upgrade_level3', 'sounds/tower_upgrade_level3.ogg');
         this.loadSound('coin_collect', 'sounds/coin_collect.ogg');
         this.loadSound('coin_expire', 'sounds/coin_expire.ogg');
         this.loadSound('projectile_fire', 'sounds/projectile_fire.ogg');
