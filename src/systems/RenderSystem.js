@@ -1415,9 +1415,16 @@ class RenderSystem {
         const centerX = screenX + tileSize / 2;
         const centerY = screenY + tileSize / 2;
 
-        // Limit tower size to fit within tile bounds
-        const maxRadius = tileSize * 0.4; // 40% of tile size to prevent overlap
-        let towerRadius = Math.min(tower.size || tileSize * 0.3, maxRadius);
+        // Scale tower size based on level (specific percentages)
+        let towerRadius;
+        if (tower.level >= 3) {
+            towerRadius = tileSize * 0.6; // Level 3: 60% of tile
+        } else if (tower.level >= 2) {
+            towerRadius = tileSize * 0.45; // Level 2: 45% of tile (slightly larger for visual distinction)
+        } else {
+            // Level 1: Normalize size for both BASIC and STRONG towers (same size for level 1)
+            towerRadius = tileSize * 0.375; // 24px radius for all level 1 towers
+        }
 
         // Apply growth animation scaling
         if (tower.growthAnimation && tower.growthAnimation.active) {

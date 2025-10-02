@@ -349,11 +349,17 @@ class EnemyManager {
         const isBossWave = waveNumber % 5 === 0;
         const bossMultiplier = isBossWave ? scaling.BOSS_WAVE_MULTIPLIER : 1.0;
 
+        // Apply progressive coin scaling from the start to prevent too much money
+        let rewardMultiplier = Math.pow(scaling.REWARD_MULTIPLIER, effectiveWaveNumber - 1) * bossMultiplier;
+        // Reduce coin rewards progressively from wave 1 to prevent economic snowballing
+        const coinReduction = Math.pow(0.95, waveNumber - 1); // 5% reduction per wave
+        rewardMultiplier *= coinReduction;
+
         return {
             ...baseType,
             health: Math.floor(baseType.health * Math.pow(scaling.HEALTH_MULTIPLIER, effectiveWaveNumber - 1) * bossMultiplier),
             speed: baseType.speed * Math.pow(scaling.SPEED_MULTIPLIER, effectiveWaveNumber - 1),
-            reward: Math.floor(baseType.reward * Math.pow(scaling.REWARD_MULTIPLIER, effectiveWaveNumber - 1) * bossMultiplier)
+            reward: Math.floor(baseType.reward * rewardMultiplier)
         };
     }
 
