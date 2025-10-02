@@ -180,10 +180,12 @@ class EnemySystem {
 
             if (enemy.health <= 0) {
                 enemy.isAlive = false;
-                // Play enemy death sound
+                // Play enemy death sound with enhanced volume
                 if (this.audioManager) {
                     this.audioManager.playSound('enemy_death');
                 }
+                // Start dramatic death animation
+                this.startDramaticDeathAnimation(enemy);
                 return enemy.reward; // Return coins earned
             }
         }
@@ -328,17 +330,43 @@ class EnemySystem {
     }
 
     /**
-     * Start death animation for enemy
+     * Start dramatic death animation for enemy
      */
-    startDeathAnimation(enemy) {
+    startDramaticDeathAnimation(enemy) {
         enemy.isDying = true;
         enemy.deathAnimation = {
             time: 0,
-            duration: 0.5,
+            duration: 1.2, // Longer duration for more dramatic effect
             scale: 1.0,
             rotation: 0,
-            alpha: 1.0
+            alpha: 1.0,
+            // Enhanced dramatic effects
+            explosionRadius: 0,
+            maxExplosionRadius: enemy.size * 3, // 3x enemy size explosion
+            sparkleCount: 8, // Number of sparkle particles
+            sparkles: []
         };
+        
+        // Create sparkle particles for dramatic effect
+        for (let i = 0; i < enemy.deathAnimation.sparkleCount; i++) {
+            const angle = (i / enemy.deathAnimation.sparkleCount) * Math.PI * 2;
+            const speed = 50 + Math.random() * 30; // Random speed variation
+            enemy.deathAnimation.sparkles.push({
+                x: 0,
+                y: 0,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                life: 1.0,
+                size: 3 + Math.random() * 3
+            });
+        }
+    }
+
+    /**
+     * Start death animation for enemy (legacy method)
+     */
+    startDeathAnimation(enemy) {
+        this.startDramaticDeathAnimation(enemy);
     }
 
     /**
@@ -385,7 +413,7 @@ class EnemySystem {
             }
         }
 
-        // Update death animation
+        // Update dramatic death animation
         if (enemy.deathAnimation) {
             enemy.deathAnimation.time += deltaTime;
             const progress = enemy.deathAnimation.time / enemy.deathAnimation.duration;
@@ -393,9 +421,16 @@ class EnemySystem {
             if (progress >= 1) {
                 enemy.isAlive = false;
             } else {
+                // Original death animation properties
                 enemy.deathAnimation.scale = 1 - progress * 0.5;
                 enemy.deathAnimation.rotation = progress * Math.PI * 2;
                 enemy.deathAnimation.alpha = 1 - progress;
+                
+                // Update explosion radius for dramatic effect
+                if (enemy.deathAnimation.maxExplosionRadius) {
+                    const explosionProgress = Math.min(progress / 0.8, 1); // Explosion phase ends at 80% of animation
+                    enemy.deathAnimation.explosionRadius = explosionProgress * enemy.deathAnimation.maxExplosionRadius;
+                }
             }
         }
 

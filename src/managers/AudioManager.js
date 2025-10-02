@@ -29,6 +29,10 @@ class SimpleAudioManager {
         this.loadSound('projectile_fire', 'sounds/projectile_fire.ogg');
         this.loadSound('enemy_hit', 'sounds/enemy_hit.ogg');
         this.loadSound('enemy_death', 'sounds/enemy_death.ogg');
+        // Enhanced death sound with higher volume for more dramatic effect
+        if (this.sounds['enemy_death']) {
+            this.sounds['enemy_death'].volume = 0.9; // Higher volume for dramatic death sound
+        }
         this.loadSound('enemy_spawn', 'sounds/enemy_spawn.ogg');
         this.loadSound('enemy_reach_end', 'sounds/enemy_reach_end.ogg');
         this.loadSound('wave_start', 'sounds/wave_start.ogg');

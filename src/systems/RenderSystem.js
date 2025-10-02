@@ -1964,6 +1964,11 @@ class RenderSystem {
             this.renderEnemySelectionEffect(centerX, centerY, radius);
         }
 
+        // Render dramatic death effects (explosion and sparkles)
+        if (enemy.isDying && enemy.deathAnimation) {
+            this.renderDramaticDeathEffects(enemy, centerX, centerY);
+        }
+
         // Restore context state
         this.ctx.restore();
     }
@@ -2183,6 +2188,60 @@ class RenderSystem {
             this.ctx.arc(markerX, markerY, markerSize, 0, Math.PI * 2);
             this.ctx.fill();
         });
+
+        this.ctx.restore();
+    }
+
+    // Render dramatic death effects (explosion and sparkles)
+    renderDramaticDeathEffects(enemy, centerX, centerY) {
+        this.ctx.save();
+
+        const animation = enemy.deathAnimation;
+        const progress = animation.time / animation.duration;
+
+        // Render expanding explosion ring
+        if (progress < 0.8) {
+            const explosionProgress = progress / 0.8; // Scale to 0-1 for explosion phase
+            const explosionRadius = animation.explosionRadius + (explosionProgress * animation.maxExplosionRadius);
+            
+            // Outer explosion ring with glow
+            this.ctx.strokeStyle = '#FF4444';
+            this.ctx.lineWidth = 6;
+            this.ctx.shadowColor = '#FF4444';
+            this.ctx.shadowBlur = 20;
+            this.ctx.globalAlpha = 1 - explosionProgress;
+            this.ctx.beginPath();
+            this.ctx.arc(centerX, centerY, explosionRadius, 0, Math.PI * 2);
+            this.ctx.stroke();
+
+            // Inner bright ring
+            this.ctx.strokeStyle = '#FFFFFF';
+            this.ctx.lineWidth = 3;
+            this.ctx.shadowBlur = 10;
+            this.ctx.beginPath();
+            this.ctx.arc(centerX, centerY, explosionRadius * 0.7, 0, Math.PI * 2);
+            this.ctx.stroke();
+        }
+
+        // Render sparkle particles
+        if (animation.sparkles && animation.sparkles.length > 0) {
+            this.ctx.globalAlpha = 1 - progress;
+            animation.sparkles.forEach(sparkle => {
+                // Update sparkle position
+                sparkle.x += sparkle.vx * (animation.time / 1000);
+                sparkle.y += sparkle.vy * (animation.time / 1000);
+                sparkle.life -= animation.time / 1000;
+
+                if (sparkle.life > 0) {
+                    this.ctx.fillStyle = '#FFD700'; // Golden sparkles
+                    this.ctx.shadowColor = '#FFD700';
+                    this.ctx.shadowBlur = 8;
+                    this.ctx.beginPath();
+                    this.ctx.arc(centerX + sparkle.x, centerY + sparkle.y, sparkle.size, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+            });
+        }
 
         this.ctx.restore();
     }
