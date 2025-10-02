@@ -23,7 +23,7 @@ const ENEMY_TYPES = {
     FAST: {
         id: 'fast',
         name: 'Fast Enemy',
-        speed: 2.4,        // tiles per second (increased for challenge)
+        speed: 2.0,        // tiles per second (reduced for better balance)
         health: 50,
         color: '#4ECDC4',  // Teal
         size: 0.5,         // Relative to tile size
@@ -77,23 +77,23 @@ const WAVE_CONFIG = {
 
     // Base wave patterns - enemies to spawn per wave (scaled dynamically)
     BASE_WAVE_PATTERNS: [
-        // Wave 1: Basic enemies only
+        // Wave 1: Basic enemies only (increased for better early game balance)
         {
             enemies: [
-                { type: 'basic', count: 5, formation: 'single' }
+                { type: 'basic', count: 8, formation: 'single' }
             ]
         },
-        // Wave 2: Mix of basic and fast
+        // Wave 2: Mix of basic and fast (more basic enemies)
         {
             enemies: [
-                { type: 'basic', count: 3, formation: 'single' },
+                { type: 'basic', count: 6, formation: 'single' },
                 { type: 'fast', count: 2, formation: 'single' }
             ]
         },
-        // Wave 3: All types with formations
+        // Wave 3: All types with formations (more basic enemies)
         {
             enemies: [
-                { type: 'basic', count: 4, formation: 'line' },
+                { type: 'basic', count: 6, formation: 'line' },
                 { type: 'fast', count: 3, formation: 'single' },
                 { type: 'strong', count: 1, formation: 'single' }
             ]

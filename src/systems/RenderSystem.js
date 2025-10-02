@@ -356,7 +356,7 @@ class RenderSystem {
             const livesRemaining = gameStateInfo.maxEnemiesAllowed - gameStateInfo.enemiesReachedGoal;
             const hearts = '❤️'.repeat(Math.max(0, livesRemaining));
             const emptyHearts = '🖤'.repeat(Math.max(0, gameStateInfo.enemiesReachedGoal));
-            
+
             // Color text based on lives remaining
             if (livesRemaining <= 1) {
                 this.ctx.fillStyle = '#FF4444'; // Red - critical
@@ -365,7 +365,7 @@ class RenderSystem {
             } else {
                 this.ctx.fillStyle = '#4CAF50'; // Green - safe
             }
-            
+
             this.ctx.fillText(`Lives: ${hearts}${emptyHearts}`, x + width / 2, y + 40);
         }
 
@@ -381,6 +381,11 @@ class RenderSystem {
             this.ctx.fillText('Wave: 1', x + width / 2, y + 60);
             this.ctx.fillText('Enemies: 0/0', x + width / 2, y + 80);
         }
+
+        // Add pause instruction
+        this.ctx.fillStyle = '#FFD700'; // Golden color for instruction
+        this.ctx.font = 'bold 14px Arial';
+        this.ctx.fillText('Press ESC to pause', x + width / 2, y + 100);
 
         this.ctx.restore();
     }
@@ -927,7 +932,7 @@ class RenderSystem {
     renderProposedTowerPreview(x, y, width, height, towerType) {
         const time = Date.now() / 1000;
         const typeCfg = TOWER_TYPES[towerType];
-        
+
         if (!typeCfg) return;
 
         // Split the section: portrait on left, info on right
@@ -983,7 +988,7 @@ class RenderSystem {
     // Render proposed tower info with descriptors
     renderProposedTowerInfo(x, y, width, height, typeCfg, towerType, time) {
         this.ctx.save();
-        
+
         // Pulsing title (~1Hz)
         const titleAlpha = 0.7 + Math.sin(time * 2 * Math.PI) * 0.3; // 1Hz blink
         this.ctx.globalAlpha = titleAlpha;
@@ -1006,14 +1011,14 @@ class RenderSystem {
         this.ctx.fillStyle = '#AAA';
         this.ctx.font = '12px Arial';
         this.ctx.textAlign = 'left';
-        
+
         let descriptor = '';
         if (towerType === 'BASIC') {
             descriptor = 'Simple bullets | Very cheap';
         } else if (towerType === 'STRONG') {
             descriptor = 'High damage | Slow fire';
         }
-        
+
         this.ctx.fillText(descriptor, x, y + 58);
         this.ctx.restore();
 
@@ -1473,55 +1478,60 @@ class RenderSystem {
     }
 
     renderTowerFaceArmor(centerX, centerY, radius, level) {
-        // Draw armor plating lines across the tower face
-        const armorColor = GENERIC_ACCENT_COLORS.metal;
-        const armorDarkColor = GENERIC_ACCENT_COLORS.metalDark;
-        const lineWidth = Math.max(2, radius * 0.08);
+        // Draw friendly smiley face for Level 3 towers instead of creepy armor lines
+        const smileyColor = '#FFD700'; // Golden yellow for happy face
+        const eyeColor = '#000000'; // Black eyes
+        const smileColor = '#000000'; // Black smile
 
-        this.ctx.strokeStyle = armorColor;
-        this.ctx.lineWidth = lineWidth;
+        this.ctx.save();
+
+        // Draw happy eyes (two small circles)
+        this.ctx.fillStyle = eyeColor;
+        const eyeRadius = radius * 0.08;
+        const eyeOffset = radius * 0.25;
+
+        // Left eye
+        this.ctx.beginPath();
+        this.ctx.arc(centerX - eyeOffset, centerY - eyeOffset, eyeRadius, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Right eye
+        this.ctx.beginPath();
+        this.ctx.arc(centerX + eyeOffset, centerY - eyeOffset, eyeRadius, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Draw happy smile (curved line)
+        this.ctx.strokeStyle = smileColor;
+        this.ctx.lineWidth = Math.max(2, radius * 0.06);
         this.ctx.lineCap = 'round';
 
-        // Draw horizontal armor lines
-        const lineSpacing = radius * 0.4;
-        const lineLength = radius * 0.6;
+        const smileRadius = radius * 0.35;
+        const smileStartAngle = 0.3 * Math.PI; // Start angle for smile
+        const smileEndAngle = 0.7 * Math.PI;   // End angle for smile
 
-        // Top armor line
         this.ctx.beginPath();
-        this.ctx.moveTo(centerX - lineLength / 2, centerY - lineSpacing);
-        this.ctx.lineTo(centerX + lineLength / 2, centerY - lineSpacing);
+        this.ctx.arc(centerX, centerY + radius * 0.1, smileRadius, smileStartAngle, smileEndAngle);
         this.ctx.stroke();
 
-        // Bottom armor line
-        this.ctx.beginPath();
-        this.ctx.moveTo(centerX - lineLength / 2, centerY + lineSpacing);
-        this.ctx.lineTo(centerX + lineLength / 2, centerY + lineSpacing);
-        this.ctx.stroke();
+        // Add sparkle effect around the smiley face
+        this.ctx.fillStyle = smileyColor;
+        const sparkleSize = radius * 0.05;
 
-        // Draw vertical center line for more aggressive look
-        this.ctx.beginPath();
-        this.ctx.moveTo(centerX, centerY - radius * 0.5);
-        this.ctx.lineTo(centerX, centerY + radius * 0.5);
-        this.ctx.stroke();
-
-        // Add small rivets at line intersections
-        const rivetRadius = lineWidth * 0.8;
-        this.ctx.fillStyle = armorDarkColor;
-
-        // Rivets at line intersections
-        const rivetPositions = [
-            { x: centerX - lineLength / 2, y: centerY - lineSpacing },
-            { x: centerX + lineLength / 2, y: centerY - lineSpacing },
-            { x: centerX - lineLength / 2, y: centerY + lineSpacing },
-            { x: centerX + lineLength / 2, y: centerY + lineSpacing },
-            { x: centerX, y: centerY } // Center rivet
+        // Draw 4 sparkles around the face
+        const sparklePositions = [
+            { x: centerX - radius * 0.7, y: centerY - radius * 0.7 },
+            { x: centerX + radius * 0.7, y: centerY - radius * 0.7 },
+            { x: centerX - radius * 0.7, y: centerY + radius * 0.7 },
+            { x: centerX + radius * 0.7, y: centerY + radius * 0.7 }
         ];
 
-        rivetPositions.forEach(pos => {
+        sparklePositions.forEach(pos => {
             this.ctx.beginPath();
-            this.ctx.arc(pos.x, pos.y, rivetRadius, 0, Math.PI * 2);
+            this.ctx.arc(pos.x, pos.y, sparkleSize, 0, Math.PI * 2);
             this.ctx.fill();
         });
+
+        this.ctx.restore();
     }
 
     renderRankBadge(centerX, badgeY, level) {
@@ -2749,15 +2759,25 @@ class RenderSystem {
 
         this.ctx.restore();
 
-        // Draw coin value indicator
+        // Draw coin value ON the coin (centered)
         if (coin.value > 1) {
-            this.ctx.fillStyle = '#FFF';
-            this.ctx.font = 'bold 12px Arial';
+            this.ctx.save();
+            this.ctx.translate(swayX, bounceY);
+            this.ctx.scale(scale, scale);
+
+            // Draw value text on the coin with high contrast
+            this.ctx.fillStyle = '#000000'; // Black text for visibility
+            this.ctx.font = 'bold 16px Arial'; // Increased from 14px to 16px
             this.ctx.textAlign = 'center';
-            this.ctx.strokeStyle = '#000';
-            this.ctx.lineWidth = 2;
-            this.ctx.strokeText(coin.value.toString(), swayX, bounceY - 25);
-            this.ctx.fillText(coin.value.toString(), swayX, bounceY - 25);
+            this.ctx.textBaseline = 'middle';
+
+            // Add white outline for better contrast
+            this.ctx.strokeStyle = '#FFFFFF';
+            this.ctx.lineWidth = 3; // Increased from 2 to 3 for better outline
+            this.ctx.strokeText(coin.value.toString(), 0, 0);
+            this.ctx.fillText(coin.value.toString(), 0, 0);
+
+            this.ctx.restore();
         }
     }
 
@@ -3369,9 +3389,9 @@ class RenderSystem {
     renderPathTileOverlay(gridX, gridY, tileSize) {
         const screenX = gridX * tileSize;
         const screenY = gridY * tileSize;
-        
+
         this.ctx.save();
-        
+
         // Add subtle glow overlay for night visibility
         if (this.dayNightSystem.currentPhase === 'night') {
             this.ctx.shadowColor = '#FFD700';  // Golden glow
@@ -3383,7 +3403,7 @@ class RenderSystem {
             this.ctx.roundRect(screenX + 2, screenY + 2, tileSize - 4, tileSize - 4, 3);
             this.ctx.stroke();
         }
-        
+
         this.ctx.restore();
     }
 

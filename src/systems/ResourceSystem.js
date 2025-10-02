@@ -60,22 +60,8 @@ class ResourceSystem {
             this.collectionEffects.push(particle);
         }
 
-        // Create floating text effect for coin value
-        if (coinValue > 1) {
-            const floatingText = {
-                id: Date.now() + Math.random(),
-                x: x,
-                y: y,
-                vx: (Math.random() - 0.5) * 20,
-                vy: -60, // Float upward
-                life: 1500,
-                maxLife: 1500,
-                text: `+${coinValue}`,
-                alpha: 1.0,
-                size: 24  // Increased from 16 for better readability
-            };
-            this.collectionEffects.push(floatingText);
-        }
+        // No floating text for coin collection (as requested by user feedback)
+        // The coin value is now displayed ON the coin itself
     }
 
     // Create expiration effect particles (negative feedback)
@@ -150,9 +136,9 @@ class ResourceSystem {
             animationTime: 0,
             bounceHeight: 0,
             sparkleTime: 0,
-            lifetime: 10000, // 10 seconds before expiration
+            lifetime: 15000, // 15 seconds before expiration (increased from 10 seconds)
             expired: false,
-            warningTime: 3000 // 3 seconds warning before expiration
+            warningTime: 5000 // 5 seconds warning before expiration (increased from 3 seconds)
         };
 
         this.coinAnimations.push(coin);
@@ -163,8 +149,8 @@ class ResourceSystem {
     tryCollectCoin(x, y) {
         const coin = this.coinAnimations.find(c =>
             !c.collected &&
-            Math.abs(c.x - x) < 40 &&  // Increased from 20 to 40 for larger scale
-            Math.abs(c.y - y) < 40
+            Math.abs(c.x - x) < 60 &&  // Increased from 40 to 60 for better trackpad collection
+            Math.abs(c.y - y) < 60
         );
 
         if (coin) {
