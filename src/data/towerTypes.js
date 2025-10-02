@@ -23,9 +23,14 @@ const TOWER_TYPES = {
         range: 2,
         fireRate: 3000, // 3 seconds between shots (slower for balance)
         projectileSpeed: 800, // pixels per second (same as basic for guaranteed hits)
-        color: '#4ECDC4', // Teal
+        color: '#8A2BE2', // Purple for visual distinction
         size: 56,  // Increased from 28 to 56 for better visibility
-        description: 'Powerful tower with high damage but slower firing'
+        description: 'Powerful tower with high damage but slower firing',
+        // Special bomb properties
+        bombDamage: 40,  // 2x damage for bombs
+        bombRadius: 2.0, // tiles (reduced from 2.5)
+        bombSpeed: 400,  // slower than regular projectiles
+        bombColor: '#FF4500' // Orange for bombs
     }
 };
 
@@ -53,14 +58,20 @@ const TOWER_UPGRADES = {
             damage: 35,  // +15 damage (75% increase)
             range: 3,   // +1 range
             fireRate: 2000,  // Faster firing (33% improvement)
-            color: '#6EDDD6'
+            color: '#9B59B6', // Purple level 2
+            bombDamage: 80,  // 2x bomb damage for level 2
+            bombRadius: 2.0, // Same radius
+            bombColor: '#FF4500' // Orange for bombs
         },
         level3: {
             cost: 120,  // Extremely expensive upgrade (8x base cost)
             damage: 55,  // +35 damage (175% increase from base)
             range: 4,   // +2 range
             fireRate: 1500,  // Much faster firing (50% improvement)
-            color: '#8EE5E0'
+            color: '#8E44AD', // Purple level 3
+            bombDamage: 120, // 3x bomb damage for level 3
+            bombRadius: 2.0, // Same radius
+            bombColor: '#FF4500' // Orange for bombs
         }
     }
 };

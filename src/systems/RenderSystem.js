@@ -789,8 +789,34 @@ class RenderSystem {
         this.ctx.fill();
         this.ctx.restore();
 
-        // Tower circle
-        this.ctx.fillStyle = tower.color;
+        // Tower circle with 3D gradient (same as main tower rendering)
+        const towerColor = tower.color;
+
+        // Create 3D gradient effect
+        const gradient = this.ctx.createRadialGradient(
+            centerX - radius * 0.3, centerY - radius * 0.3, 0,
+            centerX, centerY, radius
+        );
+
+        // Convert hex color to RGB for gradient calculations
+        const hex = towerColor.replace('#', '');
+        const r = parseInt(hex.substr(0, 2), 16);
+        const g = parseInt(hex.substr(2, 2), 16);
+        const b = parseInt(hex.substr(4, 2), 16);
+
+        // Create lighter and darker shades
+        const lightR = Math.min(255, r + 60);
+        const lightG = Math.min(255, g + 60);
+        const lightB = Math.min(255, b + 60);
+        const darkR = Math.max(0, r - 40);
+        const darkG = Math.max(0, g - 40);
+        const darkB = Math.max(0, b - 40);
+
+        gradient.addColorStop(0, `rgb(${lightR}, ${lightG}, ${lightB})`);
+        gradient.addColorStop(0.7, towerColor);
+        gradient.addColorStop(1, `rgb(${darkR}, ${darkG}, ${darkB})`);
+
+        this.ctx.fillStyle = gradient;
         this.ctx.beginPath();
         this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
         this.ctx.fill();
@@ -1411,9 +1437,40 @@ class RenderSystem {
         // Draw level rings (visual indicator for tower level) - no pulsing
         this.renderTowerLevelRings(centerX, centerY, towerRadius, tower.level);
 
-        // Draw tower as a circle with tower-specific color
+        // Add upgrade glow effects for higher levels
+        if (tower.level > 1) {
+            this.renderTowerUpgradeGlow(centerX, centerY, towerRadius, tower.level);
+        }
+
+        // Draw tower as a circle with 3D gradient
         const currentColors = this.getCurrentColors();
-        this.ctx.fillStyle = tower.color || currentColors.tower;
+        const towerColor = tower.color || currentColors.tower;
+
+        // Create 3D gradient effect
+        const gradient = this.ctx.createRadialGradient(
+            centerX - towerRadius * 0.3, centerY - towerRadius * 0.3, 0,
+            centerX, centerY, towerRadius
+        );
+
+        // Convert hex color to RGB for gradient calculations
+        const hex = towerColor.replace('#', '');
+        const r = parseInt(hex.substr(0, 2), 16);
+        const g = parseInt(hex.substr(2, 2), 16);
+        const b = parseInt(hex.substr(4, 2), 16);
+
+        // Create lighter and darker shades
+        const lightR = Math.min(255, r + 60);
+        const lightG = Math.min(255, g + 60);
+        const lightB = Math.min(255, b + 60);
+        const darkR = Math.max(0, r - 40);
+        const darkG = Math.max(0, g - 40);
+        const darkB = Math.max(0, b - 40);
+
+        gradient.addColorStop(0, `rgb(${lightR}, ${lightG}, ${lightB})`);
+        gradient.addColorStop(0.7, towerColor);
+        gradient.addColorStop(1, `rgb(${darkR}, ${darkG}, ${darkB})`);
+
+        this.ctx.fillStyle = gradient;
         this.ctx.beginPath();
         this.ctx.arc(centerX, centerY, towerRadius, 0, Math.PI * 2);
         this.ctx.fill();
@@ -1463,10 +1520,7 @@ class RenderSystem {
         // All levels: Add smiley face for friendly appearance
         this.renderTowerSmileyFace(centerX, centerY, radius, level);
 
-        // Level 2: Add small circular knobs/ports on the face
-        if (level >= 2) {
-            this.renderTowerFaceKnobs(centerX, centerY, radius, 2);
-        }
+        // Knobs removed - they looked stupid
 
         // Level 3: Add sparkle effects around the face
         if (level >= 3) {
@@ -1504,39 +1558,45 @@ class RenderSystem {
         this.ctx.stroke();
     }
 
-    renderTowerFaceKnobs(centerX, centerY, radius, level) {
-        // Draw small circular knobs/ports on the tower face
-        const knobRadius = Math.max(2, radius * 0.15); // Scale with tower size
-        const knobColor = GENERIC_ACCENT_COLORS.metal;
-        const knobDarkColor = GENERIC_ACCENT_COLORS.metalDark;
+    // Render upgrade glow effects for higher level towers
+    renderTowerUpgradeGlow(centerX, centerY, radius, level) {
+        this.ctx.save();
 
-        // Position knobs in a cross pattern on the face
-        const knobPositions = [
-            { x: centerX - radius * 0.4, y: centerY - radius * 0.3 }, // Top-left
-            { x: centerX + radius * 0.4, y: centerY - radius * 0.3 }, // Top-right
-            { x: centerX - radius * 0.4, y: centerY + radius * 0.3 }, // Bottom-left
-            { x: centerX + radius * 0.4, y: centerY + radius * 0.3 }  // Bottom-right
-        ];
+        // Create pulsing glow effect
+        const time = Date.now() / 1000;
+        const pulseIntensity = Math.sin(time * 3) * 0.3 + 0.7;
+        const glowRadius = radius + (level * 8) + (pulseIntensity * 5);
 
-        knobPositions.forEach(pos => {
-            // Draw knob
-            this.ctx.fillStyle = knobColor;
-            this.ctx.beginPath();
-            this.ctx.arc(pos.x, pos.y, knobRadius, 0, Math.PI * 2);
-            this.ctx.fill();
+        // Create radial gradient for glow
+        const glowGradient = this.ctx.createRadialGradient(
+            centerX, centerY, radius,
+            centerX, centerY, glowRadius
+        );
 
-            // Draw knob border
-            this.ctx.strokeStyle = knobDarkColor;
-            this.ctx.lineWidth = 1;
-            this.ctx.stroke();
+        // Different glow colors for different levels
+        let glowColor = '#FFD700'; // Gold for level 2
+        if (level >= 3) {
+            glowColor = '#FF6B6B'; // Red for level 3
+        }
 
-            // Draw small highlight dot
-            this.ctx.fillStyle = GENERIC_ACCENT_COLORS.metalLight;
-            this.ctx.beginPath();
-            this.ctx.arc(pos.x - knobRadius * 0.3, pos.y - knobRadius * 0.3, knobRadius * 0.3, 0, Math.PI * 2);
-            this.ctx.fill();
-        });
+        glowGradient.addColorStop(0, glowColor + '00'); // Transparent at center
+        glowGradient.addColorStop(0.7, glowColor + '40'); // Semi-transparent
+        glowGradient.addColorStop(1, glowColor + '00'); // Transparent at edge
+
+        this.ctx.fillStyle = glowGradient;
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY, glowRadius, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Add sparkle effects for level 3
+        if (level >= 3) {
+            this.renderTowerLevel3Sparkles(centerX, centerY, radius);
+        }
+
+        this.ctx.restore();
     }
+
+    // Knobs removed - they looked stupid
 
     // Render cartoony smiley face for all tower levels
     renderTowerSmileyFace(centerX, centerY, radius, level) {
@@ -1547,8 +1607,8 @@ class RenderSystem {
 
         // Draw larger, more cartoony eyes with white highlights
         this.ctx.fillStyle = '#FFFFFF'; // White eye base
-        const eyeRadius = radius * 0.12; // Larger eyes (was 0.08)
-        const eyeOffset = radius * 0.25;
+        const eyeRadius = radius * 0.18; // Much larger eyes (was 0.12)
+        const eyeOffset = radius * 0.3; // Increased eye spacing
 
         // Left eye base (white)
         this.ctx.beginPath();
@@ -1560,44 +1620,22 @@ class RenderSystem {
         this.ctx.arc(centerX + eyeOffset, centerY - eyeOffset, eyeRadius, 0, Math.PI * 2);
         this.ctx.fill();
 
-        // Draw pupils - sharp/mean for Level 3, round for others
+        // All levels: Friendly round eyes (same as level 1)
         this.ctx.fillStyle = eyeColor;
-        const pupilRadius = radius * 0.08;
+        const pupilRadius = radius * 0.12; // Larger pupils (was 0.08)
 
-        if (level >= 3) {
-            // Level 3: Sharp, mean eyes (diamond shape)
-            this.ctx.beginPath();
-            // Left sharp eye
-            this.ctx.moveTo(centerX - eyeOffset, centerY - eyeOffset - pupilRadius);
-            this.ctx.lineTo(centerX - eyeOffset + pupilRadius, centerY - eyeOffset);
-            this.ctx.lineTo(centerX - eyeOffset, centerY - eyeOffset + pupilRadius);
-            this.ctx.lineTo(centerX - eyeOffset - pupilRadius, centerY - eyeOffset);
-            this.ctx.closePath();
-            this.ctx.fill();
+        // Left pupil
+        this.ctx.beginPath();
+        this.ctx.arc(centerX - eyeOffset, centerY - eyeOffset, pupilRadius, 0, Math.PI * 2);
+        this.ctx.fill();
 
-            // Right sharp eye
-            this.ctx.beginPath();
-            this.ctx.moveTo(centerX + eyeOffset, centerY - eyeOffset - pupilRadius);
-            this.ctx.lineTo(centerX + eyeOffset + pupilRadius, centerY - eyeOffset);
-            this.ctx.lineTo(centerX + eyeOffset, centerY - eyeOffset + pupilRadius);
-            this.ctx.lineTo(centerX + eyeOffset - pupilRadius, centerY - eyeOffset);
-            this.ctx.closePath();
-            this.ctx.fill();
-        } else {
-            // Level 1-2: Round pupils
-            // Left pupil
-            this.ctx.beginPath();
-            this.ctx.arc(centerX - eyeOffset, centerY - eyeOffset, pupilRadius, 0, Math.PI * 2);
-            this.ctx.fill();
+        // Right pupil
+        this.ctx.beginPath();
+        this.ctx.arc(centerX + eyeOffset, centerY - eyeOffset, pupilRadius, 0, Math.PI * 2);
+        this.ctx.fill();
 
-            // Right pupil
-            this.ctx.beginPath();
-            this.ctx.arc(centerX + eyeOffset, centerY - eyeOffset, pupilRadius, 0, Math.PI * 2);
-            this.ctx.fill();
-        }
-
-        // Add white eye highlights for cartoony look (only for round eyes)
-        if (level < 3) {
+        // Add white eye highlights for cartoony look (all levels now)
+        if (true) {
             this.ctx.fillStyle = '#FFFFFF';
             const highlightRadius = radius * 0.03;
 
@@ -1625,8 +1663,8 @@ class RenderSystem {
         this.ctx.arc(centerX, centerY + radius * 0.05, smileRadius, smileStartAngle, smileEndAngle);
         this.ctx.stroke();
 
-        // Add cheek blushes for extra cartoony look (only for friendly levels)
-        if (level < 3) {
+        // Add cheek blushes for extra cartoony look (all levels now)
+        if (true) {
             this.ctx.fillStyle = '#FFB6C1'; // Light pink
             const cheekRadius = radius * 0.08;
 
@@ -2706,42 +2744,81 @@ class RenderSystem {
             this.ctx.stroke();
         }
 
-        // Add bouncy rotation animation to projectile
-        const bounceRotation = Math.sin(time * 8 + projectile.id * 0.1) * 0.1;
-
+        // Different animations for bombs vs regular projectiles
         this.ctx.translate(projectile.x, projectile.y);
-        this.ctx.rotate(bounceRotation);
 
-        // Enhanced glow effect with pulsing for better visibility
-        const pulseIntensity = Math.sin(time * 6) * 0.3 + 0.7;
-        this.ctx.shadowColor = projectile.color;
-        this.ctx.shadowBlur = 12 + pulseIntensity * 6; // Increased from 8+4
+        if (projectile.isBomb) {
+            // Bomb: slower, more dramatic bobbing
+            const bombRotation = Math.sin(time * 4 + projectile.id * 0.1) * 0.2;
+            this.ctx.rotate(bombRotation);
 
-        // Main projectile body with enhanced colors
-        this.ctx.fillStyle = projectile.color;
-        this.ctx.beginPath();
-        this.ctx.arc(0, 0, projectile.size, 0, Math.PI * 2);
-        this.ctx.fill();
+            // Enhanced glow effect for bombs
+            const pulseIntensity = Math.sin(time * 4) * 0.4 + 0.6;
+            this.ctx.shadowColor = projectile.color;
+            this.ctx.shadowBlur = 15 + pulseIntensity * 8;
 
-        // Add bright center with pulsing effect
-        this.ctx.fillStyle = '#FFF';
-        this.ctx.beginPath();
-        this.ctx.arc(0, 0, projectile.size * (0.3 + pulseIntensity * 0.2), 0, Math.PI * 2);
-        this.ctx.fill();
+            // Draw bomb with distinctive oval shape
+            this.ctx.fillStyle = projectile.color;
+            this.ctx.beginPath();
+            this.ctx.ellipse(0, 0, projectile.size, projectile.size * 0.8, 0, 0, Math.PI * 2);
+            this.ctx.fill();
 
-        // Enhanced border system for maximum contrast
-        this.ctx.strokeStyle = '#FFF';
-        this.ctx.lineWidth = 3 + pulseIntensity; // Increased from 2
-        this.ctx.stroke();
+            // Bomb fuse
+            this.ctx.strokeStyle = '#8B4513';
+            this.ctx.lineWidth = 3;
+            this.ctx.beginPath();
+            this.ctx.moveTo(0, -projectile.size);
+            this.ctx.lineTo(0, -projectile.size - 10);
+            this.ctx.stroke();
 
-        // Add dark inner outline for contrast
-        this.ctx.strokeStyle = '#000000';
-        this.ctx.lineWidth = 1;
-        this.ctx.stroke();
+            // Bomb sparkle on fuse
+            this.ctx.fillStyle = '#FFD700';
+            this.ctx.beginPath();
+            this.ctx.arc(0, -projectile.size - 10, 3, 0, Math.PI * 2);
+            this.ctx.fill();
 
-        // Add sparkle effect around fast-moving projectiles
-        if (projectile.speed > 200) {
-            this.renderProjectileSparkles(0, 0, time, projectile.id);
+            // Bomb border
+            this.ctx.strokeStyle = '#FFF';
+            this.ctx.lineWidth = 3;
+            this.ctx.beginPath();
+            this.ctx.ellipse(0, 0, projectile.size, projectile.size * 0.8, 0, 0, Math.PI * 2);
+            this.ctx.stroke();
+        } else {
+            // Regular projectile: bouncy rotation animation
+            const bounceRotation = Math.sin(time * 8 + projectile.id * 0.1) * 0.1;
+            this.ctx.rotate(bounceRotation);
+
+            // Enhanced glow effect with pulsing for better visibility
+            const pulseIntensity = Math.sin(time * 6) * 0.3 + 0.7;
+            this.ctx.shadowColor = projectile.color;
+            this.ctx.shadowBlur = 12 + pulseIntensity * 6; // Increased from 8+4
+
+            // Main projectile body with enhanced colors
+            this.ctx.fillStyle = projectile.color;
+            this.ctx.beginPath();
+            this.ctx.arc(0, 0, projectile.size, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Add bright center with pulsing effect
+            this.ctx.fillStyle = '#FFF';
+            this.ctx.beginPath();
+            this.ctx.arc(0, 0, projectile.size * (0.3 + pulseIntensity * 0.2), 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Enhanced border system for maximum contrast
+            this.ctx.strokeStyle = '#FFF';
+            this.ctx.lineWidth = 3 + pulseIntensity; // Increased from 2
+            this.ctx.stroke();
+
+            // Add dark inner outline for contrast
+            this.ctx.strokeStyle = '#000000';
+            this.ctx.lineWidth = 1;
+            this.ctx.stroke();
+
+            // Add sparkle effect around fast-moving projectiles
+            if (projectile.speed > 200) {
+                this.renderProjectileSparkles(0, 0, time, projectile.id);
+            }
         }
 
         // Restore context state
@@ -2887,19 +2964,68 @@ class RenderSystem {
 
     // Render impact effects from projectile hits
     renderImpactEffects(effects) {
+
         effects.forEach(effect => {
             this.ctx.save();
             this.ctx.globalAlpha = effect.alpha || (effect.life / effect.maxLife);
 
             if (effect.text) {
                 // Render damage number floating text
-                this.ctx.fillStyle = '#FF4444'; // Red for damage numbers
-                this.ctx.font = `bold ${effect.size}px Arial`;
-                this.ctx.textAlign = 'center';
-                this.ctx.strokeStyle = '#AA0000';
-                this.ctx.lineWidth = 2;
-                this.ctx.strokeText(effect.text, effect.x, effect.y);
-                this.ctx.fillText(effect.text, effect.x, effect.y);
+                if (effect.isCritical) {
+                    // Critical hit styling - larger, golden, more dramatic
+                    this.ctx.fillStyle = '#FFD700'; // Gold for crits
+                    this.ctx.font = `bold ${effect.size}px Arial`;
+                    this.ctx.textAlign = 'center';
+                    this.ctx.strokeStyle = '#FF8C00'; // Orange outline
+                    this.ctx.lineWidth = 3;
+                    this.ctx.strokeText(effect.text, effect.x, effect.y);
+                    this.ctx.fillText(effect.text, effect.x, effect.y);
+                } else if (effect.isBomb) {
+                    // Bomb damage styling - orange
+                    this.ctx.fillStyle = '#FF4500'; // Orange for bomb damage
+                    this.ctx.font = `bold ${effect.size}px Arial`;
+                    this.ctx.textAlign = 'center';
+                    this.ctx.strokeStyle = '#CC3300'; // Darker orange outline
+                    this.ctx.lineWidth = 2;
+                    this.ctx.strokeText(effect.text, effect.x, effect.y);
+                    this.ctx.fillText(effect.text, effect.x, effect.y);
+                } else {
+                    // Regular damage styling - red
+                    this.ctx.fillStyle = '#FF4444'; // Red for damage numbers
+                    this.ctx.font = `bold ${effect.size}px Arial`;
+                    this.ctx.textAlign = 'center';
+                    this.ctx.strokeStyle = '#AA0000';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.strokeText(effect.text, effect.x, effect.y);
+                    this.ctx.fillText(effect.text, effect.x, effect.y);
+                }
+            } else if (effect.radius !== undefined) {
+                // Render bomb explosion ring effect
+                if (this.logger) this.logger.info(`Rendering ring effect at (${effect.x.toFixed(1)}, ${effect.y.toFixed(1)}) with radius ${effect.radius}, maxRadius ${effect.maxRadius}, life ${effect.life}/${effect.maxLife}`);
+
+
+                // Use actual ring effect coordinates
+                this.ctx.translate(effect.x, effect.y);
+
+                // Calculate ring expansion
+                const progress = 1 - (effect.life / effect.maxLife);
+                const currentRadius = effect.radius + (effect.maxRadius - effect.radius) * progress;
+
+                // Draw expanding ring
+                this.ctx.strokeStyle = effect.color;
+                this.ctx.lineWidth = effect.thickness;
+                this.ctx.globalAlpha = effect.alpha * (1 - progress); // Fade out as ring expands
+
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, currentRadius, 0, Math.PI * 2);
+                this.ctx.stroke();
+
+                // Add inner glow
+                this.ctx.shadowColor = effect.color;
+                this.ctx.shadowBlur = 15;
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, currentRadius * 0.8, 0, Math.PI * 2);
+                this.ctx.stroke();
             } else {
                 // Render impact sparkle particles with rotation and glow
                 this.ctx.translate(effect.x, effect.y);

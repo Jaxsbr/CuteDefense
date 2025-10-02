@@ -7,7 +7,7 @@ const ENEMY_TYPES = {
     BASIC: {
         id: 'basic',
         name: 'Basic Enemy',
-        speed: 1.3,        // tiles per second (increased for challenge)
+        speed: 1.1,        // tiles per second (reduced for better balance)
         health: 100,
         color: '#FF6B6B',  // Red
         size: 0.8,         // Relative to tile size (increased from 0.6 for better face visibility)

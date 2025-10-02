@@ -68,6 +68,11 @@ class TowerSystem {
         tower.damage += upgradeConfig.damage;
         tower.range += upgradeConfig.range;
 
+        // Update bomb damage for strong towers
+        if (tower.type === 'STRONG' && upgradeConfig.bombDamage) {
+            tower.bombDamage = upgradeConfig.bombDamage;
+        }
+
         // Add shoot rate variability for upgrades (more variability for higher levels)
         const variability = 50 + (tower.level * 25); // 50ms for level 2, 75ms for level 3
         const randomVariation = (Math.random() - 0.5) * 2 * variability;
@@ -258,8 +263,69 @@ class TowerSystem {
         const targetX = target.x * 64 + 32;
         const targetY = target.y * 64 + 32;
 
-        const dx = targetX - startX;
-        const dy = targetY - startY;
+
+        // Check if this is a strong tower with bomb capability
+        const isBomb = tower.type === 'STRONG' && tower.bombDamage;
+
+        let finalTargetX = targetX;
+        let finalTargetY = targetY;
+
+        // Predictive targeting for bombs - calculate where enemy will be
+        if (isBomb) {
+            const bombSpeed = tower.bombSpeed;
+            const enemySpeed = target.speed * 64; // Convert tiles/sec to pixels/sec
+
+            // Calculate time for bomb to reach current enemy position
+            const dx = targetX - startX;
+            const dy = targetY - startY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const timeToReach = distance / bombSpeed;
+
+            // Get enemy movement direction more accurately
+            let enemyDirX = 0;
+            let enemyDirY = 0;
+
+            // Try to get direction from enemy's path or movement
+            if (target.dirX !== undefined && target.dirY !== undefined) {
+                enemyDirX = target.dirX;
+                enemyDirY = target.dirY;
+            } else if (target.path && target.pathIndex !== undefined && target.pathIndex < target.path.length - 1) {
+                // Calculate direction from path
+                const currentPath = target.path[target.pathIndex];
+                const nextPath = target.path[target.pathIndex + 1];
+                if (currentPath && nextPath) {
+                    const pathDx = nextPath.x - currentPath.x;
+                    const pathDy = nextPath.y - currentPath.y;
+                    const pathDistance = Math.sqrt(pathDx * pathDx + pathDy * pathDy);
+                    if (pathDistance > 0) {
+                        enemyDirX = pathDx / pathDistance;
+                        enemyDirY = pathDy / pathDistance;
+                    }
+                }
+            }
+
+            // If we still don't have direction, estimate from current movement
+            if (enemyDirX === 0 && enemyDirY === 0 && target.lastX !== undefined && target.lastY !== undefined) {
+                const moveDx = target.x - target.lastX;
+                const moveDy = target.y - target.lastY;
+                const moveDistance = Math.sqrt(moveDx * moveDx + moveDy * moveDy);
+                if (moveDistance > 0) {
+                    enemyDirX = moveDx / moveDistance;
+                    enemyDirY = moveDy / moveDistance;
+                }
+            }
+
+            // Use more accurate lead time calculation
+            const leadTime = timeToReach * 1.5; // 50% extra lead time for better accuracy
+
+            finalTargetX = targetX + enemyDirX * enemySpeed * leadTime;
+            finalTargetY = targetY + enemyDirY * enemySpeed * leadTime;
+
+            if (this.logger) this.logger.info(`Bomb prediction: enemy at (${targetX}, ${targetY}) -> predicted (${finalTargetX.toFixed(1)}, ${finalTargetY.toFixed(1)}) in ${timeToReach.toFixed(2)}s, dir(${enemyDirX.toFixed(2)}, ${enemyDirY.toFixed(2)})`);
+        }
+
+        const dx = finalTargetX - startX;
+        const dy = finalTargetY - startY;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
         // Normalize direction vector
@@ -273,23 +339,28 @@ class TowerSystem {
             // Direction-based movement instead of target-based
             dirX: dirX,
             dirY: dirY,
-            speed: tower.projectileSpeed,
-            damage: tower.damage,
-            color: tower.color,
-            size: 8, // Balanced size for good visibility without being too large
+            speed: isBomb ? tower.bombSpeed : tower.projectileSpeed,
+            damage: isBomb ? tower.bombDamage : tower.damage,
+            color: isBomb ? tower.bombColor : tower.color,
+            size: isBomb ? 12 : 8, // Larger bombs for visibility
             // TTL (Time To Live) in milliseconds
-            ttl: 3000, // 3 seconds max flight time
+            ttl: isBomb ? 4000 : 3000, // Bombs last longer
             maxDistance: tower.range * 64 * 1.5, // Max distance based on tower range
             distanceTraveled: 0,
             // Visual effects
             trail: [], // Trail effect for better visibility
-            maxTrailLength: 5
+            maxTrailLength: 5,
+            // Bomb properties
+            isBomb: isBomb,
+            bombRadius: isBomb ? tower.bombRadius : 0,
+            targetX: finalTargetX,
+            targetY: finalTargetY
         };
 
         this.projectiles.push(projectile);
         tower.lastShot = this.lastUpdateTime;
 
-        if (this.logger) this.logger.info(`Tower ${tower.type} shoots projectile with direction (${dirX.toFixed(2)}, ${dirY.toFixed(2)})`);
+        if (this.logger) this.logger.info(`Tower ${tower.type} shoots ${isBomb ? 'bomb' : 'projectile'} with direction (${dirX.toFixed(2)}, ${dirY.toFixed(2)})`);
     }
 
     // Update all projectiles with TTL and collision detection
@@ -316,6 +387,7 @@ class TowerSystem {
             projectile.y += projectile.dirY * moveDistance;
             projectile.distanceTraveled += moveDistance;
 
+
             // Remove projectile if it has traveled too far
             if (projectile.distanceTraveled >= projectile.maxDistance) {
                 return false;
@@ -325,28 +397,12 @@ class TowerSystem {
             const aliveEnemies = enemySystem.getEnemiesForRendering();
             for (const enemy of aliveEnemies) {
                 if (this.checkProjectileCollision(projectile, enemy)) {
-                    // Play enemy hit sound
-                    if (this.audioManager) {
-                        this.audioManager.playSound('enemy_hit');
-                    }
-
-                    // Create impact effect at collision point
-                    this.createImpactEffect(projectile.x, projectile.y, projectile.damage, projectile.color);
-
-                    // Add damage indicator to enemy
-                    enemySystem.addDamageIndicator(enemy, projectile.damage);
-
-                    // Deal damage and check if enemy dies
-                    const coinsEarned = enemySystem.damageEnemy(enemy.id, projectile.damage);
-                    if (coinsEarned > 0) {
-                        // Start death animation
-                        enemySystem.startDeathAnimation(enemy);
-
-                        // Spawn coin at enemy's current position
-                        const coinX = enemy.x * 64 + 32;
-                        const coinY = enemy.y * 64 + 32;
-                        resourceSystem.spawnCoin(coinX, coinY, coinsEarned);
-                        if (this.logger) this.logger.info(`Enemy killed! Earned ${coinsEarned} coins at (${coinX}, ${coinY})`);
+                    // Handle bomb explosion
+                    if (projectile.isBomb) {
+                        this.handleBombExplosion(projectile, aliveEnemies, enemySystem, resourceSystem);
+                    } else {
+                        // Regular projectile hit
+                        this.handleProjectileHit(projectile, enemy, enemySystem, resourceSystem);
                     }
                     // Remove projectile after hit
                     return false;
@@ -378,6 +434,180 @@ class TowerSystem {
         const collisionRadius = (64 * enemy.size) / 2 + 8; // Add 8px tolerance for better hit detection
 
         return distance <= collisionRadius;
+    }
+
+    // Handle bomb explosion with area damage
+    handleBombExplosion(projectile, enemies, enemySystem, resourceSystem) {
+        // Play bomb explosion sound
+        if (this.audioManager) {
+            this.audioManager.playSound('enemy_hit'); // Use existing sound for now
+        }
+
+        // Create bomb explosion effect
+        if (this.logger) this.logger.info(`Creating bomb explosion at (${projectile.x.toFixed(1)}, ${projectile.y.toFixed(1)}) with radius ${projectile.bombRadius}`);
+        if (this.logger) this.logger.info(`Projectile coordinates: x=${projectile.x}, y=${projectile.y}, dirX=${projectile.dirX}, dirY=${projectile.dirY}`);
+
+
+        this.createBombExplosionEffect(projectile.x, projectile.y, projectile.bombRadius);
+
+        // Damage all enemies within bomb radius
+        const bombRadiusPixels = projectile.bombRadius * 64; // Convert tiles to pixels
+        let enemiesHit = 0;
+
+        enemies.forEach(enemy => {
+            const enemyScreenX = enemy.x * 64 + 32;
+            const enemyScreenY = enemy.y * 64 + 32;
+
+            const dx = projectile.x - enemyScreenX;
+            const dy = projectile.y - enemyScreenY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance <= bombRadiusPixels) {
+                enemiesHit++;
+                // Add damage indicator to enemy
+                enemySystem.addDamageIndicator(enemy, projectile.damage);
+
+                // Create bomb damage text
+                this.createBombDamageText(enemy.x * 64 + 32, enemy.y * 64 + 32, projectile.damage);
+
+                // Deal damage and check if enemy dies
+                const coinsEarned = enemySystem.damageEnemy(enemy.id, projectile.damage);
+                if (coinsEarned > 0) {
+                    // Start death animation
+                    enemySystem.startDeathAnimation(enemy);
+
+                    // Spawn coin at enemy's current position
+                    const coinX = enemy.x * 64 + 32;
+                    const coinY = enemy.y * 64 + 32;
+                    resourceSystem.spawnCoin(coinX, coinY, coinsEarned);
+                    if (this.logger) this.logger.info(`Enemy killed by bomb! Earned ${coinsEarned} coins at (${coinX}, ${coinY})`);
+                }
+            }
+        });
+
+        if (this.logger) this.logger.info(`Bomb explosion hit ${enemiesHit} enemies with ${projectile.damage} damage each`);
+    }
+
+    // Handle regular projectile hit
+    handleProjectileHit(projectile, enemy, enemySystem, resourceSystem) {
+        // Play enemy hit sound
+        if (this.audioManager) {
+            this.audioManager.playSound('enemy_hit');
+        }
+
+        // Check for critical hit (1% chance for basic towers)
+        const isCritical = Math.random() < 0.01;
+        const finalDamage = isCritical ? projectile.damage * 2 : projectile.damage;
+
+        // Create impact effect at collision point
+        this.createImpactEffect(projectile.x, projectile.y, finalDamage, projectile.color);
+
+        // Add damage indicator to enemy
+        enemySystem.addDamageIndicator(enemy, finalDamage);
+
+        // Create damage text (larger for crits)
+        this.createDamageText(projectile.x, projectile.y, finalDamage, isCritical);
+
+        // Deal damage and check if enemy dies
+        const coinsEarned = enemySystem.damageEnemy(enemy.id, finalDamage);
+        if (coinsEarned > 0) {
+            // Start death animation
+            enemySystem.startDeathAnimation(enemy);
+
+            // Spawn coin at enemy's current position
+            const coinX = enemy.x * 64 + 32;
+            const coinY = enemy.y * 64 + 32;
+            resourceSystem.spawnCoin(coinX, coinY, coinsEarned);
+            if (this.logger) this.logger.info(`Enemy killed! Earned ${coinsEarned} coins at (${coinX}, ${coinY})`);
+        }
+    }
+
+    // Create damage text for regular hits
+    createDamageText(x, y, damage, isCritical = false) {
+        const damageText = {
+            id: Date.now() + Math.random(),
+            x: x + (Math.random() - 0.5) * 20,
+            y: y - 10,
+            vx: (Math.random() - 0.5) * 30,
+            vy: -50, // Float upward
+            life: isCritical ? 2000 : 1200, // Longer for crits
+            maxLife: isCritical ? 2000 : 1200,
+            text: damage.toString(),
+            alpha: 1.0,
+            size: isCritical ? 20 : 14, // Larger for crits
+            isCritical: isCritical
+        };
+        this.impactEffects.push(damageText);
+    }
+
+    // Create bomb damage text
+    createBombDamageText(x, y, damage) {
+        const damageText = {
+            id: Date.now() + Math.random(),
+            x: x + (Math.random() - 0.5) * 20,
+            y: y - 10,
+            vx: (Math.random() - 0.5) * 30,
+            vy: -50, // Float upward
+            life: 1500, // Slightly longer for bomb damage
+            maxLife: 1500,
+            text: damage.toString(),
+            alpha: 1.0,
+            size: 16, // Slightly larger than regular damage
+            isBomb: true
+        };
+        this.impactEffects.push(damageText);
+    }
+
+    // Create bomb explosion visual effect
+    createBombExplosionEffect(x, y, radius) {
+        if (this.logger) this.logger.info(`Bomb explosion effect: x=${x.toFixed(1)}, y=${y.toFixed(1)}, radius=${radius}`);
+
+
+        // Create large explosion particles
+        const particleCount = 20;
+        const radiusPixels = radius * 64; // Convert tiles to pixels
+
+        for (let i = 0; i < particleCount; i++) {
+            const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.5;
+            const speed = 80 + Math.random() * 60;
+            const particle = {
+                id: Date.now() + Math.random(),
+                x: x,
+                y: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed - 30, // Slight upward bias
+                life: 1000 + Math.random() * 500, // 1-1.5 seconds
+                maxLife: 1000 + Math.random() * 500,
+                size: 6 + Math.random() * 6, // Larger particles for bomb
+                color: '#FF4500', // Orange for bomb explosion
+                alpha: 1.0,
+                rotation: Math.random() * Math.PI * 2,
+                rotationSpeed: (Math.random() - 0.5) * 0.3
+            };
+            this.impactEffects.push(particle);
+        }
+
+        // Create explosion ring effect (faster, more violent)
+        // TEMPORARY FLAG: Set to true to enable ring effect for testing
+        const RING_EFFECT_ENABLED = true;
+
+        if (RING_EFFECT_ENABLED) {
+            const ringEffect = {
+                id: Date.now() + Math.random(),
+                x: x,
+                y: y,
+                radius: 0,
+                maxRadius: radiusPixels,
+                life: 400, // Faster explosion (reduced from 800)
+                maxLife: 400,
+                color: '#FF4500',
+                alpha: 1.0, // More intense
+                thickness: 12 // Thicker ring
+            };
+
+
+            this.impactEffects.push(ringEffect);
+        }
     }
 
     // Get collision bounds for tower range visualization
@@ -541,8 +771,11 @@ class TowerSystem {
     // Update impact effect particles
     updateImpactEffects(deltaTime) {
         this.impactEffects = this.impactEffects.filter(effect => {
-            effect.x += effect.vx * (deltaTime / 1000);
-            effect.y += effect.vy * (deltaTime / 1000);
+            // Only update position for effects that have velocity properties
+            if (effect.vx !== undefined && effect.vy !== undefined) {
+                effect.x += effect.vx * (deltaTime / 1000);
+                effect.y += effect.vy * (deltaTime / 1000);
+            }
             effect.life -= deltaTime;
 
             // Apply gravity to particles (only for non-text particles)
