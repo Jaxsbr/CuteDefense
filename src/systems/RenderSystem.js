@@ -585,7 +585,7 @@ class RenderSystem {
 
     // Calculate game area offset for left-docked HUD
     getGameAreaOffset() {
-        return 400; // HUD width
+        return 400; // HUD width - matches CONFIG.HUD_WIDTH
     }
 
     // Render main HUD panel - left-docked layout for tablet optimization
@@ -1807,7 +1807,8 @@ class RenderSystem {
     }
 
     renderTower(tower, tileSize, upgradeInfo = null, isSelected = false) {
-        const screenX = tower.x * tileSize;
+        const gameOffsetX = this.getGameAreaOffset(); // Offset for left-docked HUD
+        const screenX = tower.x * tileSize + gameOffsetX;
         const screenY = tower.y * tileSize;
         const centerX = screenX + tileSize / 2;
         const centerY = screenY + tileSize / 2;
@@ -2190,8 +2191,9 @@ class RenderSystem {
         this.ctx.lineWidth = 1;
 
         // Vertical lines
+        const gameOffsetX = this.getGameAreaOffset(); // Offset for left-docked HUD
         for (let x = 0; x <= gridSystem.cols; x++) {
-            const screenX = x * gridSystem.tileSize;
+            const screenX = x * gridSystem.tileSize + gameOffsetX;
             this.ctx.beginPath();
             this.ctx.moveTo(screenX, 0);
             this.ctx.lineTo(screenX, this.height);
@@ -2212,13 +2214,14 @@ class RenderSystem {
         const path = gridSystem.getEnemyPath();
         if (path.length < 2) return;
 
+        const gameOffsetX = this.getGameAreaOffset(); // Offset for left-docked HUD
         this.ctx.strokeStyle = this.colors.debug;
         this.ctx.lineWidth = 3;
         this.ctx.beginPath();
 
         for (let i = 0; i < path.length; i++) {
             const point = path[i];
-            const screenX = point.x * gridSystem.tileSize + gridSystem.tileSize / 2;
+            const screenX = point.x * gridSystem.tileSize + gridSystem.tileSize / 2 + gameOffsetX;
             const screenY = point.y * gridSystem.tileSize + gridSystem.tileSize / 2;
 
             if (i === 0) {
@@ -2233,13 +2236,14 @@ class RenderSystem {
 
     renderCollisionAreas(gridSystem) {
         const tileSize = gridSystem.tileSize;
+        const gameOffsetX = this.getGameAreaOffset(); // Offset for left-docked HUD
 
         // Render buildable areas with semi-transparent overlay
         for (let y = 0; y < gridSystem.rows; y++) {
             for (let x = 0; x < gridSystem.cols; x++) {
                 const tile = gridSystem.getTile(x, y);
                 if (tile) {
-                    const screenX = x * tileSize;
+                    const screenX = x * tileSize + gameOffsetX;
                     const screenY = y * tileSize;
 
                     if (tile.buildable && !gridSystem.hasTowerAt(x, y)) {
@@ -2271,7 +2275,8 @@ class RenderSystem {
     }
 
     renderEnemy(enemy, tileSize, isSelected = false) {
-        const screenX = enemy.x * tileSize;
+        const gameOffsetX = this.getGameAreaOffset(); // Offset for left-docked HUD
+        const screenX = enemy.x * tileSize + gameOffsetX;
         const screenY = enemy.y * tileSize;
         const centerX = screenX + tileSize / 2;
         const centerY = screenY + tileSize / 2;
@@ -4258,21 +4263,22 @@ class RenderSystem {
     // Render path tiles on a separate layer for better night visibility
     renderPathTiles(gridSystem) {
         const tileSize = gridSystem.tileSize;
+        const gameOffsetX = this.getGameAreaOffset(); // Offset for left-docked HUD
 
         // Render path tiles with overlay for night visibility
         for (let y = 0; y < gridSystem.rows; y++) {
             for (let x = 0; x < gridSystem.cols; x++) {
                 const tile = gridSystem.getTile(x, y);
                 if (tile && tile.type === 'path') {
-                    this.renderPathTileOverlay(x, y, tileSize);
+                    this.renderPathTileOverlay(x, y, tileSize, gameOffsetX);
                 }
             }
         }
     }
 
     // Render path tile overlay for better visibility
-    renderPathTileOverlay(gridX, gridY, tileSize) {
-        const screenX = gridX * tileSize;
+    renderPathTileOverlay(gridX, gridY, tileSize, gameOffsetX = 0) {
+        const screenX = gridX * tileSize + gameOffsetX;
         const screenY = gridY * tileSize;
 
         this.ctx.save();
@@ -4294,7 +4300,8 @@ class RenderSystem {
 
     // Render individual start or end tile with enhanced visibility
     renderStartEndTile(gridX, gridY, tile, tileSize) {
-        const screenX = gridX * tileSize;
+        const gameOffsetX = this.getGameAreaOffset(); // Offset for left-docked HUD
+        const screenX = gridX * tileSize + gameOffsetX;
         const screenY = gridY * tileSize;
         const centerX = screenX + tileSize / 2;
         const centerY = screenY + tileSize / 2;
