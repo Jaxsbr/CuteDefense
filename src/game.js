@@ -3,18 +3,18 @@
  * Simple tower defense game for kids
  */
 
-// Game configuration
-const CONFIG = {
-    CANVAS_WIDTH: 2560,  // Perfect fit for emulator with centered grid
-    CANVAS_HEIGHT: 1169, // Perfect fit for emulator with centered grid
+// Game configuration - will be set dynamically by ResponsiveScalingSystem
+let CONFIG = {
+    CANVAS_WIDTH: 2560,  // Will be calculated dynamically
+    CANVAS_HEIGHT: 1169, // Will be calculated dynamically
     GRID_SIZE: 64,       // 64px tiles for good visibility
     GRID_COLS: 30,       // 30 columns for better balance
     GRID_ROWS: 12,       // 12 rows (unchanged)
-    TILE_SIZE: 64,       // 64px tiles
-    HUD_WIDTH: 400,      // Fixed HUD width (left-docked)
-    HUD_HEIGHT: 1169,    // Full height HUD
-    GRID_OFFSET_X: 120,  // Horizontal margin for centering grid
-    GRID_OFFSET_Y: 200   // Vertical margin for centering grid
+    TILE_SIZE: 64,       // Will be scaled dynamically
+    HUD_WIDTH: 400,      // Will be scaled dynamically
+    HUD_HEIGHT: 1169,    // Will be scaled dynamically
+    GRID_OFFSET_X: 120,  // Will be scaled dynamically
+    GRID_OFFSET_Y: 200   // Will be scaled dynamically
 };
 
 // Game state
@@ -49,7 +49,8 @@ let gameState = {
     lastPlacedTowerType: 'BASIC', // Remember last placed type for UX
     audioManager: null, // Audio system for sound effects and music
     logger: null, // System logger for centralized logging
-    lastDebugSecond: 0 // Debug timing for wave state logging
+    lastDebugSecond: 0, // Debug timing for wave state logging
+    responsiveScaling: null // Responsive scaling system for mobile devices
 };
 
 // Initialize game
@@ -58,9 +59,36 @@ function initGame() {
     gameState.logger = new LoggerSystem();
     gameState.logger.info('Initializing CuteDefense...');
 
+    // Initialize responsive scaling system
+    gameState.responsiveScaling = new ResponsiveScalingSystem();
+    gameState.responsiveScaling.setLogger(gameState.logger);
+    
+    // Update CONFIG with responsive scaling
+    const scalingConfig = gameState.responsiveScaling.getConfig();
+    CONFIG = {
+        CANVAS_WIDTH: scalingConfig.width,
+        CANVAS_HEIGHT: scalingConfig.height,
+        GRID_SIZE: scalingConfig.gridCols,
+        GRID_COLS: scalingConfig.gridCols,
+        GRID_ROWS: scalingConfig.gridRows,
+        TILE_SIZE: scalingConfig.tileSize,
+        HUD_WIDTH: scalingConfig.hudWidth,
+        HUD_HEIGHT: scalingConfig.hudHeight,
+        GRID_OFFSET_X: scalingConfig.gridOffsetX,
+        GRID_OFFSET_Y: scalingConfig.gridOffsetY
+    };
+    
+    gameState.logger.info('Responsive scaling initialized:', gameState.responsiveScaling.getScalingInfo());
+
     // Get canvas and context
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
+    
+    // Set canvas size based on responsive scaling
+    canvas.width = CONFIG.CANVAS_WIDTH;
+    canvas.height = CONFIG.CANVAS_HEIGHT;
+    
+    gameState.logger.info(`Canvas size set to: ${canvas.width}x${canvas.height}`);
 
     // Initialize core systems
     gameState.logger.info('Initializing core systems...');
@@ -154,6 +182,36 @@ function initGame() {
             // Restart to start menu
             gameState.showStartMenu = true;
             gameState.logger.info('🔄 Returning to start menu');
+        }
+    });
+
+    // Add window resize handler for responsive scaling
+    window.addEventListener('resize', () => {
+        if (gameState.responsiveScaling) {
+            gameState.logger.info('🔄 Window resized - recalculating responsive scaling');
+            gameState.responsiveScaling.handleResize();
+            
+            // Update CONFIG with new scaling
+            const scalingConfig = gameState.responsiveScaling.getConfig();
+            CONFIG = {
+                CANVAS_WIDTH: scalingConfig.width,
+                CANVAS_HEIGHT: scalingConfig.height,
+                GRID_SIZE: scalingConfig.gridCols,
+                GRID_COLS: scalingConfig.gridCols,
+                GRID_ROWS: scalingConfig.gridRows,
+                TILE_SIZE: scalingConfig.tileSize,
+                HUD_WIDTH: scalingConfig.hudWidth,
+                HUD_HEIGHT: scalingConfig.hudHeight,
+                GRID_OFFSET_X: scalingConfig.gridOffsetX,
+                GRID_OFFSET_Y: scalingConfig.gridOffsetY
+            };
+            
+            // Update canvas size
+            const canvas = document.getElementById('gameCanvas');
+            canvas.width = CONFIG.CANVAS_WIDTH;
+            canvas.height = CONFIG.CANVAS_HEIGHT;
+            
+            gameState.logger.info('Responsive scaling updated:', gameState.responsiveScaling.getScalingInfo());
         }
     });
 

@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>CuteDefense</title>
     <style>
         body {
@@ -20,6 +20,9 @@
         canvas {
             border: 2px solid #333;
             background: #98FB98;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
         }
 
         #debug-info {
@@ -47,6 +50,7 @@
         <div>🎵 Click anywhere to enable audio</div>
     </div>
     <canvas id="gameCanvas" width="2560" height="1169"></canvas>
+    <script src="src/systems/ResponsiveScalingSystem.js"></script>
     <script src="src/systems/GridSystem.js"></script>
     <script src="src/systems/InputSystem.js"></script>
     <script src="src/systems/RenderSystem.js"></script>
