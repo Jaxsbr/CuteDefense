@@ -75,6 +75,11 @@ class EnemySystem {
         // Update hit animations for all enemies (alive and dead)
         this.updateHitAnimations(deltaTime);
 
+        // Update visual effects for all enemies (including death animations)
+        this.enemies.forEach(enemy => {
+            this.updateEnemyVisualEffects(enemy, deltaTime);
+        });
+
         // Remove dead enemies
         this.cleanupDeadEnemies();
     }
@@ -186,6 +191,7 @@ class EnemySystem {
                 }
                 // Start dramatic death animation
                 this.startDramaticDeathAnimation(enemy);
+                console.log('🎆 Death animation started for enemy with', enemy.deathAnimation.sparkleCount, 'particles');
                 return enemy.reward; // Return coins earned
             }
         }
