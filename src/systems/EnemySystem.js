@@ -7,6 +7,7 @@ class EnemySystem {
         this.removedEnemies = [];
         this.enemiesReachedGoalCount = 0; // Persistent counter for enemies that reached goal
         this.audioManager = null; // Audio manager reference
+        this.gridSystem = null; // Grid system reference for coordinate conversion
     }
 
     /**
@@ -170,6 +171,11 @@ class EnemySystem {
         this.audioManager = audioManager;
     }
 
+    // Set grid system reference for coordinate conversion
+    setGridSystem(gridSystem) {
+        this.gridSystem = gridSystem;
+    }
+
     /**
      * Damage an enemy with visual feedback
      */
@@ -300,9 +306,10 @@ class EnemySystem {
         for (let enemy of this.enemies) {
             if (!enemy.isAlive || enemy.reachedGoal) continue;
 
-            // Convert enemy position to screen coordinates
-            const enemyScreenX = enemy.x * tileSize + tileSize / 2;
-            const enemyScreenY = enemy.y * tileSize + tileSize / 2;
+            // Convert enemy position to screen coordinates using grid system
+            const enemyScreenPos = this.gridSystem ? this.gridSystem.gridToScreen(enemy.x, enemy.y) : { x: enemy.x * tileSize, y: enemy.y * tileSize };
+            const enemyScreenX = enemyScreenPos.x + tileSize / 2;
+            const enemyScreenY = enemyScreenPos.y + tileSize / 2;
 
             // Check if click is within enemy bounds
             const distance = Math.sqrt(

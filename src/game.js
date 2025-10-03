@@ -112,6 +112,7 @@ function initGame() {
 
     // Set grid system references for coordinate conversion
     gameState.towerSystem.setGridSystem(gameState.grid);
+    gameState.enemySystem.setGridSystem(gameState.grid);
 
     // Safety check for GameStateManager
     if (gameState.gameStateManager && typeof gameState.gameStateManager.setLogger === 'function') {
