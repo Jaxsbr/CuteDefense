@@ -349,7 +349,7 @@ class EnemySystem {
         // Enhanced dramatic effects
         explosionRadius: 0,
         maxExplosionRadius: enemy.size * 3, // 3x enemy size explosion
-        sparkleCount: 20, // Match coin expiration effect intensity
+        sparkleCount: 30, // Much more particles for violent explosion effect
         sparkles: []
         };
         
@@ -360,24 +360,24 @@ class EnemySystem {
             const angleVariation = (Math.random() - 0.5) * 0.5; // ±0.25 radians variation
             const finalAngle = angle + angleVariation;
             
-            // Match coin expiration effect speed (100-180 pixels/second)
-            const speed = 100 + Math.random() * 80;
+            // Much more violent explosion speed (200-400 pixels/second)
+            const speed = 200 + Math.random() * 200;
             
-            // Random color selection from golden/red spectrum
-            const colors = ['#FFD700', '#FFA500', '#FF6347', '#FF4500', '#FFD700', '#FFFF00'];
+            // More violent colors - reds, oranges, and dark chunks
+            const colors = ['#FF0000', '#FF4500', '#FF6347', '#8B0000', '#B22222', '#DC143C', '#A0522D', '#654321'];
             const color = colors[Math.floor(Math.random() * colors.length)];
             
-            // Match coin expiration effect size (4-10 pixels)
-            const size = 4 + Math.random() * 6;
+            // Much larger chunks for violent explosion (8-20 pixels)
+            const size = 8 + Math.random() * 12;
             
-            // Match coin expiration effect life (1.5-2 seconds)
-            const life = 1.5 + Math.random() * 0.5; // 1.5-2 seconds
+            // Shorter, more violent life (0.8-1.5 seconds)
+            const life = 0.8 + Math.random() * 0.7; // 0.8-1.5 seconds
             
             enemy.deathAnimation.sparkles.push({
                 x: 0,
                 y: 0,
                 vx: Math.cos(finalAngle) * speed,
-                vy: Math.sin(finalAngle) * speed - 30, // Strong upward bias like coin expiration
+                vy: Math.sin(finalAngle) * speed - 50, // Much stronger upward bias for violent explosion
                 life: life,
                 maxLife: life,
                 size: size,
@@ -385,7 +385,9 @@ class EnemySystem {
                 alpha: 1.0,
                 // Add random rotation for sparkle effect
                 rotation: Math.random() * Math.PI * 2,
-                rotationSpeed: (Math.random() - 0.5) * 0.3 // Match coin expiration rotation speed
+                rotationSpeed: (Math.random() - 0.5) * 2.0, // Much faster spinning chunks
+                // Add gravity for more realistic physics
+                gravity: 150 + Math.random() * 100 // Gravity effect for falling chunks
             });
         }
     }

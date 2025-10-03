@@ -2199,38 +2199,55 @@ class RenderSystem {
         const animation = enemy.deathAnimation;
         const progress = animation.time / animation.duration;
 
-        // Render expanding explosion ring
-        if (progress < 0.8) {
-            const explosionProgress = progress / 0.8; // Scale to 0-1 for explosion phase
+        // Render violent explosion ring with multiple waves
+        if (progress < 0.6) {
+            const explosionProgress = progress / 0.6; // Scale to 0-1 for explosion phase
             const explosionRadius = animation.explosionRadius + (explosionProgress * animation.maxExplosionRadius);
             
-            // Outer explosion ring with glow
-            this.ctx.strokeStyle = '#FF4444';
-            this.ctx.lineWidth = 6;
-            this.ctx.shadowColor = '#FF4444';
-            this.ctx.shadowBlur = 20;
-            this.ctx.globalAlpha = 1 - explosionProgress;
+            // Outer violent explosion ring - red/orange
+            this.ctx.strokeStyle = '#FF0000';
+            this.ctx.lineWidth = 8;
+            this.ctx.shadowColor = '#FF0000';
+            this.ctx.shadowBlur = 25;
+            this.ctx.globalAlpha = (1 - explosionProgress) * 0.8;
             this.ctx.beginPath();
             this.ctx.arc(centerX, centerY, explosionRadius, 0, Math.PI * 2);
             this.ctx.stroke();
 
-            // Inner bright ring
+            // Middle bright ring - white hot
             this.ctx.strokeStyle = '#FFFFFF';
-            this.ctx.lineWidth = 3;
-            this.ctx.shadowBlur = 10;
+            this.ctx.lineWidth = 5;
+            this.ctx.shadowColor = '#FFFFFF';
+            this.ctx.shadowBlur = 15;
+            this.ctx.globalAlpha = (1 - explosionProgress) * 0.9;
             this.ctx.beginPath();
-            this.ctx.arc(centerX, centerY, explosionRadius * 0.7, 0, Math.PI * 2);
+            this.ctx.arc(centerX, centerY, explosionRadius * 0.8, 0, Math.PI * 2);
+            this.ctx.stroke();
+
+            // Inner core ring - yellow hot
+            this.ctx.strokeStyle = '#FFFF00';
+            this.ctx.lineWidth = 3;
+            this.ctx.shadowColor = '#FFFF00';
+            this.ctx.shadowBlur = 10;
+            this.ctx.globalAlpha = (1 - explosionProgress) * 0.7;
+            this.ctx.beginPath();
+            this.ctx.arc(centerX, centerY, explosionRadius * 0.6, 0, Math.PI * 2);
             this.ctx.stroke();
         }
 
         // Render enhanced sparkle particles
         if (animation.sparkles && animation.sparkles.length > 0) {
             animation.sparkles.forEach(sparkle => {
-                // Update sparkle position and rotation
-                sparkle.x += sparkle.vx * (animation.time / 1000);
-                sparkle.y += sparkle.vy * (animation.time / 1000);
-                sparkle.life -= animation.time / 1000;
-                sparkle.rotation += sparkle.rotationSpeed * (animation.time / 1000);
+                // Update chunk position with gravity physics
+                const deltaTime = animation.time / 1000;
+                sparkle.x += sparkle.vx * deltaTime;
+                sparkle.y += sparkle.vy * deltaTime;
+                // Apply gravity to make chunks fall realistically
+                if (sparkle.gravity) {
+                    sparkle.vy += sparkle.gravity * deltaTime;
+                }
+                sparkle.life -= deltaTime;
+                sparkle.rotation += sparkle.rotationSpeed * deltaTime;
 
                 if (sparkle.life > 0) {
                     // Calculate alpha based on remaining life
@@ -2241,15 +2258,35 @@ class RenderSystem {
                     this.ctx.translate(centerX + sparkle.x, centerY + sparkle.y);
                     this.ctx.rotate(sparkle.rotation);
                     
-                    // Use individual particle color - match coin expiration effect style
+                    // Draw violent chunks with jagged edges
                     this.ctx.fillStyle = sparkle.color;
                     this.ctx.shadowColor = sparkle.color;
-                    this.ctx.shadowBlur = 6; // Match coin expiration glow
+                    this.ctx.shadowBlur = 8; // Stronger glow for violent effect
                     
-                    // Draw as simple circle like coin expiration effect
+                    // Draw irregular chunk shape instead of perfect circle
                     this.ctx.beginPath();
-                    this.ctx.arc(0, 0, sparkle.size, 0, Math.PI * 2);
+                    const chunkSize = sparkle.size;
+                    const points = 6; // Hexagon-like shape for more jagged look
+                    
+                    for (let i = 0; i < points; i++) {
+                        const angle = (i / points) * Math.PI * 2;
+                        const radius = chunkSize * (0.7 + Math.random() * 0.3); // Variable radius for jagged edges
+                        const x = Math.cos(angle) * radius;
+                        const y = Math.sin(angle) * radius;
+                        
+                        if (i === 0) {
+                            this.ctx.moveTo(x, y);
+                        } else {
+                            this.ctx.lineTo(x, y);
+                        }
+                    }
+                    this.ctx.closePath();
                     this.ctx.fill();
+                    
+                    // Add dark outline for more dramatic effect
+                    this.ctx.strokeStyle = '#000000';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.stroke();
                     
                     this.ctx.restore();
                 }
