@@ -2223,22 +2223,56 @@ class RenderSystem {
             this.ctx.stroke();
         }
 
-        // Render sparkle particles
+        // Render enhanced sparkle particles
         if (animation.sparkles && animation.sparkles.length > 0) {
-            this.ctx.globalAlpha = 1 - progress;
             animation.sparkles.forEach(sparkle => {
-                // Update sparkle position
+                // Update sparkle position and rotation
                 sparkle.x += sparkle.vx * (animation.time / 1000);
                 sparkle.y += sparkle.vy * (animation.time / 1000);
                 sparkle.life -= animation.time / 1000;
+                sparkle.rotation += sparkle.rotationSpeed * (animation.time / 1000);
 
                 if (sparkle.life > 0) {
-                    this.ctx.fillStyle = '#FFD700'; // Golden sparkles
-                    this.ctx.shadowColor = '#FFD700';
-                    this.ctx.shadowBlur = 8;
+                    // Calculate alpha based on remaining life
+                    const lifeProgress = sparkle.life / sparkle.maxLife;
+                    this.ctx.globalAlpha = lifeProgress * (1 - progress); // Fade out over time
+                    
+                    this.ctx.save();
+                    this.ctx.translate(centerX + sparkle.x, centerY + sparkle.y);
+                    this.ctx.rotate(sparkle.rotation);
+                    
+                    // Use individual particle color
+                    this.ctx.fillStyle = sparkle.color;
+                    this.ctx.shadowColor = sparkle.color;
+                    this.ctx.shadowBlur = 12; // Increased glow for better visibility
+                    
+                    // Draw sparkle as a cross/star shape for more dramatic effect
+                    const sparkleSize = sparkle.size;
                     this.ctx.beginPath();
-                    this.ctx.arc(centerX + sparkle.x, centerY + sparkle.y, sparkle.size, 0, Math.PI * 2);
+                    
+                    // Horizontal line
+                    this.ctx.moveTo(-sparkleSize, 0);
+                    this.ctx.lineTo(sparkleSize, 0);
+                    
+                    // Vertical line
+                    this.ctx.moveTo(0, -sparkleSize);
+                    this.ctx.lineTo(0, sparkleSize);
+                    
+                    // Diagonal lines for star effect
+                    this.ctx.moveTo(-sparkleSize * 0.7, -sparkleSize * 0.7);
+                    this.ctx.lineTo(sparkleSize * 0.7, sparkleSize * 0.7);
+                    this.ctx.moveTo(-sparkleSize * 0.7, sparkleSize * 0.7);
+                    this.ctx.lineTo(sparkleSize * 0.7, -sparkleSize * 0.7);
+                    
+                    this.ctx.lineWidth = 2;
+                    this.ctx.stroke();
+                    
+                    // Add center dot
+                    this.ctx.beginPath();
+                    this.ctx.arc(0, 0, sparkleSize * 0.3, 0, Math.PI * 2);
                     this.ctx.fill();
+                    
+                    this.ctx.restore();
                 }
             });
         }

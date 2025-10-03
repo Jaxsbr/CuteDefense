@@ -340,24 +340,45 @@ class EnemySystem {
             scale: 1.0,
             rotation: 0,
             alpha: 1.0,
-            // Enhanced dramatic effects
-            explosionRadius: 0,
-            maxExplosionRadius: enemy.size * 3, // 3x enemy size explosion
-            sparkleCount: 8, // Number of sparkle particles
-            sparkles: []
+        // Enhanced dramatic effects
+        explosionRadius: 0,
+        maxExplosionRadius: enemy.size * 3, // 3x enemy size explosion
+        sparkleCount: 16, // Increased from 8 to 16 particles for more dramatic effect
+        sparkles: []
         };
         
-        // Create sparkle particles for dramatic effect
+        // Create sparkle particles for dramatic effect with enhanced randomness
         for (let i = 0; i < enemy.deathAnimation.sparkleCount; i++) {
             const angle = (i / enemy.deathAnimation.sparkleCount) * Math.PI * 2;
-            const speed = 50 + Math.random() * 30; // Random speed variation
+            // Add random angle variation for more organic spread
+            const angleVariation = (Math.random() - 0.5) * 0.5; // ±0.25 radians variation
+            const finalAngle = angle + angleVariation;
+            
+            // Much more varied speed (30-120 pixels/second)
+            const speed = 30 + Math.random() * 90;
+            
+            // Random color selection from golden/red spectrum
+            const colors = ['#FFD700', '#FFA500', '#FF6347', '#FF4500', '#FFD700', '#FFFF00'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            
+            // Much larger size variation (4-12 pixels)
+            const size = 4 + Math.random() * 8;
+            
+            // Random life duration variation
+            const life = 0.8 + Math.random() * 0.4; // 0.8-1.2 seconds
+            
             enemy.deathAnimation.sparkles.push({
                 x: 0,
                 y: 0,
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed,
-                life: 1.0,
-                size: 3 + Math.random() * 3
+                vx: Math.cos(finalAngle) * speed,
+                vy: Math.sin(finalAngle) * speed,
+                life: life,
+                maxLife: life,
+                size: size,
+                color: color,
+                // Add random rotation for sparkle effect
+                rotation: Math.random() * Math.PI * 2,
+                rotationSpeed: (Math.random() - 0.5) * 8 // Random rotation speed
             });
         }
     }
