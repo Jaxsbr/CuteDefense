@@ -614,6 +614,16 @@ function setupInputHandlers() {
                     gameState.logger.info('Debug mode required for wave skip (press D first)');
                 }
                 break;
+            case '1':
+                // Switch to Easy difficulty
+                gameState.grid.setDifficulty('easy');
+                gameState.logger.info('🎯 Difficulty set to EASY (long paths)');
+                break;
+            case '2':
+                // Switch to Hard difficulty
+                gameState.grid.setDifficulty('hard');
+                gameState.logger.info('🎯 Difficulty set to HARD (short paths)');
+                break;
             case 'l':
                 // Test lose condition (debug feature)
                 if (gameState.debug.enabled) {

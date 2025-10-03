@@ -15,6 +15,7 @@ class GridSystem {
 
         // Path template system
         this.pathTemplates = this.initializePathTemplates();
+        this.difficulty = 'easy'; // Default to easy difficulty
 
         this.initializeGrid();
         this.generateEnemyPath();
@@ -446,14 +447,82 @@ class GridSystem {
                     { x: 15, y: 5 },  // Down
                     { x: 15, y: 6 }   // End
                 ]
+            },
+
+            // Template 6: Hard - Short Direct Path (Easy enemies reach goal quickly)
+            {
+                name: "Hard Direct",
+                start: { x: 0, y: 6 },
+                end: { x: 15, y: 6 },
+                path: [
+                    { x: 0, y: 6 },   // Start
+                    { x: 1, y: 6 },   // Right
+                    { x: 2, y: 6 },   // Right
+                    { x: 3, y: 6 },   // Right
+                    { x: 4, y: 6 },   // Right
+                    { x: 5, y: 6 },   // Right
+                    { x: 6, y: 6 },   // Right
+                    { x: 7, y: 6 },   // Right
+                    { x: 8, y: 6 },   // Right
+                    { x: 9, y: 6 },   // Right
+                    { x: 10, y: 6 },  // Right
+                    { x: 11, y: 6 },  // Right
+                    { x: 12, y: 6 },  // Right
+                    { x: 13, y: 6 },  // Right
+                    { x: 14, y: 6 },  // Right
+                    { x: 15, y: 6 }   // End
+                ]
+            },
+
+            // Template 7: Hard - Minimal Zigzag (Very short path)
+            {
+                name: "Hard Zigzag",
+                start: { x: 0, y: 6 },
+                end: { x: 15, y: 6 },
+                path: [
+                    { x: 0, y: 6 },   // Start
+                    { x: 1, y: 6 },   // Right
+                    { x: 2, y: 6 },   // Right
+                    { x: 3, y: 6 },   // Right
+                    { x: 4, y: 6 },   // Right
+                    { x: 5, y: 6 },   // Right
+                    { x: 6, y: 6 },   // Right
+                    { x: 7, y: 5 },   // Up
+                    { x: 8, y: 5 },   // Right
+                    { x: 9, y: 5 },   // Right
+                    { x: 10, y: 5 },  // Right
+                    { x: 11, y: 5 },  // Right
+                    { x: 12, y: 6 },  // Down
+                    { x: 13, y: 6 },  // Right
+                    { x: 14, y: 6 },  // Right
+                    { x: 15, y: 6 }   // End
+                ]
             }
         ];
     }
 
-    // Select a random path template
+    // Select a random path template based on difficulty
     selectRandomTemplate() {
-        const randomIndex = Math.floor(Math.random() * this.pathTemplates.length);
-        return this.pathTemplates[randomIndex];
+        const difficultyTemplates = this.getTemplatesForDifficulty(this.difficulty);
+        const randomIndex = Math.floor(Math.random() * difficultyTemplates.length);
+        return difficultyTemplates[randomIndex];
+    }
+
+    // Get templates based on difficulty level
+    getTemplatesForDifficulty(difficulty) {
+        if (difficulty === 'hard') {
+            // Hard: Short, direct paths (15-25 steps)
+            return this.pathTemplates.filter(template => {
+                const pathLength = template.path.length;
+                return pathLength >= 15 && pathLength <= 25;
+            });
+        } else {
+            // Easy: Long, winding paths (30+ steps)
+            return this.pathTemplates.filter(template => {
+                const pathLength = template.path.length;
+                return pathLength >= 30;
+            });
+        }
     }
 
     // Apply a path template to create the actual path
@@ -579,5 +648,26 @@ class GridSystem {
     // Get all available path templates
     getPathTemplates() {
         return this.pathTemplates.map(t => ({ name: t.name, start: t.start, end: t.end }));
+    }
+
+    // Set difficulty and regenerate path
+    setDifficulty(difficulty) {
+        if (difficulty === 'easy' || difficulty === 'hard') {
+            this.difficulty = difficulty;
+            this.generateEnemyPath(); // Regenerate path with new difficulty
+            if (this.logger) this.logger.info(`Difficulty set to: ${difficulty}`);
+        } else {
+            if (this.logger) this.logger.warn(`Invalid difficulty: ${difficulty}. Must be 'easy' or 'hard'.`);
+        }
+    }
+
+    // Get current difficulty
+    getDifficulty() {
+        return this.difficulty;
+    }
+
+    // Get available difficulties
+    getAvailableDifficulties() {
+        return ['easy', 'hard'];
     }
 }
