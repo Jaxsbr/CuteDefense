@@ -187,11 +187,16 @@ class EnemySystem {
                 enemy.isAlive = false;
                 // Play enemy death sound with enhanced volume
                 if (this.audioManager) {
+                    console.log('🔊 Attempting to play enemy_death sound');
                     this.audioManager.playSound('enemy_death');
+                } else {
+                    console.log('❌ No audioManager available for death sound');
                 }
                 // Start dramatic death animation
                 this.startDramaticDeathAnimation(enemy);
                 console.log('🎆 Death animation started for enemy with', enemy.deathAnimation.sparkleCount, 'particles');
+                console.log('🎆 Enemy death animation object:', enemy.deathAnimation);
+                console.log('🎆 Enemy isDying:', enemy.isDying);
                 return enemy.reward; // Return coins earned
             }
         }
@@ -258,8 +263,8 @@ class EnemySystem {
      * Remove dead enemies from the system
      */
     cleanupDeadEnemies() {
-        this.removedEnemies = this.enemies.filter(enemy => !enemy.isAlive || enemy.reachedGoal);
-        this.enemies = this.enemies.filter(enemy => enemy.isAlive && !enemy.reachedGoal);
+        this.removedEnemies = this.enemies.filter(enemy => (!enemy.isAlive && !enemy.isDying) || enemy.reachedGoal);
+        this.enemies = this.enemies.filter(enemy => (enemy.isAlive || enemy.isDying) && !enemy.reachedGoal);
     }
 
     /**
@@ -342,42 +347,43 @@ class EnemySystem {
         enemy.isDying = true;
         enemy.deathAnimation = {
             time: 0,
-            duration: 1.2, // Longer duration for more dramatic effect
+            duration: 800, // Shorter, gentler duration (800ms)
             scale: 1.0,
             rotation: 0,
             alpha: 1.0,
-        // Enhanced dramatic effects
-        explosionRadius: 0,
-        maxExplosionRadius: enemy.size * 3, // 3x enemy size explosion
-        sparkleCount: 30, // Much more particles for violent explosion effect
-        sparkles: []
+            // Gentle dramatic effects
+            explosionRadius: 0,
+            maxExplosionRadius: 30, // Smaller, gentler explosion radius (30 pixels)
+            sparkleCount: 12, // Fewer, smaller particles for gentler effect
+            sparkles: []
         };
-        
+
         // Create sparkle particles for dramatic effect with enhanced randomness
         for (let i = 0; i < enemy.deathAnimation.sparkleCount; i++) {
             const angle = (i / enemy.deathAnimation.sparkleCount) * Math.PI * 2;
             // Add random angle variation for more organic spread
             const angleVariation = (Math.random() - 0.5) * 0.5; // ±0.25 radians variation
             const finalAngle = angle + angleVariation;
-            
-            // Much more violent explosion speed (200-400 pixels/second)
-            const speed = 200 + Math.random() * 200;
-            
-            // More violent colors - reds, oranges, and dark chunks
-            const colors = ['#FF0000', '#FF4500', '#FF6347', '#8B0000', '#B22222', '#DC143C', '#A0522D', '#654321'];
+
+            // Gentler explosion speed (60-140 pixels/second)
+            const speed = 60 + Math.random() * 80;
+
+            // Pastel colors matching game palette
+            const colors = ['#FFB6C1', '#FFC0CB', '#FFE4E1', '#F0E68C', '#DDA0DD', '#98FB98'];
             const color = colors[Math.floor(Math.random() * colors.length)];
-            
-            // Much larger chunks for violent explosion (8-20 pixels)
-            const size = 8 + Math.random() * 12;
-            
-            // Shorter, more violent life (0.8-1.5 seconds)
-            const life = 0.8 + Math.random() * 0.7; // 0.8-1.5 seconds
-            
+
+            // Smaller, gentler chunks (3-8 pixels)
+            const size = 3 + Math.random() * 5;
+
+            // Longer, gentler life (1.0-1.8 seconds)
+            const life = 1.0 + Math.random() * 0.8; // 1.0-1.8 seconds
+
             enemy.deathAnimation.sparkles.push({
+                id: Date.now() + Math.random() * 1000, // Unique ID for consistent shape
                 x: 0,
                 y: 0,
                 vx: Math.cos(finalAngle) * speed,
-                vy: Math.sin(finalAngle) * speed - 50, // Much stronger upward bias for violent explosion
+                vy: Math.sin(finalAngle) * speed - 20, // Gentler upward bias
                 life: life,
                 maxLife: life,
                 size: size,
@@ -385,9 +391,9 @@ class EnemySystem {
                 alpha: 1.0,
                 // Add random rotation for sparkle effect
                 rotation: Math.random() * Math.PI * 2,
-                rotationSpeed: (Math.random() - 0.5) * 2.0, // Much faster spinning chunks
+                rotationSpeed: (Math.random() - 0.5) * 0.5, // Gentler spinning
                 // Add gravity for more realistic physics
-                gravity: 150 + Math.random() * 100 // Gravity effect for falling chunks
+                gravity: 50 + Math.random() * 30 // Lighter gravity effect
             });
         }
     }
@@ -449,13 +455,13 @@ class EnemySystem {
             const progress = enemy.deathAnimation.time / enemy.deathAnimation.duration;
 
             if (progress >= 1) {
-                enemy.isAlive = false;
+                enemy.isDying = false; // Death animation complete
             } else {
                 // Original death animation properties
                 enemy.deathAnimation.scale = 1 - progress * 0.5;
                 enemy.deathAnimation.rotation = progress * Math.PI * 2;
                 enemy.deathAnimation.alpha = 1 - progress;
-                
+
                 // Update explosion radius for dramatic effect
                 if (enemy.deathAnimation.maxExplosionRadius) {
                     const explosionProgress = Math.min(progress / 0.8, 1); // Explosion phase ends at 80% of animation

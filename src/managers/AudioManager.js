@@ -28,10 +28,13 @@ class SimpleAudioManager {
         this.loadSound('coin_expire', 'sounds/coin_expire.ogg');
         this.loadSound('projectile_fire', 'sounds/projectile_fire.ogg');
         this.loadSound('enemy_hit', 'sounds/enemy_hit.ogg');
-        this.loadSound('enemy_death', 'sounds/enemy_death.ogg');
+        this.loadSound('enemy_death', 'sounds/enemy_death.ogg'); // Now using dramatic metal impact sound
         // Enhanced death sound with higher volume for more dramatic effect
         if (this.sounds['enemy_death']) {
             this.sounds['enemy_death'].volume = 0.9; // Higher volume for dramatic death sound
+            console.log('🔊 enemy_death sound loaded successfully, volume set to 0.9');
+        } else {
+            console.log('❌ enemy_death sound failed to load');
         }
         this.loadSound('enemy_spawn', 'sounds/enemy_spawn.ogg');
         this.loadSound('enemy_reach_end', 'sounds/enemy_reach_end.ogg');
@@ -67,7 +70,10 @@ class SimpleAudioManager {
      * @param {string} name - Name of the sound to play
      */
     playSound(name) {
-        if (this.muted) return;
+        if (this.muted) {
+            console.log(`🔇 Audio muted, skipping sound: ${name}`);
+            return;
+        }
 
         // Try to unlock audio on first sound attempt
         this.checkAndUnlockAudio();
@@ -79,11 +85,15 @@ class SimpleAudioManager {
                 this.sounds[name].play().catch(error => {
                     // Ignore autoplay errors silently
                     // Audio play failed - this is expected for autoplay restrictions
+                    console.log(`🔊 Audio play failed for ${name}:`, error);
                 });
+                console.log(`🔊 Playing sound: ${name}`);
             } catch (error) {
+                console.log(`❌ Error playing sound ${name}:`, error);
                 if (this.logger) this.logger.warn(`Error playing sound ${name}:`, error);
             }
         } else {
+            console.log(`❌ Sound not found: ${name}`);
             if (this.logger) this.logger.warn(`Sound not found: ${name}`);
         }
     }

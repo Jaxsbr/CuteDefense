@@ -1865,7 +1865,8 @@ class RenderSystem {
 
     renderEnemies(enemies, tileSize, selectedEnemy = null) {
         enemies.forEach(enemy => {
-            if (enemy.isAlive) {
+            // Render alive enemies OR dying enemies (for death animations)
+            if (enemy.isAlive || enemy.isDying) {
                 const isSelected = selectedEnemy && selectedEnemy.id === enemy.id;
                 this.renderEnemy(enemy, tileSize, isSelected);
             }
@@ -1966,7 +1967,16 @@ class RenderSystem {
 
         // Render dramatic death effects (explosion and sparkles)
         if (enemy.isDying && enemy.deathAnimation) {
+            console.log('🎆 Rendering death effects for enemy');
             this.renderDramaticDeathEffects(enemy, centerX, centerY);
+        } else {
+            // Debug why death effects aren't rendering
+            if (enemy.isDying) {
+                console.log('🎆 Enemy isDying=true but no deathAnimation:', enemy.deathAnimation);
+            }
+            if (enemy.deathAnimation) {
+                console.log('🎆 Enemy has deathAnimation but isDying=false:', enemy.isDying);
+            }
         }
 
         // Restore context state
@@ -2203,33 +2213,33 @@ class RenderSystem {
         if (progress < 0.6) {
             const explosionProgress = progress / 0.6; // Scale to 0-1 for explosion phase
             const explosionRadius = animation.explosionRadius + (explosionProgress * animation.maxExplosionRadius);
-            
+
             // Outer violent explosion ring - red/orange
-            this.ctx.strokeStyle = '#FF0000';
-            this.ctx.lineWidth = 8;
-            this.ctx.shadowColor = '#FF0000';
-            this.ctx.shadowBlur = 25;
-            this.ctx.globalAlpha = (1 - explosionProgress) * 0.8;
+            this.ctx.strokeStyle = '#FFB6C1';
+            this.ctx.lineWidth = 4;
+            this.ctx.shadowColor = '#FFB6C1';
+            this.ctx.shadowBlur = 12;
+            this.ctx.globalAlpha = (1 - explosionProgress) * 0.6;
             this.ctx.beginPath();
             this.ctx.arc(centerX, centerY, explosionRadius, 0, Math.PI * 2);
             this.ctx.stroke();
 
-            // Middle bright ring - white hot
-            this.ctx.strokeStyle = '#FFFFFF';
-            this.ctx.lineWidth = 5;
-            this.ctx.shadowColor = '#FFFFFF';
-            this.ctx.shadowBlur = 15;
-            this.ctx.globalAlpha = (1 - explosionProgress) * 0.9;
+            // Middle ring - light yellow
+            this.ctx.strokeStyle = '#F0E68C';
+            this.ctx.lineWidth = 3;
+            this.ctx.shadowColor = '#F0E68C';
+            this.ctx.shadowBlur = 8;
+            this.ctx.globalAlpha = (1 - explosionProgress) * 0.5;
             this.ctx.beginPath();
             this.ctx.arc(centerX, centerY, explosionRadius * 0.8, 0, Math.PI * 2);
             this.ctx.stroke();
 
-            // Inner core ring - yellow hot
-            this.ctx.strokeStyle = '#FFFF00';
-            this.ctx.lineWidth = 3;
-            this.ctx.shadowColor = '#FFFF00';
-            this.ctx.shadowBlur = 10;
-            this.ctx.globalAlpha = (1 - explosionProgress) * 0.7;
+            // Inner core ring - soft lavender
+            this.ctx.strokeStyle = '#DDA0DD';
+            this.ctx.lineWidth = 2;
+            this.ctx.shadowColor = '#DDA0DD';
+            this.ctx.shadowBlur = 6;
+            this.ctx.globalAlpha = (1 - explosionProgress) * 0.4;
             this.ctx.beginPath();
             this.ctx.arc(centerX, centerY, explosionRadius * 0.6, 0, Math.PI * 2);
             this.ctx.stroke();
@@ -2253,41 +2263,24 @@ class RenderSystem {
                     // Calculate alpha based on remaining life
                     const lifeProgress = sparkle.life / sparkle.maxLife;
                     this.ctx.globalAlpha = lifeProgress * (1 - progress); // Fade out over time
-                    
+
                     this.ctx.save();
                     this.ctx.translate(centerX + sparkle.x, centerY + sparkle.y);
                     this.ctx.rotate(sparkle.rotation);
-                    
-                    // Draw violent chunks with jagged edges
+
+                    // Draw gentle sparkles with soft edges
                     this.ctx.fillStyle = sparkle.color;
                     this.ctx.shadowColor = sparkle.color;
-                    this.ctx.shadowBlur = 8; // Stronger glow for violent effect
-                    
-                    // Draw irregular chunk shape instead of perfect circle
+                    this.ctx.shadowBlur = 4; // Gentler glow
+
+                    // Draw simple circular sparkles
                     this.ctx.beginPath();
-                    const chunkSize = sparkle.size;
-                    const points = 6; // Hexagon-like shape for more jagged look
-                    
-                    for (let i = 0; i < points; i++) {
-                        const angle = (i / points) * Math.PI * 2;
-                        const radius = chunkSize * (0.7 + Math.random() * 0.3); // Variable radius for jagged edges
-                        const x = Math.cos(angle) * radius;
-                        const y = Math.sin(angle) * radius;
-                        
-                        if (i === 0) {
-                            this.ctx.moveTo(x, y);
-                        } else {
-                            this.ctx.lineTo(x, y);
-                        }
-                    }
-                    this.ctx.closePath();
+                    const sparkleSize = sparkle.size;
+
+                    // Draw simple circular sparkles
+                    this.ctx.arc(0, 0, sparkleSize, 0, Math.PI * 2);
                     this.ctx.fill();
-                    
-                    // Add dark outline for more dramatic effect
-                    this.ctx.strokeStyle = '#000000';
-                    this.ctx.lineWidth = 2;
-                    this.ctx.stroke();
-                    
+
                     this.ctx.restore();
                 }
             });

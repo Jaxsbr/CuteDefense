@@ -15,7 +15,6 @@ class GridSystem {
 
         // Path template system
         this.pathTemplates = this.initializePathTemplates();
-        this.difficulty = 'easy'; // Default to easy difficulty
 
         this.initializeGrid();
         this.generateEnemyPath();
@@ -501,28 +500,10 @@ class GridSystem {
         ];
     }
 
-    // Select a random path template based on difficulty
+    // Select a random path template
     selectRandomTemplate() {
-        const difficultyTemplates = this.getTemplatesForDifficulty(this.difficulty);
-        const randomIndex = Math.floor(Math.random() * difficultyTemplates.length);
-        return difficultyTemplates[randomIndex];
-    }
-
-    // Get templates based on difficulty level
-    getTemplatesForDifficulty(difficulty) {
-        if (difficulty === 'hard') {
-            // Hard: Short, direct paths (15-25 steps)
-            return this.pathTemplates.filter(template => {
-                const pathLength = template.path.length;
-                return pathLength >= 15 && pathLength <= 25;
-            });
-        } else {
-            // Easy: Long, winding paths (30+ steps)
-            return this.pathTemplates.filter(template => {
-                const pathLength = template.path.length;
-                return pathLength >= 30;
-            });
-        }
+        const randomIndex = Math.floor(Math.random() * this.pathTemplates.length);
+        return this.pathTemplates[randomIndex];
     }
 
     // Apply a path template to create the actual path
@@ -650,24 +631,4 @@ class GridSystem {
         return this.pathTemplates.map(t => ({ name: t.name, start: t.start, end: t.end }));
     }
 
-    // Set difficulty and regenerate path
-    setDifficulty(difficulty) {
-        if (difficulty === 'easy' || difficulty === 'hard') {
-            this.difficulty = difficulty;
-            this.generateEnemyPath(); // Regenerate path with new difficulty
-            if (this.logger) this.logger.info(`Difficulty set to: ${difficulty}`);
-        } else {
-            if (this.logger) this.logger.warn(`Invalid difficulty: ${difficulty}. Must be 'easy' or 'hard'.`);
-        }
-    }
-
-    // Get current difficulty
-    getDifficulty() {
-        return this.difficulty;
-    }
-
-    // Get available difficulties
-    getAvailableDifficulties() {
-        return ['easy', 'hard'];
-    }
 }
