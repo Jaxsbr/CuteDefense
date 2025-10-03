@@ -62,7 +62,7 @@ function initGame() {
     // Initialize responsive scaling system
     gameState.responsiveScaling = new ResponsiveScalingSystem();
     gameState.responsiveScaling.setLogger(gameState.logger);
-    
+
     // Update CONFIG with responsive scaling
     const scalingConfig = gameState.responsiveScaling.getConfig();
     CONFIG = {
@@ -77,17 +77,17 @@ function initGame() {
         GRID_OFFSET_X: scalingConfig.gridOffsetX,
         GRID_OFFSET_Y: scalingConfig.gridOffsetY
     };
-    
+
     gameState.logger.info('Responsive scaling initialized:', gameState.responsiveScaling.getScalingInfo());
 
     // Get canvas and context
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-    
+
     // Set canvas size based on responsive scaling
     canvas.width = CONFIG.CANVAS_WIDTH;
     canvas.height = CONFIG.CANVAS_HEIGHT;
-    
+
     gameState.logger.info(`Canvas size set to: ${canvas.width}x${canvas.height}`);
 
     // Initialize core systems
@@ -191,7 +191,7 @@ function initGame() {
         if (gameState.responsiveScaling) {
             gameState.logger.info('🔄 Window resized - recalculating responsive scaling');
             gameState.responsiveScaling.handleResize();
-            
+
             // Update CONFIG with new scaling
             const scalingConfig = gameState.responsiveScaling.getConfig();
             CONFIG = {
@@ -206,17 +206,17 @@ function initGame() {
                 GRID_OFFSET_X: scalingConfig.gridOffsetX,
                 GRID_OFFSET_Y: scalingConfig.gridOffsetY
             };
-            
+
             // Update canvas size
             const canvas = document.getElementById('gameCanvas');
             canvas.width = CONFIG.CANVAS_WIDTH;
             canvas.height = CONFIG.CANVAS_HEIGHT;
-            
+
             // Update InputSystem's responsive scaling reference
             if (gameState.input && gameState.input.setResponsiveScaling) {
                 gameState.input.setResponsiveScaling(gameState.responsiveScaling);
             }
-            
+
             gameState.logger.info('Responsive scaling updated:', gameState.responsiveScaling.getScalingInfo());
         }
     });
@@ -410,45 +410,53 @@ function render() {
 
 // Handle HUD clicks
 function handleHUDClick(clickX, clickY) {
-    // Left-docked HUD layout
-    const hudWidth = CONFIG.HUD_WIDTH; // 400px fixed width
-    const hudHeight = CONFIG.HUD_HEIGHT; // Full height
+    // Left-docked HUD layout - use responsive CONFIG values
+    const hudWidth = CONFIG.HUD_WIDTH; // Responsive width
+    const hudHeight = CONFIG.HUD_HEIGHT; // Responsive height
     const hudX = 0; // Left edge
     const hudY = 0; // Top edge
+
+    // Debug logging for HUD click detection
+    gameState.logger.info(`🎯 HUD Click Debug: click(${clickX}, ${clickY}) HUD bounds: (${hudX}, ${hudY}) to (${hudX + hudWidth}, ${hudY + hudHeight})`);
+    gameState.logger.info(`🎯 HUD Click Debug: CONFIG.HUD_WIDTH=${CONFIG.HUD_WIDTH}, CONFIG.HUD_HEIGHT=${CONFIG.HUD_HEIGHT}`);
 
     // Check if click is within HUD bounds
     if (clickX >= hudX && clickX <= hudX + hudWidth &&
         clickY >= hudY && clickY <= hudY + hudHeight) {
 
-        // Calculate section layout (5 equal sections)
-        const padding = 15;
-        const contentHeight = hudHeight - (padding * 2);
-        const contentY = hudY + padding;
-        const sectionWidth = (hudWidth - (padding * 6)) / 5; // 5 sections with 6 gaps
+        gameState.logger.info('✅ Click is within HUD bounds');
+
+        // Calculate section layout (4 equal sections VERTICAL) - use responsive padding
+        const scaleFactor = gameState.responsiveScaling ? gameState.responsiveScaling.getScaleFactor() : 1.0;
+        const padding = Math.floor(20 * scaleFactor); // Match renderer padding
+        const sectionHeight = (hudHeight - (padding * 5)) / 4; // 4 sections with 4 gaps (match renderer)
+        const sectionWidth = hudWidth - (padding * 2);
 
         // Section 1: Wave Info (no clickable elements)
-        const waveInfoX = hudX + padding;
+        const waveInfoY = hudY + padding;
 
-        // Section 2: Selection Portrait (no clickable elements)
-        const portraitX = waveInfoX + sectionWidth + padding;
+        // Section 2: Combined Selection (no clickable elements)
+        const selectionY = waveInfoY + sectionHeight + padding;
 
-        // Section 3: Selection Info (no clickable elements)
-        const infoX = portraitX + sectionWidth + padding;
-
-        // Section 4: Selection Actions (upgrade button)
-        const actionsX = infoX + sectionWidth + padding;
+        // Section 3: Selection Actions (upgrade button) - THIS IS THE IMPORTANT ONE
+        const actionsY = selectionY + sectionHeight + padding;
         if (gameState.selectedTower &&
-            clickX >= actionsX && clickX <= actionsX + sectionWidth &&
-            clickY >= contentY && clickY <= contentY + contentHeight) {
+            clickX >= hudX + padding && clickX <= hudX + padding + sectionWidth &&
+            clickY >= actionsY && clickY <= actionsY + sectionHeight) {
 
-            // Check if clicking upgrade button
-            const buttonWidth = sectionWidth - 20;
-            const buttonHeight = 30;
-            const buttonX = actionsX + 10;
-            const buttonY = contentY + 35;
+            // Check if clicking upgrade button - use responsive dimensions (scaleFactor already declared above)
+            const buttonWidth = sectionWidth - Math.floor(20 * scaleFactor);
+            const buttonHeight = Math.floor(30 * scaleFactor);
+            const buttonX = hudX + padding + Math.floor(10 * scaleFactor);
+            const buttonY = actionsY + Math.floor(35 * scaleFactor);
+
+            gameState.logger.info(`🎯 Upgrade Button Debug: button bounds: (${buttonX}, ${buttonY}) to (${buttonX + buttonWidth}, ${buttonY + buttonHeight})`);
+            gameState.logger.info(`🎯 Upgrade Button Debug: click(${clickX}, ${clickY}) scaleFactor=${scaleFactor}`);
 
             if (clickX >= buttonX && clickX <= buttonX + buttonWidth &&
                 clickY >= buttonY && clickY <= buttonY + buttonHeight) {
+
+                gameState.logger.info('✅ Click is within upgrade button bounds - attempting upgrade');
                 // Try to upgrade the selected tower
                 const upgradeResult = gameState.towerManager.tryUpgradeTower(gameState.selectedTower.x, gameState.selectedTower.y);
                 if (upgradeResult) {
@@ -471,9 +479,6 @@ function handleHUDClick(clickX, clickY) {
                 return true;
             }
         }
-
-        // Section 5: Coin Info (no clickable elements)
-        const coinX = actionsX + sectionWidth + padding;
 
         return true; // Click was in HUD area
     }

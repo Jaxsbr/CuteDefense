@@ -599,9 +599,9 @@ class RenderSystem {
 
     // Render main HUD panel - left-docked layout for tablet optimization
     renderMainHUD(selectedTower, towerManager, waveInfo = null, resourceInfo = null, selectedEnemy = null, popupInfo = null, gameStateInfo = null, gridSystem = null) {
-        // Left-docked HUD layout
-        const hudWidth = 400; // Fixed HUD width
-        const hudHeight = this.height; // Full height HUD
+        // Left-docked HUD layout - use responsive CONFIG values
+        const hudWidth = CONFIG.HUD_WIDTH; // Responsive HUD width
+        const hudHeight = CONFIG.HUD_HEIGHT; // Responsive HUD height
         const hudX = 0; // Left edge
         const hudY = 0; // Top edge
 
@@ -648,7 +648,9 @@ class RenderSystem {
 
     // Render the four HUD sections: Wave Info, Combined Selection (Portrait+Info), Selection Actions, Coin Info
     renderHUDSections(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager, waveInfo, resourceInfo, selectedEnemy, popupInfo, gameStateInfo, gridSystem) {
-        const padding = 20;
+        // Use responsive scaling for padding
+        const scaleFactor = window.gameState && window.gameState.responsiveScaling ? window.gameState.responsiveScaling.getScaleFactor() : 1.0;
+        const padding = Math.floor(20 * scaleFactor);
         const sectionHeight = (hudHeight - (padding * 5)) / 4; // 4 sections with 4 gaps
 
         // Vertical layout for left-docked HUD
@@ -914,20 +916,22 @@ class RenderSystem {
         this.ctx.stroke();
         this.ctx.restore();
 
-        // Actions title
+        // Actions title with responsive font size
+        const scaleFactor = window.gameState && window.gameState.responsiveScaling ? window.gameState.responsiveScaling.getScaleFactor() : 1.0;
         this.ctx.fillStyle = '#FFF';
-        this.ctx.font = 'bold 16px Arial';
+        this.ctx.font = `bold ${Math.floor(16 * scaleFactor)}px Arial`;
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('Actions', x + width / 2, y + 20);
+        this.ctx.fillText('Actions', x + width / 2, y + Math.floor(20 * scaleFactor));
 
         if (selectedTower) {
-            // Render upgrade button
+            // Render upgrade button with responsive scaling
             const upgradeInfo = towerManager.getTowerUpgradeInfo(selectedTower.x, selectedTower.y);
             if (upgradeInfo) {
-                const buttonWidth = width - 20;
-                const buttonHeight = 30;
-                const buttonX = x + 10;
-                const buttonY = y + 35;
+                // Use responsive scaling for button dimensions (scaleFactor already declared above)
+                const buttonWidth = width - Math.floor(20 * scaleFactor);
+                const buttonHeight = Math.floor(30 * scaleFactor);
+                const buttonX = x + Math.floor(10 * scaleFactor);
+                const buttonY = y + Math.floor(35 * scaleFactor);
 
                 const canAfford = this.resourceSystem && this.resourceSystem.canAfford(upgradeInfo.cost);
 
@@ -940,19 +944,19 @@ class RenderSystem {
                 this.ctx.lineWidth = 2;
                 this.ctx.strokeRect(buttonX, buttonY, buttonWidth, buttonHeight);
 
-                // Button text
+                // Button text with responsive font size
                 this.ctx.fillStyle = '#FFF';
-                this.ctx.font = 'bold 14px Arial';
+                this.ctx.font = `bold ${Math.floor(14 * scaleFactor)}px Arial`;
                 this.ctx.textAlign = 'center';
-                this.ctx.fillText('⬆️ Upgrade', buttonX + buttonWidth / 2, buttonY + 20);
+                this.ctx.fillText('⬆️ Upgrade', buttonX + buttonWidth / 2, buttonY + Math.floor(20 * scaleFactor));
 
-                // Cost text
-                this.ctx.font = '12px Arial';
-                this.ctx.fillText(`💰 ${upgradeInfo.cost}`, buttonX + buttonWidth / 2, buttonY + 35);
+                // Cost text with responsive font size
+                this.ctx.font = `${Math.floor(12 * scaleFactor)}px Arial`;
+                this.ctx.fillText(`💰 ${upgradeInfo.cost}`, buttonX + buttonWidth / 2, buttonY + Math.floor(35 * scaleFactor));
             }
         } else {
-            // Show clean no actions
-            this.ctx.font = '14px Arial';
+            // Show clean no actions with responsive font
+            this.ctx.font = `${Math.floor(14 * scaleFactor)}px Arial`;
             this.ctx.textAlign = 'center';
             this.ctx.globalAlpha = 1.0;
             this.ctx.fillStyle = '#CCC';
