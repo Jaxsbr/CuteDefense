@@ -583,14 +583,18 @@ class RenderSystem {
         return 12 * 64; // 12 rows * 64px tile size
     }
 
-    // Render main HUD panel - always visible below tilemap with cartoony styling
+    // Calculate game area offset for left-docked HUD
+    getGameAreaOffset() {
+        return 400; // HUD width
+    }
+
+    // Render main HUD panel - left-docked layout for tablet optimization
     renderMainHUD(selectedTower, towerManager, waveInfo = null, resourceInfo = null, selectedEnemy = null, popupInfo = null, gameStateInfo = null, gridSystem = null) {
-        // Calculate HUD area below tilemap
-        const tilemapHeight = this.getTilemapHeight();
-        const hudHeight = 120; // Fixed height for HUD
-        const hudY = tilemapHeight + 10; // 10px gap below tilemap
-        const hudWidth = this.width - 20; // Full width minus margins
-        const hudX = 10; // 10px margin from left
+        // Left-docked HUD layout
+        const hudWidth = 400; // Fixed HUD width
+        const hudHeight = this.height; // Full height HUD
+        const hudX = 0; // Left edge
+        const hudY = 0; // Top edge
 
         // Clean HUD background with rounded corners
         this.ctx.save();
@@ -1536,6 +1540,7 @@ class RenderSystem {
 
     renderGrid(gridSystem, debug) {
         const tileSize = gridSystem.tileSize;
+        const gameOffsetX = this.getGameAreaOffset(); // Offset for left-docked HUD
 
         // Render tiles
         for (let y = 0; y < gridSystem.rows; y++) {
@@ -1563,7 +1568,8 @@ class RenderSystem {
     }
 
     renderTile(gridX, gridY, tile, tileSize) {
-        const screenX = gridX * tileSize;
+        const gameOffsetX = this.getGameAreaOffset(); // Offset for left-docked HUD
+        const screenX = gridX * tileSize + gameOffsetX;
         const screenY = gridY * tileSize;
         const centerX = screenX + tileSize / 2;
         const centerY = screenY + tileSize / 2;

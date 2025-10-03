@@ -5,12 +5,14 @@
 
 // Game configuration
 const CONFIG = {
-    CANVAS_WIDTH: 1280,  // 20 columns * 64px = 1280px
-    CANVAS_HEIGHT: 888,  // 12 rows * 64px + HUD = 768 + 120 = 888px
+    CANVAS_WIDTH: 1920,  // Wider canvas for tablet optimization
+    CANVAS_HEIGHT: 1000, // Taller canvas for left-docked HUD
     GRID_SIZE: 64,       // 64px tiles for good visibility
-    GRID_COLS: 20,       // 20 columns for optimal tablet/desktop ratio
+    GRID_COLS: 24,       // 24 columns for better width utilization
     GRID_ROWS: 12,       // 12 rows (unchanged)
-    TILE_SIZE: 64        // 64px tiles
+    TILE_SIZE: 64,       // 64px tiles
+    HUD_WIDTH: 400,      // Fixed HUD width (left-docked)
+    HUD_HEIGHT: 1000     // Full height HUD
 };
 
 // Game state
@@ -338,12 +340,11 @@ function render() {
 
 // Handle HUD clicks
 function handleHUDClick(clickX, clickY) {
-    // Calculate HUD area below tilemap
-    const tilemapHeight = 12 * 64; // 12 rows * 64px tile size
-    const hudHeight = 120;
-    const hudY = tilemapHeight + 10;
-    const hudWidth = CONFIG.CANVAS_WIDTH - 20;
-    const hudX = 10;
+    // Left-docked HUD layout
+    const hudWidth = CONFIG.HUD_WIDTH; // 400px fixed width
+    const hudHeight = CONFIG.HUD_HEIGHT; // Full height
+    const hudX = 0; // Left edge
+    const hudY = 0; // Top edge
 
     // Check if click is within HUD bounds
     if (clickX >= hudX && clickX <= hudX + hudWidth &&
