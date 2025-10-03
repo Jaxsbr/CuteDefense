@@ -110,6 +110,9 @@ function initGame() {
     gameState.grid.setLogger(gameState.logger);
     gameState.renderer.setLogger(gameState.logger);
 
+    // Set grid system references for coordinate conversion
+    gameState.towerSystem.setGridSystem(gameState.grid);
+
     // Safety check for GameStateManager
     if (gameState.gameStateManager && typeof gameState.gameStateManager.setLogger === 'function') {
         gameState.gameStateManager.setLogger(gameState.logger);
@@ -425,11 +428,11 @@ function handleTowerPlacementPopupClick(clickX, clickY) {
         const gridPos = gameState.towerPlacementPopup;
         const type = gridPos.selectedType || 'BASIC';
         gameState.logger.info(`🏗️ Place selected tower: ${type}`);
-        const placementSuccess = gameState.towerManager.tryPlaceTower(gridPos.x, gridPos.y, type);
+        const placementSuccess = gameState.towerManager.tryPlaceTower(gridPos.gridX, gridPos.gridY, type);
         if (placementSuccess) {
             // Play SFX and select new tower
             gameState.audioManager.playSound('tower_place');
-            const newTower = gameState.towerManager.getTowerAt(gridPos.x, gridPos.y);
+            const newTower = gameState.towerManager.getTowerAt(gridPos.gridX, gridPos.gridY);
             gameState.selectedTower = newTower;
             gameState.lastPlacedTowerType = type;
         }
@@ -628,13 +631,18 @@ function handleInput() {
             // Clear any existing selections when showing placement popup
             gameState.selectedTower = null;
             gameState.selectedEnemy = null;
+
+            // Convert grid coordinates to screen coordinates for popup positioning
+            const screenPos = gameState.grid.gridToScreen(gridPos.x, gridPos.y);
             gameState.towerPlacementPopup = {
-                x: gridPos.x,
-                y: gridPos.y,
+                x: screenPos.x,  // Use screen coordinates
+                y: screenPos.y,  // Use screen coordinates
+                gridX: gridPos.x, // Keep grid coordinates for tower placement
+                gridY: gridPos.y, // Keep grid coordinates for tower placement
                 tileSize: CONFIG.TILE_SIZE,
                 selectedType: gameState.lastPlacedTowerType || 'BASIC'
             };
-            gameState.logger.info(`🏗️ Show placement popup at (${gridPos.x}, ${gridPos.y}) - cleared selections`);
+            gameState.logger.info(`🏗️ Show placement popup at grid (${gridPos.x}, ${gridPos.y}) -> screen (${screenPos.x}, ${screenPos.y}) - cleared selections`);
         } else {
             gameState.logger.info(`❌ Cannot build at (${gridPos.x}, ${gridPos.y})`);
             // Clear all selections and popup if clicking non-buildable space

@@ -650,10 +650,10 @@ class RenderSystem {
     renderHUDSections(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager, waveInfo, resourceInfo, selectedEnemy, popupInfo, gameStateInfo, gridSystem) {
         const padding = 20;
         const sectionHeight = (hudHeight - (padding * 5)) / 4; // 4 sections with 4 gaps
-        
+
         // Vertical layout for left-docked HUD
         const sectionWidth = hudWidth - (padding * 2);
-        
+
         // Section 1: Wave Info (top)
         const waveInfoY = hudY + padding;
         this.renderWaveInfoSection(hudX + padding, waveInfoY, sectionWidth, sectionHeight, waveInfo, gameStateInfo, gridSystem);
@@ -3780,10 +3780,11 @@ class RenderSystem {
         const currentCoins = this.resourceSystem ? this.resourceSystem.getCoins() : 0;
 
         // Calculate compact popup position (1.5-2 tiles max)
+        // x and y are now screen coordinates, not grid coordinates
         const popupWidth = Math.min(1.6 * tileSize, 150);
         const popupHeight = Math.min(1.6 * tileSize, 100);
-        const popupX = x * tileSize + (tileSize - popupWidth) / 2;
-        const popupY = y * tileSize + (tileSize - popupHeight) / 2;
+        const popupX = x + (tileSize - popupWidth) / 2;
+        const popupY = y + (tileSize - popupHeight) / 2;
 
         // Ensure popup stays within canvas bounds
         const finalX = Math.max(10, Math.min(popupX, this.width - popupWidth - 10));
@@ -3827,8 +3828,9 @@ class RenderSystem {
         const mainBtnY = finalY + 8;
 
         // Simple ghost preview with clear range indication
-        const centerX = x * tileSize + tileSize / 2;
-        const centerY = y * tileSize + tileSize / 2;
+        // x and y are now screen coordinates, not grid coordinates
+        const centerX = x + tileSize / 2;
+        const centerY = y + tileSize / 2;
         const time = Date.now() / 1000;
 
         this.ctx.save();
@@ -4220,15 +4222,20 @@ class RenderSystem {
             this.ctx.save();
 
             // Create ambient lighting overlay only over tilemap area
-            const tilemapHeight = this.getTilemapHeight();
+            // Use grid offset coordinates to match the actual grid position
+            const gridOffsetX = 400 + 120; // HUD width + horizontal margin (CONFIG.HUD_WIDTH + CONFIG.GRID_OFFSET_X)
+            const gridOffsetY = 200; // Vertical margin (CONFIG.GRID_OFFSET_Y)
+            const tilemapHeight = 12 * 64; // 12 rows * 64px tile size
+            const tilemapWidth = 30 * 64; // 30 columns * 64px tile size
+
             const overlayAlpha = 1.0 - ambientLight;
             this.ctx.fillStyle = `rgba(0, 0, 0, ${overlayAlpha})`;
-            this.ctx.fillRect(0, 0, this.width, tilemapHeight);
+            this.ctx.fillRect(gridOffsetX, gridOffsetY, tilemapWidth, tilemapHeight);
 
             // Add subtle blue tint for night atmosphere
             if (this.dayNightSystem.currentPhase === 'night') {
                 this.ctx.fillStyle = `rgba(0, 50, 100, ${overlayAlpha * 0.3})`;
-                this.ctx.fillRect(0, 0, this.width, tilemapHeight);
+                this.ctx.fillRect(gridOffsetX, gridOffsetY, tilemapWidth, tilemapHeight);
             }
 
             this.ctx.restore();

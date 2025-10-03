@@ -142,20 +142,25 @@ class GridSystem {
 
     screenToGrid(screenX, screenY) {
         // Account for grid offset (HUD width + horizontal margin)
-        const gridOffsetX = 400 + 120; // HUD width + horizontal margin
-        const gridOffsetY = 200; // Vertical margin
-        
+        // Use CONFIG values from game.js for consistency
+        const gridOffsetX = 400 + 120; // HUD width + horizontal margin (CONFIG.HUD_WIDTH + CONFIG.GRID_OFFSET_X)
+        const gridOffsetY = 200; // Vertical margin (CONFIG.GRID_OFFSET_Y)
+
+        const gridX = Math.floor((screenX - gridOffsetX) / this.tileSize);
+        const gridY = Math.floor((screenY - gridOffsetY) / this.tileSize);
+
         return {
-            x: Math.floor((screenX - gridOffsetX) / this.tileSize),
-            y: Math.floor((screenY - gridOffsetY) / this.tileSize)
+            x: gridX,
+            y: gridY
         };
     }
 
     gridToScreen(gridX, gridY) {
         // Account for grid offset (HUD width + horizontal margin)
-        const gridOffsetX = 400 + 120; // HUD width + horizontal margin
-        const gridOffsetY = 200; // Vertical margin
-        
+        // Use CONFIG values from game.js for consistency
+        const gridOffsetX = 400 + 120; // HUD width + horizontal margin (CONFIG.HUD_WIDTH + CONFIG.GRID_OFFSET_X)
+        const gridOffsetY = 200; // Vertical margin (CONFIG.GRID_OFFSET_Y)
+
         return {
             x: gridX * this.tileSize + gridOffsetX,
             y: gridY * this.tileSize + gridOffsetY

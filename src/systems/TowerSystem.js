@@ -11,6 +11,7 @@ class TowerSystem {
         this.lastUpdateTime = 0;
         this.audioManager = null; // Audio manager reference
         this.logger = null; // Logger reference
+        this.gridSystem = null; // Grid system reference for coordinate conversion
     }
 
     // Add a new tower
@@ -238,6 +239,11 @@ class TowerSystem {
         this.logger = logger;
     }
 
+    // Set grid system reference for coordinate conversion
+    setGridSystem(gridSystem) {
+        this.gridSystem = gridSystem;
+    }
+
     // Shoot at target
     shoot(tower, target) {
         // Play projectile fire sound
@@ -257,11 +263,14 @@ class TowerSystem {
         tower.firingAnimation.active = true;
         tower.firingAnimation.time = 0;
 
-        // Calculate direction vector for projectile
-        const startX = tower.x * 64 + 32;
-        const startY = tower.y * 64 + 32;
-        const targetX = target.x * 64 + 32;
-        const targetY = target.y * 64 + 32;
+        // Calculate direction vector for projectile using grid system coordinate conversion
+        const startScreenPos = this.gridSystem ? this.gridSystem.gridToScreen(tower.x, tower.y) : { x: tower.x * 64, y: tower.y * 64 };
+        const targetScreenPos = this.gridSystem ? this.gridSystem.gridToScreen(target.x, target.y) : { x: target.x * 64, y: target.y * 64 };
+
+        const startX = startScreenPos.x + 32; // Add half tile size for center
+        const startY = startScreenPos.y + 32; // Add half tile size for center
+        const targetX = targetScreenPos.x + 32; // Add half tile size for center
+        const targetY = targetScreenPos.y + 32; // Add half tile size for center
 
 
         // Check if this is a strong tower with bomb capability
@@ -423,8 +432,9 @@ class TowerSystem {
     // Enhanced collision detection for projectiles
     checkProjectileCollision(projectile, enemy) {
         // Convert enemy position to screen coordinates
-        const enemyScreenX = enemy.x * 64 + 32;
-        const enemyScreenY = enemy.y * 64 + 32;
+        const enemyScreenPos = this.gridSystem ? this.gridSystem.gridToScreen(enemy.x, enemy.y) : { x: enemy.x * 64, y: enemy.y * 64 };
+        const enemyScreenX = enemyScreenPos.x + 32;
+        const enemyScreenY = enemyScreenPos.y + 32;
 
         const dx = projectile.x - enemyScreenX;
         const dy = projectile.y - enemyScreenY;
@@ -468,7 +478,8 @@ class TowerSystem {
                 enemySystem.addDamageIndicator(enemy, projectile.damage);
 
                 // Create bomb damage text
-                this.createBombDamageText(enemy.x * 64 + 32, enemy.y * 64 + 32, projectile.damage);
+                const enemyScreenPos = this.gridSystem ? this.gridSystem.gridToScreen(enemy.x, enemy.y) : { x: enemy.x * 64, y: enemy.y * 64 };
+                this.createBombDamageText(enemyScreenPos.x + 32, enemyScreenPos.y + 32, projectile.damage);
 
                 // Deal damage and check if enemy dies
                 const coinsEarned = enemySystem.damageEnemy(enemy.id, projectile.damage);
@@ -477,8 +488,9 @@ class TowerSystem {
                     enemySystem.startDeathAnimation(enemy);
 
                     // Spawn coin at enemy's current position
-                    const coinX = enemy.x * 64 + 32;
-                    const coinY = enemy.y * 64 + 32;
+                    const enemyScreenPos = this.gridSystem ? this.gridSystem.gridToScreen(enemy.x, enemy.y) : { x: enemy.x * 64, y: enemy.y * 64 };
+                    const coinX = enemyScreenPos.x + 32;
+                    const coinY = enemyScreenPos.y + 32;
                     resourceSystem.spawnCoin(coinX, coinY, coinsEarned);
                     if (this.logger) this.logger.info(`Enemy killed by bomb! Earned ${coinsEarned} coins at (${coinX}, ${coinY})`);
                 }
@@ -515,8 +527,9 @@ class TowerSystem {
             enemySystem.startDeathAnimation(enemy);
 
             // Spawn coin at enemy's current position
-            const coinX = enemy.x * 64 + 32;
-            const coinY = enemy.y * 64 + 32;
+            const enemyScreenPos = this.gridSystem ? this.gridSystem.gridToScreen(enemy.x, enemy.y) : { x: enemy.x * 64, y: enemy.y * 64 };
+            const coinX = enemyScreenPos.x + 32;
+            const coinY = enemyScreenPos.y + 32;
             resourceSystem.spawnCoin(coinX, coinY, coinsEarned);
             if (this.logger) this.logger.info(`Enemy killed! Earned ${coinsEarned} coins at (${coinX}, ${coinY})`);
         }
@@ -626,8 +639,9 @@ class TowerSystem {
     // Create upgrade particle effect
     createUpgradeParticles(tower) {
         const particles = [];
-        const centerX = tower.x * 64 + 32;
-        const centerY = tower.y * 64 + 32;
+        const towerScreenPos = this.gridSystem ? this.gridSystem.gridToScreen(tower.x, tower.y) : { x: tower.x * 64, y: tower.y * 64 };
+        const centerX = towerScreenPos.x + 32;
+        const centerY = towerScreenPos.y + 32;
 
         // Create 12 particles in a circle around the tower
         for (let i = 0; i < 12; i++) {
