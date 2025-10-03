@@ -12,6 +12,7 @@ class GridSystem {
         this.startTile = null;
         this.endTile = null;
         this.logger = null; // Logger reference
+        this.difficulty = 'easy'; // Default difficulty
 
         // Path template system
         this.pathTemplates = this.initializePathTemplates();
@@ -23,6 +24,22 @@ class GridSystem {
     // Set logger reference
     setLogger(logger) {
         this.logger = logger;
+    }
+
+    // Get current difficulty
+    getDifficulty() {
+        return this.difficulty;
+    }
+
+    // Set difficulty and regenerate path
+    setDifficulty(newDifficulty) {
+        if (newDifficulty === 'easy' || newDifficulty === 'hard') {
+            this.difficulty = newDifficulty;
+            this.generateEnemyPath(); // Regenerate path with new difficulty
+            if (this.logger) {
+                this.logger.info(`Difficulty changed to: ${newDifficulty}`);
+            }
+        }
     }
 
     initializeGrid() {
@@ -500,10 +517,29 @@ class GridSystem {
         ];
     }
 
-    // Select a random path template
+    // Select a random path template based on difficulty
     selectRandomTemplate() {
-        const randomIndex = Math.floor(Math.random() * this.pathTemplates.length);
-        return this.pathTemplates[randomIndex];
+        // Filter templates by difficulty
+        let availableTemplates;
+        if (this.difficulty === 'hard') {
+            // Hard difficulty: short direct paths
+            availableTemplates = this.pathTemplates.filter(template =>
+                template.name.includes('Hard')
+            );
+        } else {
+            // Easy difficulty: long winding paths
+            availableTemplates = this.pathTemplates.filter(template =>
+                !template.name.includes('Hard')
+            );
+        }
+
+        // Fallback to all templates if filtering fails
+        if (availableTemplates.length === 0) {
+            availableTemplates = this.pathTemplates;
+        }
+
+        const randomIndex = Math.floor(Math.random() * availableTemplates.length);
+        return availableTemplates[randomIndex];
     }
 
     // Apply a path template to create the actual path

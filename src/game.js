@@ -16,6 +16,14 @@ const CONFIG = {
 // Game state
 let gameState = {
     isRunning: false,
+    showStartMenu: true, // Show start menu before game begins
+    soundEnabled: true, // Sound toggle state
+    transition: {
+        active: false,
+        startTime: 0,
+        duration: 1000, // 1 second transition
+        type: 'fadeOut'
+    },
     debug: {
         enabled: false,
         showGrid: false,
@@ -55,6 +63,7 @@ function initGame() {
     gameState.grid = new GridSystem(CONFIG.GRID_COLS, CONFIG.GRID_ROWS, CONFIG.TILE_SIZE);
     gameState.logger.info('Grid system initialized');
     gameState.input = new InputSystem(canvas);
+    gameState.input.setGridSystem(gameState.grid); // Connect grid system to input system
     gameState.logger.info('Input system initialized');
     gameState.renderer = new RenderSystem(ctx, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
     gameState.logger.info('Render system initialized');
@@ -114,12 +123,31 @@ function initGame() {
     // Start background music
     gameState.audioManager.startPreparationMusic();
 
-    // Show audio hint if needed
-    showAudioHintIfNeeded();
+    // Show audio hint if needed - DISABLED (replaced with start menu sound toggle)
+    // showAudioHintIfNeeded();
 
     // Start game loop
     gameState.isRunning = true;
     gameLoop();
+
+    // Add global keyboard listener for start menu and restart
+    document.addEventListener('keydown', (e) => {
+        if (gameState.showStartMenu) {
+            if (e.key === '1') {
+                gameState.grid.setDifficulty('easy');
+                gameState.showStartMenu = false;
+                gameState.logger.info('🎮 Starting game with easy difficulty');
+            } else if (e.key === '2') {
+                gameState.grid.setDifficulty('hard');
+                gameState.showStartMenu = false;
+                gameState.logger.info('🎮 Starting game with hard difficulty');
+            }
+        } else if (e.key === 'r' || e.key === 'R') {
+            // Restart to start menu
+            gameState.showStartMenu = true;
+            gameState.logger.info('🔄 Returning to start menu');
+        }
+    });
 
     gameState.logger.info('Game initialized successfully!');
     gameState.logger.info('Game state:', gameState);
@@ -155,6 +183,11 @@ function update() {
 
     // Update input system
     gameState.input.update();
+
+    // Check if start menu is showing - stop all game systems except rendering
+    if (gameState.showStartMenu) {
+        return; // Stop all updates when start menu is showing
+    }
 
     // Check if game is paused - stop all game systems except rendering
     if (gameState.gameStateManager.isPaused()) {
@@ -198,6 +231,31 @@ function update() {
 
 // Render game frame
 function render() {
+    // Show start menu if active
+    if (gameState.showStartMenu) {
+        gameState.renderer.clear();
+        gameState.renderer.renderStartMenu(gameState);
+
+        // Handle transition effect
+        if (gameState.transition.active) {
+            const elapsed = Date.now() - gameState.transition.startTime;
+            const progress = Math.min(elapsed / gameState.transition.duration, 1);
+
+            // Fade out effect
+            gameState.renderer.ctx.save();
+            gameState.renderer.ctx.fillStyle = `rgba(0, 0, 0, ${progress})`;
+            gameState.renderer.ctx.fillRect(0, 0, gameState.renderer.width, gameState.renderer.height);
+            gameState.renderer.ctx.restore();
+
+            // Complete transition
+            if (progress >= 1) {
+                gameState.showStartMenu = false;
+                gameState.transition.active = false;
+            }
+        }
+        return;
+    }
+
     // Update day/night phase based on wave state
     const currentWaveInfo = gameState.enemyManager.getWaveInfo();
     // Debug: Log wave state every 60 frames (1 second at 60fps)
@@ -259,7 +317,7 @@ function render() {
     // Render main HUD (always visible) - pass popup info for proposed tower preview
     const resourceInfo = gameState.resourceSystem.getResourceInfo();
     const gameStateInfo = gameState.gameStateManager.getGameStateInfo();
-    gameState.renderer.renderMainHUD(gameState.selectedTower, gameState.towerManager, waveInfo, resourceInfo, gameState.selectedEnemy, gameState.towerPlacementPopup, gameStateInfo);
+    gameState.renderer.renderMainHUD(gameState.selectedTower, gameState.towerManager, waveInfo, resourceInfo, gameState.selectedEnemy, gameState.towerPlacementPopup, gameStateInfo, gameState.grid);
 
     // Render tower placement popup if active
     if (gameState.towerPlacementPopup) {
@@ -462,11 +520,7 @@ function handleInput() {
     if (gameState.input.wasClicked()) {
         gameState.logger.info('🎯 Click detected!');
 
-        // Hide audio hint on first click
-        const audioHint = document.getElementById('audio-hint');
-        if (audioHint) {
-            audioHint.style.display = 'none';
-        }
+        // Audio hint removed - sound control now in start menu
 
         // Try to unlock audio on first interaction
         if (gameState.audioManager) {
@@ -474,6 +528,27 @@ function handleInput() {
         }
 
         const clickPos = gameState.input.getClickPosition();
+
+        // Handle start menu clicks
+        if (gameState.showStartMenu) {
+            const result = gameState.input.handleStartMenuClick(clickPos.x, clickPos.y);
+            if (result === 'sound_toggle') {
+                gameState.soundEnabled = !gameState.soundEnabled;
+                if (gameState.audioManager) {
+                    gameState.audioManager.setMuted(!gameState.soundEnabled);
+                }
+                gameState.logger.info(`🔊 Sound ${gameState.soundEnabled ? 'enabled' : 'disabled'}`);
+            } else if (result === 'easy' || result === 'hard') {
+                gameState.grid.setDifficulty(result);
+                gameState.logger.info(`📋 Difficulty set to ${result}`);
+            } else if (result === 'play') {
+                // Start transition effect
+                gameState.transition.active = true;
+                gameState.transition.startTime = Date.now();
+                gameState.logger.info(`🎮 Starting game with ${gameState.grid.getDifficulty()} difficulty`);
+            }
+            return;
+        }
 
         gameState.logger.info(`📍 Clicked at screen (${clickPos.x}, ${clickPos.y})`);
 

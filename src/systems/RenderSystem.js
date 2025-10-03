@@ -64,6 +64,394 @@ class RenderSystem {
         this.logger = logger;
     }
 
+    // Render start menu with animations and parallax
+    renderStartMenu(gameState) {
+        this.ctx.save();
+
+        // Bright animated parallax background
+        this.renderParallaxBackground();
+
+        // Menu background with animation
+        const menuWidth = 500;
+        const menuHeight = 400;
+        const menuX = (this.width - menuWidth) / 2;
+        const menuY = (this.height - menuHeight) / 2;
+
+        // Menu background (no pulsing)
+        const time = Date.now() / 1000;
+
+        // Cartoony menu background with gradient
+        this.ctx.beginPath();
+        this.ctx.roundRect(menuX, menuY, menuWidth, menuHeight, 20);
+        this.ctx.clip();
+
+        // Gradient background
+        const gradient = this.ctx.createLinearGradient(menuX, menuY, menuX, menuY + menuHeight);
+        gradient.addColorStop(0, '#FFB6C1'); // Light pink
+        gradient.addColorStop(0.5, '#FFC0CB'); // Pink
+        gradient.addColorStop(1, '#FFB6C1'); // Light pink
+        this.ctx.fillStyle = gradient;
+        this.ctx.fillRect(menuX, menuY, menuWidth, menuHeight);
+        this.ctx.restore();
+
+        // Menu border with subtle glow
+        this.ctx.save();
+        this.ctx.strokeStyle = '#FF69B4';
+        this.ctx.lineWidth = 4;
+        this.ctx.shadowColor = '#FF69B4';
+        this.ctx.shadowBlur = 5;
+        this.ctx.beginPath();
+        this.ctx.roundRect(menuX, menuY, menuWidth, menuHeight, 20);
+        this.ctx.stroke();
+        this.ctx.restore();
+
+        // Animated title with bounce effect
+        const titleBounce = Math.sin(time * 3) * 2;
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.font = 'bold 42px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.shadowColor = '#FF69B4';
+        this.ctx.shadowBlur = 5;
+        this.ctx.fillText('🎮 CuteDefense', menuX + menuWidth / 2, menuY + 60 + titleBounce);
+
+        // Difficulty selection with checkboxes
+        this.ctx.shadowBlur = 0;
+        this.ctx.fillStyle = '#333333';
+        this.ctx.font = 'bold 20px Arial';
+        this.ctx.fillText('Choose Difficulty:', menuX + menuWidth / 2, menuY + 100);
+
+        // Easy checkbox
+        const easyCheckX = menuX + 80;
+        const easyCheckY = menuY + 120;
+        const checkboxSize = 20;
+        const isEasySelected = gameState.grid && gameState.grid.getDifficulty() === 'easy';
+
+        // Checkbox background
+        this.ctx.fillStyle = isEasySelected ? '#90EE90' : '#FFFFFF';
+        this.ctx.fillRect(easyCheckX, easyCheckY, checkboxSize, checkboxSize);
+        this.ctx.strokeStyle = '#333333';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(easyCheckX, easyCheckY, checkboxSize, checkboxSize);
+
+        // Checkmark if selected
+        if (isEasySelected) {
+            this.ctx.strokeStyle = '#333333';
+            this.ctx.lineWidth = 3;
+            this.ctx.beginPath();
+            this.ctx.moveTo(easyCheckX + 4, easyCheckY + 10);
+            this.ctx.lineTo(easyCheckX + 8, easyCheckY + 14);
+            this.ctx.lineTo(easyCheckX + 16, easyCheckY + 6);
+            this.ctx.stroke();
+        }
+
+        // Easy label
+        this.ctx.fillStyle = '#333333';
+        this.ctx.font = 'bold 16px Arial';
+        this.ctx.textAlign = 'left';
+        this.ctx.fillText('Easy (Long Paths)', easyCheckX + 30, easyCheckY + 15);
+
+        // Hard checkbox
+        const hardCheckX = menuX + 280;
+        const hardCheckY = menuY + 120;
+        const isHardSelected = gameState.grid && gameState.grid.getDifficulty() === 'hard';
+
+        // Checkbox background - use green like easy when selected
+        this.ctx.fillStyle = isHardSelected ? '#90EE90' : '#FFFFFF';
+        this.ctx.fillRect(hardCheckX, hardCheckY, checkboxSize, checkboxSize);
+        this.ctx.strokeStyle = '#333333';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(hardCheckX, hardCheckY, checkboxSize, checkboxSize);
+
+        // Checkmark if selected
+        if (isHardSelected) {
+            this.ctx.strokeStyle = '#333333';
+            this.ctx.lineWidth = 3;
+            this.ctx.beginPath();
+            this.ctx.moveTo(hardCheckX + 4, hardCheckY + 10);
+            this.ctx.lineTo(hardCheckX + 8, hardCheckY + 14);
+            this.ctx.lineTo(hardCheckX + 16, hardCheckY + 6);
+            this.ctx.stroke();
+        }
+
+        // Hard label - keep black when selected
+        this.ctx.fillStyle = '#333333'; // Always black
+        this.ctx.fillText('Hard (Short Paths)', hardCheckX + 30, hardCheckY + 15);
+
+        // Sound toggle switch
+        const soundToggleX = menuX + 80;
+        const soundToggleY = menuY + 180;
+        const toggleWidth = 60;
+        const toggleHeight = 30;
+        const toggleRadius = 15;
+
+        // Toggle track
+        this.ctx.fillStyle = gameState.soundEnabled ? '#90EE90' : '#CCCCCC';
+        this.ctx.beginPath();
+        this.ctx.roundRect(soundToggleX, soundToggleY, toggleWidth, toggleHeight, toggleRadius);
+        this.ctx.fill();
+
+        // Toggle knob
+        const knobX = gameState.soundEnabled ? soundToggleX + toggleWidth - toggleHeight + 2 : soundToggleX + 2;
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.beginPath();
+        this.ctx.arc(knobX + toggleRadius, soundToggleY + toggleRadius, toggleRadius - 2, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Sound label
+        this.ctx.fillStyle = '#333333';
+        this.ctx.font = 'bold 16px Arial';
+        this.ctx.fillText('🔊 Sound', soundToggleX + 80, soundToggleY + 20);
+
+        // Animated Play button
+        const playButtonX = menuX + 150;
+        const playButtonY = menuY + 250;
+        const playButtonWidth = 200;
+        const playButtonHeight = 60;
+        const playButtonPulse = Math.sin(time * 4) * 3 + 3;
+
+        // Play button background with gradient
+        const playGradient = this.ctx.createLinearGradient(playButtonX, playButtonY, playButtonX, playButtonY + playButtonHeight);
+        playGradient.addColorStop(0, '#4CAF50');
+        playGradient.addColorStop(1, '#45A049');
+        this.ctx.fillStyle = playGradient;
+        this.ctx.beginPath();
+        this.ctx.roundRect(playButtonX, playButtonY, playButtonWidth, playButtonHeight, 30);
+        this.ctx.fill();
+
+        // Play button border with glow
+        this.ctx.strokeStyle = '#4CAF50';
+        this.ctx.lineWidth = 4;
+        this.ctx.shadowColor = '#4CAF50';
+        this.ctx.shadowBlur = playButtonPulse;
+        this.ctx.stroke();
+
+        // Play button text
+        this.ctx.shadowBlur = 0;
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.font = 'bold 24px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('🎮 PLAY', playButtonX + playButtonWidth / 2, playButtonY + 38);
+
+        // Instructions
+        this.ctx.fillStyle = '#666666';
+        this.ctx.font = '14px Arial';
+        this.ctx.fillText('Press R during game to restart', menuX + menuWidth / 2, menuY + 350);
+
+        this.ctx.restore();
+    }
+
+    // Render dynamic day/night parallax background
+    renderParallaxBackground() {
+        const time = Date.now() / 1000;
+
+        // Day/night cycle (30 second cycle)
+        const cycleTime = (time % 30) / 30; // 0 to 1 over 30 seconds
+        const isDay = cycleTime < 0.5;
+        const dayNightProgress = isDay ? cycleTime * 2 : (1 - cycleTime) * 2; // 0 to 1
+
+        // Interpolate between day and night colors
+        const dayColors = {
+            bg1: '#B8E6B8', // Light green
+            bg2: '#E6F3FF', // Light blue  
+            bg3: '#FFE6F3', // Light pink
+            bg4: '#FFF0E6', // Light orange
+            flower: '#FFB6C1',
+            tower: '#FF6B6B',
+            enemy: '#FF6B6B',
+            sparkle: '#FFD700'
+        };
+
+        const nightColors = {
+            bg1: '#1A1A2E', // Dark blue
+            bg2: '#16213E', // Darker blue
+            bg3: '#0F3460', // Darkest blue
+            bg4: '#533483', // Purple
+            flower: '#FF00FF', // Neon pink
+            tower: '#00FFFF', // Neon cyan
+            enemy: '#FF4500', // Neon orange
+            sparkle: '#FFFF00' // Neon yellow
+        };
+
+        // Interpolate colors
+        const colors = {
+            bg1: this.interpolateColor(dayColors.bg1, nightColors.bg1, dayNightProgress),
+            bg2: this.interpolateColor(dayColors.bg2, nightColors.bg2, dayNightProgress),
+            bg3: this.interpolateColor(dayColors.bg3, nightColors.bg3, dayNightProgress),
+            bg4: this.interpolateColor(dayColors.bg4, nightColors.bg4, dayNightProgress),
+            flower: this.interpolateColor(dayColors.flower, nightColors.flower, dayNightProgress),
+            tower: this.interpolateColor(dayColors.tower, nightColors.tower, dayNightProgress),
+            enemy: this.interpolateColor(dayColors.enemy, nightColors.enemy, dayNightProgress),
+            sparkle: this.interpolateColor(dayColors.sparkle, nightColors.sparkle, dayNightProgress)
+        };
+
+        // Dynamic gradient background
+        const bgGradient = this.ctx.createLinearGradient(0, 0, 0, this.height);
+        bgGradient.addColorStop(0, colors.bg1);
+        bgGradient.addColorStop(0.3, colors.bg2);
+        bgGradient.addColorStop(0.7, colors.bg3);
+        bgGradient.addColorStop(1, colors.bg4);
+        this.ctx.fillStyle = bgGradient;
+        this.ctx.fillRect(0, 0, this.width, this.height);
+
+        // Animated flowers
+        for (let i = 0; i < 8; i++) {
+            const x = (i * 200 + Math.sin(time * 0.3 + i) * 100) % (this.width + 150);
+            const y = (i * 150 + Math.cos(time * 0.4 + i) * 80) % (this.height + 150);
+            const size = 12 + Math.sin(time * 0.6 + i) * 6;
+            const rotation = time * 0.2 + i;
+
+            this.ctx.save();
+            this.ctx.globalAlpha = 0.4;
+            this.ctx.translate(x, y);
+            this.ctx.rotate(rotation);
+
+            // Draw flower
+            this.ctx.fillStyle = i % 3 === 0 ? '#FFB6C1' : i % 3 === 1 ? '#FFC0CB' : '#FFA0E0';
+            for (let petal = 0; petal < 5; petal++) {
+                this.ctx.save();
+                this.ctx.rotate((petal * Math.PI * 2) / 5);
+                this.ctx.beginPath();
+                this.ctx.ellipse(0, -size / 2, size / 3, size / 2, 0, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.restore();
+            }
+            // Flower center
+            this.ctx.fillStyle = '#FFD700';
+            this.ctx.beginPath();
+            this.ctx.arc(0, 0, size / 4, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            this.ctx.restore();
+        }
+
+        // Animated towers
+        for (let i = 0; i < 6; i++) {
+            const x = (i * 250 + Math.sin(time * 0.2 + i) * 120) % (this.width + 200);
+            const y = (i * 200 + Math.cos(time * 0.25 + i) * 100) % (this.height + 200);
+            const size = 20 + Math.sin(time * 0.4 + i) * 8;
+
+            this.ctx.save();
+            this.ctx.globalAlpha = 0.3;
+            this.ctx.translate(x, y);
+
+            // Tower base
+            this.ctx.fillStyle = '#8B4513';
+            this.ctx.fillRect(-size / 3, size / 3, size * 2 / 3, size * 2 / 3);
+
+            // Tower top
+            this.ctx.fillStyle = '#FF6B6B';
+            this.ctx.beginPath();
+            this.ctx.moveTo(-size / 2, size / 3);
+            this.ctx.lineTo(0, -size / 3);
+            this.ctx.lineTo(size / 2, size / 3);
+            this.ctx.closePath();
+            this.ctx.fill();
+
+            // Tower flag
+            this.ctx.fillStyle = '#FFD700';
+            this.ctx.fillRect(-size / 6, -size / 2, size / 3, size / 4);
+
+            this.ctx.restore();
+        }
+
+        // Animated enemies
+        for (let i = 0; i < 10; i++) {
+            const x = (i * 180 + Math.sin(time * 0.6 + i) * 90) % (this.width + 100);
+            const y = (i * 130 + Math.cos(time * 0.5 + i) * 70) % (this.height + 100);
+            const size = 8 + Math.sin(time * 0.8 + i) * 4;
+            const bob = Math.sin(time * 2 + i) * 3;
+
+            this.ctx.save();
+            this.ctx.globalAlpha = 0.35;
+            this.ctx.translate(x, y + bob);
+
+            // Enemy body
+            this.ctx.fillStyle = i % 2 === 0 ? '#FF6B6B' : '#FF8C69';
+            this.ctx.beginPath();
+            this.ctx.arc(0, 0, size, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Enemy eyes
+            this.ctx.fillStyle = '#FFFFFF';
+            this.ctx.beginPath();
+            this.ctx.arc(-size / 3, -size / 3, size / 4, 0, Math.PI * 2);
+            this.ctx.arc(size / 3, -size / 3, size / 4, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Eye pupils
+            this.ctx.fillStyle = '#000000';
+            this.ctx.beginPath();
+            this.ctx.arc(-size / 3, -size / 3, size / 8, 0, Math.PI * 2);
+            this.ctx.arc(size / 3, -size / 3, size / 8, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            this.ctx.restore();
+        }
+
+        // More floating sparkles (bigger)
+        for (let i = 0; i < 25; i++) {
+            const x = (i * 100 + Math.sin(time * 0.8 + i) * 80) % (this.width + 100);
+            const y = (i * 60 + Math.cos(time * 0.7 + i) * 60) % (this.height + 100);
+            const size = 6 + Math.sin(time * 1.2 + i) * 4; // Bigger sparkles
+            const alpha = 0.7 + Math.sin(time * 1.5 + i) * 0.3;
+
+            this.ctx.save();
+            this.ctx.globalAlpha = alpha;
+            this.ctx.fillStyle = '#FFD700';
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, size, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.restore();
+        }
+
+        // Add floating coins
+        for (let i = 0; i < 12; i++) {
+            const x = (i * 180 + Math.sin(time * 0.4 + i) * 90) % (this.width + 100);
+            const y = (i * 120 + Math.cos(time * 0.3 + i) * 70) % (this.height + 100);
+            const size = 12 + Math.sin(time * 0.9 + i) * 6;
+            const rotation = time * 0.5 + i;
+
+            this.ctx.save();
+            this.ctx.globalAlpha = 0.4;
+            this.ctx.translate(x, y);
+            this.ctx.rotate(rotation);
+
+            // Coin
+            this.ctx.fillStyle = '#FFD700';
+            this.ctx.beginPath();
+            this.ctx.arc(0, 0, size, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Coin inner circle
+            this.ctx.fillStyle = '#FFFF00';
+            this.ctx.beginPath();
+            this.ctx.arc(0, 0, size / 2, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            this.ctx.restore();
+        }
+    }
+
+    // Helper function to interpolate between colors
+    interpolateColor(color1, color2, factor) {
+        const hex1 = color1.replace('#', '');
+        const hex2 = color2.replace('#', '');
+
+        const r1 = parseInt(hex1.substr(0, 2), 16);
+        const g1 = parseInt(hex1.substr(2, 2), 16);
+        const b1 = parseInt(hex1.substr(4, 2), 16);
+
+        const r2 = parseInt(hex2.substr(0, 2), 16);
+        const g2 = parseInt(hex2.substr(2, 2), 16);
+        const b2 = parseInt(hex2.substr(4, 2), 16);
+
+        const r = Math.round(r1 + (r2 - r1) * factor);
+        const g = Math.round(g1 + (g2 - g1) * factor);
+        const b = Math.round(b1 + (b2 - b1) * factor);
+
+        return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+    }
+
     // Update day/night phase based on wave state
     updateDayNightPhase(waveState, waveInfo = null) {
         let targetPhase = 'day'; // Default to day
@@ -196,7 +584,7 @@ class RenderSystem {
     }
 
     // Render main HUD panel - always visible below tilemap with cartoony styling
-    renderMainHUD(selectedTower, towerManager, waveInfo = null, resourceInfo = null, selectedEnemy = null, popupInfo = null, gameStateInfo = null) {
+    renderMainHUD(selectedTower, towerManager, waveInfo = null, resourceInfo = null, selectedEnemy = null, popupInfo = null, gameStateInfo = null, gridSystem = null) {
         // Calculate HUD area below tilemap
         const tilemapHeight = this.getTilemapHeight();
         const hudHeight = 120; // Fixed height for HUD
@@ -240,13 +628,13 @@ class RenderSystem {
         // No sparkle effects for clean appearance
 
         // Render the five HUD sections (pass popupInfo for proposed tower preview and gameStateInfo for lives)
-        this.renderHUDSections(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager, waveInfo, resourceInfo, selectedEnemy, popupInfo, gameStateInfo);
+        this.renderHUDSections(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager, waveInfo, resourceInfo, selectedEnemy, popupInfo, gameStateInfo, gridSystem);
     }
 
     // Removed sparkle effects for clean HUD appearance
 
     // Render the four HUD sections: Wave Info, Combined Selection (Portrait+Info), Selection Actions, Coin Info
-    renderHUDSections(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager, waveInfo, resourceInfo, selectedEnemy, popupInfo, gameStateInfo) {
+    renderHUDSections(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager, waveInfo, resourceInfo, selectedEnemy, popupInfo, gameStateInfo, gridSystem) {
         const padding = 15;
         const contentHeight = hudHeight - (padding * 2);
         const contentY = hudY + padding;
@@ -260,7 +648,7 @@ class RenderSystem {
 
         // Section 1: Wave Info (25%) - now includes lives display
         const waveInfoX = hudX + padding;
-        this.renderWaveInfoSection(waveInfoX, contentY, waveInfoWidth, contentHeight, waveInfo, gameStateInfo);
+        this.renderWaveInfoSection(waveInfoX, contentY, waveInfoWidth, contentHeight, waveInfo, gameStateInfo, gridSystem);
 
         // Section 2: Combined Selection (35%) - pass popupInfo for proposed tower preview
         const selectionX = waveInfoX + waveInfoWidth + padding;
@@ -317,7 +705,7 @@ class RenderSystem {
     }
 
     // Render wave info section with cartoony styling
-    renderWaveInfoSection(x, y, width, height, waveInfo, gameStateInfo) {
+    renderWaveInfoSection(x, y, width, height, waveInfo, gameStateInfo, gridSystem = null) {
         this.ctx.save();
 
         const time = Date.now() / 1000;
@@ -382,10 +770,18 @@ class RenderSystem {
             this.ctx.fillText('Enemies: 0/0', x + width / 2, y + 80);
         }
 
-        // Add pause instruction
+        // Add difficulty indicator
+        this.ctx.fillStyle = '#FFD700'; // Golden color for difficulty
+        this.ctx.font = 'bold 16px Arial';
+        const difficulty = gridSystem ? gridSystem.getDifficulty() : 'easy';
+        const difficultyText = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
+        this.ctx.fillText(`Difficulty: ${difficultyText}`, x + width / 2, y + 100);
+
+        // Add pause and restart instructions
         this.ctx.fillStyle = '#FFD700'; // Golden color for instruction
         this.ctx.font = 'bold 14px Arial';
-        this.ctx.fillText('Press ESC to pause', x + width / 2, y + 100);
+        this.ctx.fillText('Press ESC to pause', x + width / 2, y + 120);
+        this.ctx.fillText('Press R to restart', x + width / 2, y + 140);
 
         this.ctx.restore();
     }
