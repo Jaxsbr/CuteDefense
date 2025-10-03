@@ -639,32 +639,27 @@ class RenderSystem {
 
     // Render the four HUD sections: Wave Info, Combined Selection (Portrait+Info), Selection Actions, Coin Info
     renderHUDSections(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager, waveInfo, resourceInfo, selectedEnemy, popupInfo, gameStateInfo, gridSystem) {
-        const padding = 15;
-        const contentHeight = hudHeight - (padding * 2);
-        const contentY = hudY + padding;
+        const padding = 20;
+        const sectionHeight = (hudHeight - (padding * 5)) / 4; // 4 sections with 4 gaps
+        
+        // Vertical layout for left-docked HUD
+        const sectionWidth = hudWidth - (padding * 2);
+        
+        // Section 1: Wave Info (top)
+        const waveInfoY = hudY + padding;
+        this.renderWaveInfoSection(hudX + padding, waveInfoY, sectionWidth, sectionHeight, waveInfo, gameStateInfo, gridSystem);
 
-        // Calculate section widths using percentages
-        const availableWidth = hudWidth - (padding * 5); // Account for 5 gaps between 4 sections
-        const waveInfoWidth = availableWidth * 0.25;      // 25%
-        const selectionWidth = availableWidth * 0.35;     // 35%
-        const actionsWidth = availableWidth * 0.20;        // 20%
-        const coinWidth = availableWidth * 0.20;           // 20%
+        // Section 2: Combined Selection (second)
+        const selectionY = waveInfoY + sectionHeight + padding;
+        this.renderCombinedSelectionSection(hudX + padding, selectionY, sectionWidth, sectionHeight, selectedTower, selectedEnemy, popupInfo);
 
-        // Section 1: Wave Info (25%) - now includes lives display
-        const waveInfoX = hudX + padding;
-        this.renderWaveInfoSection(waveInfoX, contentY, waveInfoWidth, contentHeight, waveInfo, gameStateInfo, gridSystem);
+        // Section 3: Selection Actions (third)
+        const actionsY = selectionY + sectionHeight + padding;
+        this.renderSelectionActionsSection(hudX + padding, actionsY, sectionWidth, sectionHeight, selectedTower, towerManager);
 
-        // Section 2: Combined Selection (35%) - pass popupInfo for proposed tower preview
-        const selectionX = waveInfoX + waveInfoWidth + padding;
-        this.renderCombinedSelectionSection(selectionX, contentY, selectionWidth, contentHeight, selectedTower, selectedEnemy, popupInfo);
-
-        // Section 3: Selection Actions (20%)
-        const actionsX = selectionX + selectionWidth + padding;
-        this.renderSelectionActionsSection(actionsX, contentY, actionsWidth, contentHeight, selectedTower, towerManager);
-
-        // Section 4: Coin Info (20%)
-        const coinX = actionsX + actionsWidth + padding;
-        this.renderCoinInfoSection(coinX, contentY, coinWidth, contentHeight, resourceInfo);
+        // Section 4: Coin Info (bottom)
+        const coinY = actionsY + sectionHeight + padding;
+        this.renderCoinInfoSection(hudX + padding, coinY, sectionWidth, sectionHeight, resourceInfo);
     }
 
     // Render combined selection section (portrait + info) with more space

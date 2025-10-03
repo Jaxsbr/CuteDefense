@@ -5,14 +5,14 @@
 
 // Game configuration
 const CONFIG = {
-    CANVAS_WIDTH: 1920,  // Wider canvas for tablet optimization
-    CANVAS_HEIGHT: 1000, // Taller canvas for left-docked HUD
+    CANVAS_WIDTH: 2432,  // 95% of emulator width (2560 * 0.95)
+    CANVAS_HEIGHT: 1008, // 95% of emulator height (1169 * 0.95) + HUD
     GRID_SIZE: 64,       // 64px tiles for good visibility
-    GRID_COLS: 24,       // 24 columns for better width utilization
+    GRID_COLS: 38,       // 38 columns for maximum width utilization
     GRID_ROWS: 12,       // 12 rows (unchanged)
     TILE_SIZE: 64,       // 64px tiles
     HUD_WIDTH: 400,      // Fixed HUD width (left-docked)
-    HUD_HEIGHT: 1000     // Full height HUD
+    HUD_HEIGHT: 1008     // Full height HUD
 };
 
 // Game state
