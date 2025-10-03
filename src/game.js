@@ -5,14 +5,16 @@
 
 // Game configuration
 const CONFIG = {
-    CANVAS_WIDTH: 2432,  // 95% of emulator width (2560 * 0.95)
-    CANVAS_HEIGHT: 1008, // 95% of emulator height (1169 * 0.95) + HUD
+    CANVAS_WIDTH: 2560,  // Perfect fit for emulator with centered grid
+    CANVAS_HEIGHT: 1169, // Perfect fit for emulator with centered grid
     GRID_SIZE: 64,       // 64px tiles for good visibility
-    GRID_COLS: 38,       // 38 columns for maximum width utilization
+    GRID_COLS: 30,       // 30 columns for better balance
     GRID_ROWS: 12,       // 12 rows (unchanged)
     TILE_SIZE: 64,       // 64px tiles
     HUD_WIDTH: 400,      // Fixed HUD width (left-docked)
-    HUD_HEIGHT: 1008     // Full height HUD
+    HUD_HEIGHT: 1169,    // Full height HUD
+    GRID_OFFSET_X: 120,  // Horizontal margin for centering grid
+    GRID_OFFSET_Y: 200   // Vertical margin for centering grid
 };
 
 // Game state

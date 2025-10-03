@@ -141,16 +141,24 @@ class GridSystem {
     }
 
     screenToGrid(screenX, screenY) {
+        // Account for grid offset (HUD width + horizontal margin)
+        const gridOffsetX = 400 + 120; // HUD width + horizontal margin
+        const gridOffsetY = 200; // Vertical margin
+        
         return {
-            x: Math.floor(screenX / this.tileSize),
-            y: Math.floor(screenY / this.tileSize)
+            x: Math.floor((screenX - gridOffsetX) / this.tileSize),
+            y: Math.floor((screenY - gridOffsetY) / this.tileSize)
         };
     }
 
     gridToScreen(gridX, gridY) {
+        // Account for grid offset (HUD width + horizontal margin)
+        const gridOffsetX = 400 + 120; // HUD width + horizontal margin
+        const gridOffsetY = 200; // Vertical margin
+        
         return {
-            x: gridX * this.tileSize,
-            y: gridY * this.tileSize
+            x: gridX * this.tileSize + gridOffsetX,
+            y: gridY * this.tileSize + gridOffsetY
         };
     }
 
