@@ -343,7 +343,7 @@ class EnemySystem {
         // Enhanced dramatic effects
         explosionRadius: 0,
         maxExplosionRadius: enemy.size * 3, // 3x enemy size explosion
-        sparkleCount: 16, // Increased from 8 to 16 particles for more dramatic effect
+        sparkleCount: 20, // Match coin expiration effect intensity
         sparkles: []
         };
         
@@ -354,31 +354,32 @@ class EnemySystem {
             const angleVariation = (Math.random() - 0.5) * 0.5; // ±0.25 radians variation
             const finalAngle = angle + angleVariation;
             
-            // Much more varied speed (30-120 pixels/second)
-            const speed = 30 + Math.random() * 90;
+            // Match coin expiration effect speed (100-180 pixels/second)
+            const speed = 100 + Math.random() * 80;
             
             // Random color selection from golden/red spectrum
             const colors = ['#FFD700', '#FFA500', '#FF6347', '#FF4500', '#FFD700', '#FFFF00'];
             const color = colors[Math.floor(Math.random() * colors.length)];
             
-            // Much larger size variation (4-12 pixels)
-            const size = 4 + Math.random() * 8;
+            // Match coin expiration effect size (4-10 pixels)
+            const size = 4 + Math.random() * 6;
             
-            // Random life duration variation
-            const life = 0.8 + Math.random() * 0.4; // 0.8-1.2 seconds
+            // Match coin expiration effect life (1.5-2 seconds)
+            const life = 1.5 + Math.random() * 0.5; // 1.5-2 seconds
             
             enemy.deathAnimation.sparkles.push({
                 x: 0,
                 y: 0,
                 vx: Math.cos(finalAngle) * speed,
-                vy: Math.sin(finalAngle) * speed,
+                vy: Math.sin(finalAngle) * speed - 30, // Strong upward bias like coin expiration
                 life: life,
                 maxLife: life,
                 size: size,
                 color: color,
+                alpha: 1.0,
                 // Add random rotation for sparkle effect
                 rotation: Math.random() * Math.PI * 2,
-                rotationSpeed: (Math.random() - 0.5) * 8 // Random rotation speed
+                rotationSpeed: (Math.random() - 0.5) * 0.3 // Match coin expiration rotation speed
             });
         }
     }

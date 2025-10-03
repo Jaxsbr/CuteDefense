@@ -2241,35 +2241,14 @@ class RenderSystem {
                     this.ctx.translate(centerX + sparkle.x, centerY + sparkle.y);
                     this.ctx.rotate(sparkle.rotation);
                     
-                    // Use individual particle color
+                    // Use individual particle color - match coin expiration effect style
                     this.ctx.fillStyle = sparkle.color;
                     this.ctx.shadowColor = sparkle.color;
-                    this.ctx.shadowBlur = 12; // Increased glow for better visibility
+                    this.ctx.shadowBlur = 6; // Match coin expiration glow
                     
-                    // Draw sparkle as a cross/star shape for more dramatic effect
-                    const sparkleSize = sparkle.size;
+                    // Draw as simple circle like coin expiration effect
                     this.ctx.beginPath();
-                    
-                    // Horizontal line
-                    this.ctx.moveTo(-sparkleSize, 0);
-                    this.ctx.lineTo(sparkleSize, 0);
-                    
-                    // Vertical line
-                    this.ctx.moveTo(0, -sparkleSize);
-                    this.ctx.lineTo(0, sparkleSize);
-                    
-                    // Diagonal lines for star effect
-                    this.ctx.moveTo(-sparkleSize * 0.7, -sparkleSize * 0.7);
-                    this.ctx.lineTo(sparkleSize * 0.7, sparkleSize * 0.7);
-                    this.ctx.moveTo(-sparkleSize * 0.7, sparkleSize * 0.7);
-                    this.ctx.lineTo(sparkleSize * 0.7, -sparkleSize * 0.7);
-                    
-                    this.ctx.lineWidth = 2;
-                    this.ctx.stroke();
-                    
-                    // Add center dot
-                    this.ctx.beginPath();
-                    this.ctx.arc(0, 0, sparkleSize * 0.3, 0, Math.PI * 2);
+                    this.ctx.arc(0, 0, sparkle.size, 0, Math.PI * 2);
                     this.ctx.fill();
                     
                     this.ctx.restore();
