@@ -96,6 +96,7 @@ function initGame() {
     gameState.logger.info('Grid system initialized');
     gameState.input = new InputSystem(canvas);
     gameState.input.setGridSystem(gameState.grid); // Connect grid system to input system
+    gameState.input.setResponsiveScaling(gameState.responsiveScaling); // Connect responsive scaling to input system
     gameState.logger.info('Input system initialized');
     gameState.renderer = new RenderSystem(ctx, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
     gameState.logger.info('Render system initialized');
@@ -210,6 +211,11 @@ function initGame() {
             const canvas = document.getElementById('gameCanvas');
             canvas.width = CONFIG.CANVAS_WIDTH;
             canvas.height = CONFIG.CANVAS_HEIGHT;
+            
+            // Update InputSystem's responsive scaling reference
+            if (gameState.input && gameState.input.setResponsiveScaling) {
+                gameState.input.setResponsiveScaling(gameState.responsiveScaling);
+            }
             
             gameState.logger.info('Responsive scaling updated:', gameState.responsiveScaling.getScalingInfo());
         }

@@ -124,7 +124,31 @@ class ResponsiveScalingSystem {
         return this.devicePixelRatio;
     }
     
-    // Convert screen coordinates to scaled coordinates
+    // Convert screen coordinates to canvas coordinates (accounting for display scaling)
+    screenToCanvas(screenX, screenY, canvas) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        
+        return {
+            x: (screenX - rect.left) * scaleX,
+            y: (screenY - rect.top) * scaleY
+        };
+    }
+    
+    // Convert canvas coordinates to screen coordinates
+    canvasToScreen(canvasX, canvasY, canvas) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = rect.width / canvas.width;
+        const scaleY = rect.height / canvas.height;
+        
+        return {
+            x: canvasX * scaleX + rect.left,
+            y: canvasY * scaleY + rect.top
+        };
+    }
+    
+    // Convert screen coordinates to scaled coordinates (legacy method for compatibility)
     screenToScaled(screenX, screenY) {
         if (this.scaleFactor === 1.0) {
             return { x: screenX, y: screenY };
@@ -136,7 +160,7 @@ class ResponsiveScalingSystem {
         };
     }
     
-    // Convert scaled coordinates to screen coordinates
+    // Convert scaled coordinates to screen coordinates (legacy method for compatibility)
     scaledToScreen(scaledX, scaledY) {
         if (this.scaleFactor === 1.0) {
             return { x: scaledX, y: scaledY };

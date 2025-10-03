@@ -8,6 +8,7 @@ class InputSystem {
         this.clickPosition = { x: 0, y: 0 };
         this.lastClickTime = 0;
         this.gridSystem = null; // Will be set by game
+        this.responsiveScaling = null; // Will be set by game
 
         this.setupEventListeners();
     }
@@ -15,6 +16,11 @@ class InputSystem {
     // Set grid system reference
     setGridSystem(gridSystem) {
         this.gridSystem = gridSystem;
+    }
+    
+    // Set responsive scaling system reference
+    setResponsiveScaling(responsiveScaling) {
+        this.responsiveScaling = responsiveScaling;
     }
 
     setupEventListeners() {
@@ -39,11 +45,21 @@ class InputSystem {
     }
 
     handleClick(clientX, clientY) {
-        const rect = this.canvas.getBoundingClientRect();
-        this.clickPosition = {
-            x: clientX - rect.left,
-            y: clientY - rect.top
-        };
+        // Use responsive scaling system if available, otherwise fallback to simple conversion
+        if (this.responsiveScaling) {
+            const canvasCoords = this.responsiveScaling.screenToCanvas(clientX, clientY, this.canvas);
+            this.clickPosition = {
+                x: canvasCoords.x,
+                y: canvasCoords.y
+            };
+        } else {
+            // Fallback to simple conversion
+            const rect = this.canvas.getBoundingClientRect();
+            this.clickPosition = {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
         this.clicked = true;
         this.lastClickTime = Date.now();
     }
