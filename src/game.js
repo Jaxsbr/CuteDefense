@@ -5,10 +5,10 @@
 
 // Game configuration
 const CONFIG = {
-    CANVAS_WIDTH: 1152,  // 18 columns * 64px = 1152px
-    CANVAS_HEIGHT: 900,  // 12 rows * 64px + HUD = 768 + 132 = 900px
+    CANVAS_WIDTH: 1280,  // 20 columns * 64px = 1280px
+    CANVAS_HEIGHT: 888,  // 12 rows * 64px + HUD = 768 + 120 = 888px
     GRID_SIZE: 64,       // 64px tiles for good visibility
-    GRID_COLS: 18,       // 18 columns for better tablet/desktop ratio
+    GRID_COLS: 20,       // 20 columns for optimal tablet/desktop ratio
     GRID_ROWS: 12,       // 12 rows (unchanged)
     TILE_SIZE: 64        // 64px tiles
 };
