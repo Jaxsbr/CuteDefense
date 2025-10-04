@@ -749,12 +749,12 @@ class RenderSystem {
         this.ctx.textAlign = 'center';
         this.ctx.fillText('🌊 Wave Info', x + width / 2, y + 20);
 
-        // Display lives with hearts (kid-friendly)
+        // Display lives with configurable life bar
         this.ctx.font = 'bold 20px Arial';  // Increased from 16px
         if (gameStateInfo) {
             const livesRemaining = gameStateInfo.maxEnemiesAllowed - gameStateInfo.enemiesReachedGoal;
-            const hearts = '❤️'.repeat(Math.max(0, livesRemaining));
-            const emptyHearts = '🖤'.repeat(Math.max(0, gameStateInfo.enemiesReachedGoal));
+            const totalLives = gameStateInfo.maxEnemiesAllowed;
+            const lifePercentage = livesRemaining / totalLives;
 
             // Color text based on lives remaining
             if (livesRemaining <= 1) {
@@ -765,7 +765,10 @@ class RenderSystem {
                 this.ctx.fillStyle = '#4CAF50'; // Green - safe
             }
 
-            this.ctx.fillText(`Lives: ${hearts}${emptyHearts}`, x + width / 2, y + 40);
+            this.ctx.fillText(`Lives: ${livesRemaining}/${totalLives}`, x + width / 2, y + 40);
+            
+            // Render life bar below the text
+            this.renderLifeBar(x + width / 2 - 60, y + 50, 120, 12, lifePercentage);
         }
 
         // Display wave data (no pulsing)
@@ -798,26 +801,36 @@ class RenderSystem {
     renderMobileControlButtons(x, y, width, height) {
         this.ctx.save();
         
-        const buttonWidth = (width - 20) / 4; // 4 buttons with spacing
-        const buttonHeight = Math.min(height - 20, 50);
-        const buttonSpacing = 5;
+        // Store button bounds for click detection
+        this.mobileButtonBounds = [];
         
-        // Button configurations
+        const buttonSpacing = 8;
+        const buttonWidth = (width - (buttonSpacing * 3)) / 2; // 2 buttons per row
+        const buttonHeight = (height - (buttonSpacing * 3)) / 2; // 2 rows
+        const buttonMargin = 5;
+        
+        // Button configurations - arranged in 2x2 grid
         const buttons = [
-            { icon: '⏸️', label: 'Pause', action: 'pause', color: '#FF6B6B' },
-            { icon: '🔄', label: 'Restart', action: 'restart', color: '#4ECDC4' },
-            { icon: '🏠', label: 'Menu', action: 'menu', color: '#45B7D1' },
-            { icon: '🔊', label: 'Sound', action: 'sound', color: '#96CEB4' }
+            { icon: '⏸️', label: 'Pause', action: 'pause', color: '#FF6B6B', row: 0, col: 0 },
+            { icon: '🔄', label: 'Restart', action: 'restart', color: '#4ECDC4', row: 0, col: 1 },
+            { icon: '🏠', label: 'Menu', action: 'menu', color: '#45B7D1', row: 1, col: 0 },
+            { icon: '🔊', label: 'Sound', action: 'sound', color: '#96CEB4', row: 1, col: 1 }
         ];
         
-        buttons.forEach((button, index) => {
-            const buttonX = x + 10 + index * (buttonWidth + buttonSpacing);
-            const buttonY = y + 10;
+        buttons.forEach((button) => {
+            const buttonX = x + buttonMargin + button.col * (buttonWidth + buttonSpacing);
+            const buttonY = y + buttonMargin + button.row * (buttonHeight + buttonSpacing);
+            
+            // Store button bounds for click detection
+            this.mobileButtonBounds.push({
+                action: button.action,
+                bounds: { x: buttonX, y: buttonY, width: buttonWidth, height: buttonHeight }
+            });
             
             // Button background with rounded corners
             this.ctx.save();
             this.ctx.beginPath();
-            this.ctx.roundRect(buttonX, buttonY, buttonWidth, buttonHeight, 8);
+            this.ctx.roundRect(buttonX, buttonY, buttonWidth, buttonHeight, 10);
             this.ctx.clip();
             
             // Animated gradient background
@@ -836,20 +849,20 @@ class RenderSystem {
             this.ctx.strokeStyle = this.lightenColor(button.color, 0.5);
             this.ctx.lineWidth = 2;
             this.ctx.beginPath();
-            this.ctx.roundRect(buttonX, buttonY, buttonWidth, buttonHeight, 8);
+            this.ctx.roundRect(buttonX, buttonY, buttonWidth, buttonHeight, 10);
             this.ctx.stroke();
             this.ctx.restore();
             
             // Button icon (larger, centered)
             this.ctx.fillStyle = '#FFF';
-            this.ctx.font = 'bold 20px Arial';
+            this.ctx.font = 'bold 24px Arial'; // Increased from 20px
             this.ctx.textAlign = 'center';
-            this.ctx.fillText(button.icon, buttonX + buttonWidth / 2, buttonY + buttonHeight / 2 - 5);
+            this.ctx.fillText(button.icon, buttonX + buttonWidth / 2, buttonY + buttonHeight / 2 - 8);
             
-            // Button label (smaller, below icon)
+            // Button label (larger, below icon)
             this.ctx.fillStyle = '#FFF';
-            this.ctx.font = 'bold 10px Arial';
-            this.ctx.fillText(button.label, buttonX + buttonWidth / 2, buttonY + buttonHeight / 2 + 12);
+            this.ctx.font = 'bold 14px Arial'; // Increased from 10px
+            this.ctx.fillText(button.label, buttonX + buttonWidth / 2, buttonY + buttonHeight / 2 + 16);
         });
         
         this.ctx.restore();
@@ -976,20 +989,34 @@ class RenderSystem {
     renderSelectionActionsSection(x, y, width, height, selectedTower, selectedEnemy, popupInfo, towerManager) {
         this.ctx.save();
 
-        // Section background with rounded corners
+        // Enhanced section background with rounded corners
         this.ctx.beginPath();
-        this.ctx.roundRect(x, y, width, height, 8);
+        this.ctx.roundRect(x, y, width, height, 12);
         this.ctx.clip();
-        this.ctx.fillStyle = 'rgba(0, 200, 100, 0.3)';
+        
+        // Animated gradient background
+        const time = Date.now() / 1000;
+        const pulse = Math.sin(time * 2) * 0.05 + 0.95;
+        const gradient = this.ctx.createLinearGradient(x, y, x, y + height);
+        gradient.addColorStop(0, `rgba(0, 200, 100, ${0.4 * pulse})`);
+        gradient.addColorStop(1, `rgba(0, 150, 80, ${0.3 * pulse})`);
+        this.ctx.fillStyle = gradient;
         this.ctx.fillRect(x, y, width, height);
         this.ctx.restore();
 
-        // Section border with rounded corners
+        // Enhanced section border with glow
         this.ctx.save();
         this.ctx.strokeStyle = '#4CAF50';
-        this.ctx.lineWidth = 2;
+        this.ctx.lineWidth = 3;
         this.ctx.beginPath();
-        this.ctx.roundRect(x, y, width, height, 8);
+        this.ctx.roundRect(x, y, width, height, 12);
+        this.ctx.stroke();
+        
+        // Inner glow
+        this.ctx.strokeStyle = 'rgba(76, 175, 80, 0.5)';
+        this.ctx.lineWidth = 1;
+        this.ctx.beginPath();
+        this.ctx.roundRect(x + 2, y + 2, width - 4, height - 4, 10);
         this.ctx.stroke();
         this.ctx.restore();
 
@@ -1022,7 +1049,7 @@ class RenderSystem {
     // Render tower-specific actions
     renderTowerActions(x, y, width, height, selectedTower, towerManager, scaleFactor) {
         const upgradeInfo = towerManager.getTowerUpgradeInfo(selectedTower.x, selectedTower.y);
-        
+
         if (upgradeInfo) {
             const buttonWidth = width - Math.floor(20 * scaleFactor);
             const buttonHeight = Math.floor(30 * scaleFactor);
@@ -1032,15 +1059,15 @@ class RenderSystem {
             const canAfford = this.resourceSystem && this.resourceSystem.canAfford(upgradeInfo.cost);
 
             // Enhanced upgrade button with better styling
-            this.renderAnimatedButton(buttonX, buttonY, buttonWidth, buttonHeight, 
-                '⬆️ Upgrade', `💰 ${upgradeInfo.cost}`, 
+            this.renderAnimatedButton(buttonX, buttonY, buttonWidth, buttonHeight,
+                '⬆️ Upgrade', `💰 ${upgradeInfo.cost}`,
                 canAfford ? '#4CAF50' : '#9E9E9E', scaleFactor);
 
             // Add sell button if tower is not level 1
             if (selectedTower.level > 1) {
                 const sellY = buttonY + buttonHeight + Math.floor(10 * scaleFactor);
                 const sellCost = Math.floor(upgradeInfo.cost * 0.7); // 70% refund
-                this.renderAnimatedButton(buttonX, sellY, buttonWidth, buttonHeight, 
+                this.renderAnimatedButton(buttonX, sellY, buttonWidth, buttonHeight,
                     '🗑️ Sell', `💰 ${sellCost}`, '#FF6B6B', scaleFactor);
             }
         }
@@ -1054,7 +1081,7 @@ class RenderSystem {
         const buttonY = y;
 
         // Info button for enemy details
-        this.renderAnimatedButton(buttonX, buttonY, buttonWidth, buttonHeight, 
+        this.renderAnimatedButton(buttonX, buttonY, buttonWidth, buttonHeight,
             '📊 Enemy Info', 'View detailed stats', '#4ECDC4', scaleFactor);
     }
 
@@ -1066,7 +1093,7 @@ class RenderSystem {
         const buttonY = y;
 
         // Cycle tower type button
-        this.renderAnimatedButton(buttonX, buttonY, buttonWidth, buttonHeight, 
+        this.renderAnimatedButton(buttonX, buttonY, buttonWidth, buttonHeight,
             '🔄 Cycle Type', 'Next tower', '#45B7D1', scaleFactor);
 
         // Place tower button
@@ -1074,44 +1101,44 @@ class RenderSystem {
         const towerType = popupInfo.selectedType || 'BASIC';
         const towerCost = TOWER_TYPES[towerType]?.cost || 50;
         const canAfford = this.resourceSystem && this.resourceSystem.canAfford(towerCost);
-        
-        this.renderAnimatedButton(placeButtonX, buttonY, buttonWidth, buttonHeight, 
-            '✅ Place Tower', `💰 ${towerCost}`, 
+
+        this.renderAnimatedButton(placeButtonX, buttonY, buttonWidth, buttonHeight,
+            '✅ Place Tower', `💰 ${towerCost}`,
             canAfford ? '#4CAF50' : '#9E9E9E', scaleFactor);
     }
 
     // Render animated button with tactile feedback
     renderAnimatedButton(x, y, width, height, text, subtext, color, scaleFactor) {
         this.ctx.save();
-        
+
         const time = Date.now() / 1000;
         const pulse = Math.sin(time * 3) * 0.05 + 0.95; // Subtle pulsing
-        
+
         // Button background with gradient
         const gradient = this.ctx.createLinearGradient(x, y, x, y + height);
         gradient.addColorStop(0, this.lightenColor(color, 0.2 * pulse));
         gradient.addColorStop(1, this.darkenColor(color, 0.1 * pulse));
-        
+
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(x, y, width, height);
-        
+
         // Button border with subtle glow
         this.ctx.strokeStyle = this.lightenColor(color, 0.4);
         this.ctx.lineWidth = 2;
         this.ctx.strokeRect(x, y, width, height);
-        
+
         // Button text
         this.ctx.fillStyle = '#FFF';
         this.ctx.font = `bold ${Math.floor(14 * scaleFactor)}px Arial`;
         this.ctx.textAlign = 'center';
         this.ctx.fillText(text, x + width / 2, y + Math.floor(18 * scaleFactor));
-        
+
         // Subtext if provided
         if (subtext) {
             this.ctx.font = `${Math.floor(11 * scaleFactor)}px Arial`;
             this.ctx.fillText(subtext, x + width / 2, y + Math.floor(32 * scaleFactor));
         }
-        
+
         this.ctx.restore();
     }
 
@@ -1121,60 +1148,81 @@ class RenderSystem {
 
         const time = Date.now() / 1000;
 
-        // Cartoony section background with rounded corners
+        // Enhanced section background with rounded corners
         this.ctx.beginPath();
-        this.ctx.roundRect(x, y, width, height, 8);
+        this.ctx.roundRect(x, y, width, height, 12);
         this.ctx.clip();
 
-        // Static gradient background
+        // Animated gradient background
+        const pulse = Math.sin(time * 2) * 0.05 + 0.95;
         const gradient = this.ctx.createLinearGradient(x, y, x, y + height);
-        gradient.addColorStop(0, 'rgba(200, 200, 0, 0.3)');
-        gradient.addColorStop(1, 'rgba(180, 180, 0, 0.2)');
+        gradient.addColorStop(0, `rgba(255, 215, 0, ${0.4 * pulse})`);
+        gradient.addColorStop(1, `rgba(255, 193, 7, ${0.3 * pulse})`);
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(x, y, width, height);
         this.ctx.restore();
 
-        // Clean border without glow
+        // Enhanced section border with glow
         this.ctx.save();
         this.ctx.strokeStyle = '#FFD700';
-        this.ctx.lineWidth = 2;
+        this.ctx.lineWidth = 3;
         this.ctx.beginPath();
-        this.ctx.roundRect(x, y, width, height, 8);
+        this.ctx.roundRect(x, y, width, height, 12);
+        this.ctx.stroke();
+        
+        // Inner glow
+        this.ctx.strokeStyle = 'rgba(255, 215, 0, 0.5)';
+        this.ctx.lineWidth = 1;
+        this.ctx.beginPath();
+        this.ctx.roundRect(x + 2, y + 2, width - 4, height - 4, 10);
         this.ctx.stroke();
         this.ctx.restore();
 
-        // Static coin title
+        // Enhanced coin title with icon
         this.ctx.fillStyle = '#FFF';
-        this.ctx.font = 'bold 22px Arial';  // Increased from 16px
+        this.ctx.font = 'bold 24px Arial';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('💰 Coins', x + width / 2, y + 20);
+        this.ctx.fillText('💰 Coins', x + width / 2, y + 25);
 
-        // Display coin count (no pulsing)
-        this.ctx.font = 'bold 28px Arial';  // Increased from 18px
+        // Display coin count with enhanced styling
         const coinCount = resourceInfo ? (resourceInfo.coins || 0) : 0;
-        this.ctx.fillStyle = '#FFD700';
+        this.ctx.font = 'bold 32px Arial';
+        this.ctx.fillStyle = '#FFF';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText(`${coinCount}`, x + width / 2, y + 50);
+        this.ctx.fillText(`${coinCount}`, x + width / 2, y + 55);
 
-        // Static coin icon (no rotation or bounce)
+        // Enhanced coin icon with animation
         const coinX = x + width / 2;
-        const coinY = y + 70;
+        const coinY = y + 75;
 
         this.ctx.save();
         this.ctx.translate(coinX, coinY);
+        
+        // Subtle rotation animation
+        const rotation = Math.sin(time * 2) * 0.1;
+        this.ctx.rotate(rotation);
 
-        // Coin without glow effect
-        this.ctx.fillStyle = '#FFD700';
+        // Enhanced coin with gradient
+        const coinGradient = this.ctx.createRadialGradient(-3, -3, 0, 0, 0, 15);
+        coinGradient.addColorStop(0, '#FFE082');
+        coinGradient.addColorStop(0.7, '#FFD700');
+        coinGradient.addColorStop(1, '#B8860B');
+        
+        this.ctx.fillStyle = coinGradient;
         this.ctx.beginPath();
-        this.ctx.arc(0, 0, 12, 0, Math.PI * 2);
+        this.ctx.arc(0, 0, 15, 0, Math.PI * 2);
         this.ctx.fill();
 
-        // Coin border
+        // Enhanced coin border with glow
         this.ctx.strokeStyle = '#B8860B';
         this.ctx.lineWidth = 3;
         this.ctx.stroke();
+        
+        // Outer glow
+        this.ctx.strokeStyle = 'rgba(255, 215, 0, 0.5)';
+        this.ctx.lineWidth = 6;
+        this.ctx.stroke();
 
-        // Coin sparkle effect (removed excessive sparkles)
         this.ctx.restore();
 
         this.ctx.restore();
@@ -1291,7 +1339,7 @@ class RenderSystem {
     // Render tower information section with enhanced typography and special effects
     renderTowerInfo(x, y, tower) {
         this.ctx.save();
-        
+
         // Enhanced tower title with better typography
         this.ctx.fillStyle = '#FFF';
         this.ctx.font = 'bold 22px Arial'; // Larger, more prominent
@@ -1301,7 +1349,7 @@ class RenderSystem {
         // Enhanced stats with better spacing and icons
         const lineHeight = 30; // Increased spacing
         let currentY = y + 35;
-        
+
         // Level with icon and better styling
         this.ctx.fillStyle = '#FFD700'; // Gold color for level
         this.ctx.font = 'bold 18px Arial';
@@ -1336,10 +1384,11 @@ class RenderSystem {
             const status = isFaster ? 'FAST' : 'SLOW';
             const statusColor = isFaster ? '#4CAF50' : '#FF9800';
 
-            // Enhanced special effect highlighting with glow
-            this.renderSpecialEffectHighlight(x + 140, currentY - 15, status, statusColor, `${sign}${Math.abs(diff)}ms`);
+            // Render special effect vertically below the fire rate
+            currentY += lineHeight;
+            this.renderSpecialEffectVertical(x, currentY - 10, status, statusColor, `${sign}${Math.abs(diff)}ms`);
         }
-        
+
         this.ctx.restore();
     }
 
@@ -1375,6 +1424,33 @@ class RenderSystem {
         this.ctx.restore();
     }
 
+    // Render special effect vertically to avoid HUD bounds overlap
+    renderSpecialEffectVertical(x, y, effect, color, details) {
+        this.ctx.save();
+        
+        const time = Date.now() / 1000;
+        const pulse = Math.sin(time * 4) * 0.3 + 0.7; // Pulsing effect
+        
+        // Background glow - vertical layout
+        this.ctx.globalAlpha = 0.3 * pulse;
+        this.ctx.fillStyle = color;
+        this.ctx.fillRect(x - 5, y - 5, 200, 25); // Wider to fit text
+        
+        // Border glow
+        this.ctx.globalAlpha = 0.6 * pulse;
+        this.ctx.strokeStyle = color;
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(x - 5, y - 5, 200, 25);
+        
+        // Effect text with enhanced styling
+        this.ctx.globalAlpha = 1.0;
+        this.ctx.fillStyle = color;
+        this.ctx.font = 'bold 16px Arial';
+        this.ctx.fillText(`${effect} ${details}`, x + 5, y + 16);
+        
+        this.ctx.restore();
+    }
+
     renderTowerPortrait(x, y, size, tower) {
         const centerX = x + size / 2;
         const centerY = y + size / 2;
@@ -1391,7 +1467,7 @@ class RenderSystem {
         this.ctx.beginPath();
         this.ctx.arc(centerX, centerY, pulseRadius, 0, Math.PI * 2);
         this.ctx.fill();
-        
+
         // Add subtle outer glow ring
         this.ctx.globalAlpha = 0.2;
         this.ctx.strokeStyle = tower.color;
@@ -1562,7 +1638,7 @@ class RenderSystem {
     // Render enemy information
     renderEnemyInfo(x, y, width, height, enemy) {
         this.ctx.save();
-        
+
         // Enhanced enemy title with better typography
         this.ctx.fillStyle = '#FF6B6B'; // Red for enemy
         this.ctx.font = 'bold 22px Arial'; // Larger, more prominent
@@ -1572,12 +1648,12 @@ class RenderSystem {
         // Enhanced stats with better spacing and icons
         const lineHeight = 30; // Increased spacing
         let currentY = y + 35;
-        
+
         // Health with icon and progress bar
         this.ctx.fillStyle = '#4CAF50'; // Green for health
         this.ctx.font = 'bold 18px Arial';
         this.ctx.fillText(`❤️ Health: ${Math.ceil(enemy.health)}/${enemy.maxHealth}`, x, currentY);
-        
+
         // Health bar visualization
         this.renderHealthBar(x, currentY + 20, width - 20, 8, enemy.health / enemy.maxHealth);
         currentY += lineHeight + 15;
@@ -1604,27 +1680,51 @@ class RenderSystem {
         this.ctx.restore();
     }
 
-    // Render health bar visualization
-    renderHealthBar(x, y, width, height, healthPercentage) {
+    // Render life bar visualization
+    renderLifeBar(x, y, width, height, lifePercentage) {
         this.ctx.save();
         
         // Background bar
         this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
         this.ctx.fillRect(x, y, width, height);
         
-        // Health bar
-        const healthWidth = width * Math.max(0, healthPercentage);
-        const healthColor = healthPercentage > 0.6 ? '#4CAF50' : 
-                           healthPercentage > 0.3 ? '#FF9800' : '#F44336';
+        // Life bar
+        const lifeWidth = width * Math.max(0, lifePercentage);
+        const lifeColor = lifePercentage > 0.6 ? '#4CAF50' : 
+                         lifePercentage > 0.3 ? '#FF9800' : '#F44336';
         
-        this.ctx.fillStyle = healthColor;
-        this.ctx.fillRect(x, y, healthWidth, height);
+        this.ctx.fillStyle = lifeColor;
+        this.ctx.fillRect(x, y, lifeWidth, height);
         
         // Border
         this.ctx.strokeStyle = '#FFF';
         this.ctx.lineWidth = 1;
         this.ctx.strokeRect(x, y, width, height);
         
+        this.ctx.restore();
+    }
+
+    // Render health bar visualization
+    renderHealthBar(x, y, width, height, healthPercentage) {
+        this.ctx.save();
+
+        // Background bar
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        this.ctx.fillRect(x, y, width, height);
+
+        // Health bar
+        const healthWidth = width * Math.max(0, healthPercentage);
+        const healthColor = healthPercentage > 0.6 ? '#4CAF50' :
+            healthPercentage > 0.3 ? '#FF9800' : '#F44336';
+
+        this.ctx.fillStyle = healthColor;
+        this.ctx.fillRect(x, y, healthWidth, height);
+
+        // Border
+        this.ctx.strokeStyle = '#FFF';
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeRect(x, y, width, height);
+
         this.ctx.restore();
     }
 

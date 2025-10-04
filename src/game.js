@@ -432,8 +432,47 @@ function handleHUDClick(clickX, clickY) {
         const sectionHeight = (hudHeight - (padding * 5)) / 4; // 4 sections with 4 gaps (match renderer)
         const sectionWidth = hudWidth - (padding * 2);
 
-        // Section 1: Wave Info (no clickable elements)
+        // Section 1: Wave Info (mobile control buttons)
         const waveInfoY = hudY + padding;
+        
+        // Check for mobile control button clicks in Wave Info section
+        if (gameState.renderer.mobileButtonBounds && 
+            clickX >= hudX + padding && clickX <= hudX + padding + sectionWidth &&
+            clickY >= waveInfoY + 110 && clickY <= waveInfoY + sectionHeight) {
+            
+            // Check each mobile button
+            for (const button of gameState.renderer.mobileButtonBounds) {
+                const bounds = button.bounds;
+                if (clickX >= bounds.x && clickX <= bounds.x + bounds.width &&
+                    clickY >= bounds.y && clickY <= bounds.y + bounds.height) {
+                    
+                    gameState.logger.info(`🎯 Mobile button clicked: ${button.action}`);
+                    
+                    switch (button.action) {
+                        case 'pause':
+                            gameState.gameStateManager.togglePause();
+                            gameState.logger.info('⏸️ Game paused/unpaused');
+                            break;
+                        case 'restart':
+                            gameState.showStartMenu = true;
+                            gameState.logger.info('🔄 Returning to start menu');
+                            break;
+                        case 'menu':
+                            gameState.showStartMenu = true;
+                            gameState.logger.info('🏠 Returning to main menu');
+                            break;
+                        case 'sound':
+                            gameState.soundEnabled = !gameState.soundEnabled;
+                            if (gameState.audioManager) {
+                                gameState.audioManager.setMuted(!gameState.soundEnabled);
+                            }
+                            gameState.logger.info(`🔊 Sound ${gameState.soundEnabled ? 'enabled' : 'disabled'}`);
+                            break;
+                    }
+                    return true;
+                }
+            }
+        }
 
         // Section 2: Combined Selection (no clickable elements)
         const selectionY = waveInfoY + sectionHeight + padding;
