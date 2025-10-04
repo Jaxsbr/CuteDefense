@@ -426,31 +426,40 @@ function handleHUDClick(clickX, clickY) {
 
         gameState.logger.info('✅ Click is within HUD bounds');
 
-        // Calculate section layout (3 equal sections VERTICAL) - use responsive padding
+        // Calculate section layout with fixed proportions - use responsive padding
         const scaleFactor = gameState.responsiveScaling ? gameState.responsiveScaling.getScaleFactor() : 1.0;
         const padding = Math.floor(20 * scaleFactor); // Match renderer padding
-        const sectionHeight = (hudHeight - (padding * 4)) / 3; // 3 sections with 3 gaps (match renderer)
+
+        // Fixed proportions: Top 1/5, Bottom 1/5, Center takes remaining space
+        const topSectionHeight = Math.floor(hudHeight / 5); // Fixed 1/5
+        const bottomSectionHeight = Math.floor(hudHeight / 5); // Fixed 1/5
+        const sectionMargin = Math.floor(10 * scaleFactor); // Small margin between sections
+        const centerSectionHeight = hudHeight - topSectionHeight - bottomSectionHeight - (padding * 2) - sectionMargin; // Flexible center
+
         const sectionWidth = hudWidth - (padding * 2);
 
-        // Section 1: Wave Info with Coins (no clickable elements)
+        // Section 1: Wave Info with Coins (fixed top 1/5, no clickable elements)
         const waveInfoY = hudY + padding;
-        
-        // Section 2: Mobile Controls (dedicated section)
-        const controlsY = waveInfoY + sectionHeight + padding;
-        
-        // Check for mobile control button clicks in Mobile Controls section
-        if (gameState.renderer.mobileButtonBounds && 
+
+        // Section 2: Enhanced Selection (flexible center)
+        const selectionY = waveInfoY + topSectionHeight + sectionMargin;
+
+        // Section 3: Mobile Controls (fixed bottom 1/5)
+        const controlsY = selectionY + centerSectionHeight;
+
+        // Check for mobile control button clicks in Mobile Controls section (bottom)
+        if (gameState.renderer.mobileButtonBounds &&
             clickX >= hudX + padding && clickX <= hudX + padding + sectionWidth &&
-            clickY >= controlsY && clickY <= controlsY + sectionHeight) {
-            
+            clickY >= controlsY && clickY <= controlsY + bottomSectionHeight - padding) {
+
             // Check each mobile button
             for (const button of gameState.renderer.mobileButtonBounds) {
                 const bounds = button.bounds;
                 if (clickX >= bounds.x && clickX <= bounds.x + bounds.width &&
                     clickY >= bounds.y && clickY <= bounds.y + bounds.height) {
-                    
+
                     gameState.logger.info(`🎯 Mobile button clicked: ${button.action}`);
-                    
+
                     switch (button.action) {
                         case 'pause':
                             gameState.gameStateManager.togglePause();
@@ -477,24 +486,21 @@ function handleHUDClick(clickX, clickY) {
             }
         }
 
-        // Section 3: Enhanced Selection with integrated actions (upgrade buttons)
-        const selectionY = controlsY + sectionHeight + padding;
-        
-        // Check for upgrade/sell button clicks in the selection section
+        // Check for upgrade/sell button clicks in the selection section (center)
         if (gameState.selectedTower &&
             clickX >= hudX + padding && clickX <= hudX + padding + sectionWidth &&
-            clickY >= selectionY && clickY <= selectionY + sectionHeight) {
+            clickY >= selectionY && clickY <= selectionY + centerSectionHeight) {
 
             // Calculate button positions based on the enhanced selection layout
             const portraitWidth = 120;
             const infoX = hudX + padding + portraitWidth + 15;
             const infoWidth = sectionWidth - portraitWidth - 15;
-            
+
             // Estimate button positions (these should match the renderTowerInfoWithActions method)
             const buttonWidth = infoWidth - 20;
-            const buttonHeight = 35;
+            const buttonHeight = 45; // Increased to match renderTowerInfoWithActions
             const buttonX = infoX + 10;
-            
+
             // First button (upgrade) is positioned after stats
             const upgradeButtonY = selectionY + 200; // Approximate position after stats
             const sellButtonY = upgradeButtonY + buttonHeight + 10;
@@ -527,7 +533,7 @@ function handleHUDClick(clickX, clickY) {
                 }
                 return true;
             }
-            
+
             // Check sell button click (if tower level > 1)
             if (gameState.selectedTower.level > 1 &&
                 clickX >= buttonX && clickX <= buttonX + buttonWidth &&

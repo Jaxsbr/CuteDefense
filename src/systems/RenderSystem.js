@@ -646,27 +646,31 @@ class RenderSystem {
 
     // Removed sparkle effects for clean HUD appearance
 
-    // Render the four HUD sections: Wave Info, Combined Selection (Portrait+Info), Selection Actions, Coin Info
+    // Render HUD with fixed proportions: Top 1/5, Center flexible, Bottom 1/5
     renderHUDSections(hudX, hudY, hudWidth, hudHeight, selectedTower, towerManager, waveInfo, resourceInfo, selectedEnemy, popupInfo, gameStateInfo, gridSystem) {
         // Use responsive scaling for padding
         const scaleFactor = window.gameState && window.gameState.responsiveScaling ? window.gameState.responsiveScaling.getScaleFactor() : 1.0;
         const padding = Math.floor(20 * scaleFactor);
-        const sectionHeight = (hudHeight - (padding * 4)) / 3; // 3 sections with 3 gaps
 
-        // Vertical layout for left-docked HUD
+        // Fixed proportions: Top 1/5, Bottom 1/5, Center takes remaining space
+        const topSectionHeight = Math.floor(hudHeight / 5); // Fixed 1/5
+        const bottomSectionHeight = Math.floor(hudHeight / 5); // Fixed 1/5
+        const sectionMargin = Math.floor(10 * scaleFactor); // Small margin between sections
+        const centerSectionHeight = hudHeight - topSectionHeight - bottomSectionHeight - (padding * 2) - sectionMargin; // Flexible center
+
         const sectionWidth = hudWidth - (padding * 2);
 
-        // Section 1: Wave Info with Coins (top)
+        // Section 1: Wave Info with Coins (fixed top 1/5)
         const waveInfoY = hudY + padding;
-        this.renderWaveInfoWithCoinsSection(hudX + padding, waveInfoY, sectionWidth, sectionHeight, waveInfo, gameStateInfo, gridSystem, resourceInfo);
+        this.renderWaveInfoWithCoinsSection(hudX + padding, waveInfoY, sectionWidth, topSectionHeight - padding, waveInfo, gameStateInfo, gridSystem, resourceInfo);
 
-        // Section 2: Mobile Controls (second)
-        const controlsY = waveInfoY + sectionHeight + padding;
-        this.renderMobileControlsSection(hudX + padding, controlsY, sectionWidth, sectionHeight);
+        // Section 2: Enhanced Selection with integrated actions (flexible center)
+        const selectionY = waveInfoY + topSectionHeight + sectionMargin;
+        this.renderEnhancedSelectionSection(hudX + padding, selectionY, sectionWidth, centerSectionHeight, selectedTower, selectedEnemy, popupInfo, towerManager);
 
-        // Section 3: Enhanced Selection with integrated actions (third) - much more space
-        const selectionY = controlsY + sectionHeight + padding;
-        this.renderEnhancedSelectionSection(hudX + padding, selectionY, sectionWidth, sectionHeight, selectedTower, selectedEnemy, popupInfo, towerManager);
+        // Section 3: Mobile Controls (fixed bottom 1/5)
+        const controlsY = selectionY + centerSectionHeight;
+        this.renderMobileControlsSection(hudX + padding, controlsY, sectionWidth, bottomSectionHeight - padding);
     }
 
     // Render enhanced selection section with integrated actions
@@ -1500,7 +1504,7 @@ class RenderSystem {
     // Render tower information with integrated upgrade button
     renderTowerInfoWithActions(x, y, width, height, tower, towerManager) {
         this.ctx.save();
-        
+
         // Enhanced tower title with better typography
         this.ctx.fillStyle = '#FFF';
         this.ctx.font = 'bold 22px Arial'; // Larger, more prominent
@@ -1510,7 +1514,7 @@ class RenderSystem {
         // Enhanced stats with better spacing and icons
         const lineHeight = 30; // Increased spacing
         let currentY = y + 35;
-        
+
         // Level with icon and better styling
         this.ctx.fillStyle = '#FFD700'; // Gold color for level
         this.ctx.font = 'bold 18px Arial';
@@ -1549,48 +1553,48 @@ class RenderSystem {
             currentY += lineHeight;
             this.renderSpecialEffectVertical(x, currentY - 10, status, statusColor, `${sign}${Math.abs(diff)}ms`);
         }
-        
+
         // Add upgrade button below stats
         currentY += lineHeight + 20;
         const upgradeInfo = towerManager.getTowerUpgradeInfo(tower.x, tower.y);
-        
+
         if (upgradeInfo) {
             const buttonWidth = width - 20;
-            const buttonHeight = 35;
+            const buttonHeight = 45; // Increased from 35 to give more space
             const buttonX = x + 10;
             const buttonY = currentY;
 
             const canAfford = this.resourceSystem && this.resourceSystem.canAfford(upgradeInfo.cost);
 
             // Enhanced upgrade button with better visuals
-            this.renderEnhancedButton(buttonX, buttonY, buttonWidth, buttonHeight, 
-                '⬆️ Upgrade', `💰 ${upgradeInfo.cost}`, 
+            this.renderEnhancedButton(buttonX, buttonY, buttonWidth, buttonHeight,
+                '⬆️ Upgrade', `💰 ${upgradeInfo.cost}`,
                 canAfford ? '#4CAF50' : '#9E9E9E', canAfford);
 
             // Add sell button if tower is not level 1
             if (tower.level > 1) {
                 const sellY = buttonY + buttonHeight + 10;
                 const sellCost = Math.floor(upgradeInfo.cost * 0.7); // 70% refund
-                this.renderEnhancedButton(buttonX, sellY, buttonWidth, buttonHeight, 
+                this.renderEnhancedButton(buttonX, sellY, buttonWidth, buttonHeight,
                     '🗑️ Sell', `💰 ${sellCost}`, '#FF6B6B', true);
             }
         }
-        
+
         this.ctx.restore();
     }
 
     // Render enhanced button with improved visuals
     renderEnhancedButton(x, y, width, height, text, subtext, color, enabled = true) {
         this.ctx.save();
-        
+
         const time = Date.now() / 1000;
         const pulse = Math.sin(time * 3) * 0.05 + 0.95; // Subtle pulsing
-        
+
         // Enhanced button background with rounded corners
         this.ctx.beginPath();
         this.ctx.roundRect(x, y, width, height, 8);
         this.ctx.clip();
-        
+
         // Gradient background with animation
         const gradient = this.ctx.createLinearGradient(x, y, x, y + height);
         if (enabled) {
@@ -1600,11 +1604,11 @@ class RenderSystem {
             gradient.addColorStop(0, this.lightenColor(color, 0.1));
             gradient.addColorStop(1, this.darkenColor(color, 0.3));
         }
-        
+
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(x, y, width, height);
         this.ctx.restore();
-        
+
         // Enhanced border with glow effect
         this.ctx.save();
         if (enabled) {
@@ -1617,7 +1621,7 @@ class RenderSystem {
         this.ctx.beginPath();
         this.ctx.roundRect(x, y, width, height, 8);
         this.ctx.stroke();
-        
+
         // Inner glow for enabled buttons
         if (enabled) {
             this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
@@ -1627,20 +1631,20 @@ class RenderSystem {
             this.ctx.stroke();
         }
         this.ctx.restore();
-        
-        // Button text with enhanced styling
+
+        // Button text with enhanced styling - larger and better positioned
         this.ctx.fillStyle = enabled ? '#FFF' : '#999';
-        this.ctx.font = 'bold 16px Arial';
+        this.ctx.font = 'bold 18px Arial'; // Increased from 16px
         this.ctx.textAlign = 'center';
-        this.ctx.fillText(text, x + width / 2, y + height / 2 - 5);
+        this.ctx.fillText(text, x + width / 2, y + height / 2 - 8); // Better vertical positioning
         
-        // Subtext if provided
+        // Subtext if provided - larger and better positioned
         if (subtext) {
-            this.ctx.font = 'bold 12px Arial';
+            this.ctx.font = 'bold 14px Arial'; // Increased from 12px
             this.ctx.fillStyle = enabled ? '#FFF' : '#999';
-            this.ctx.fillText(subtext, x + width / 2, y + height / 2 + 12);
+            this.ctx.fillText(subtext, x + width / 2, y + height / 2 + 15); // Better spacing
         }
-        
+
         this.ctx.restore();
     }
 
