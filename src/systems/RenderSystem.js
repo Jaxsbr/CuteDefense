@@ -840,7 +840,7 @@ class RenderSystem {
         this.ctx.restore();
     }
 
-    // Render wave info section with integrated coins
+    // Render wave info section with vertical layout and enhanced visual hierarchy
     renderWaveInfoWithCoinsSection(x, y, width, height, waveInfo, gameStateInfo, gridSystem = null, resourceInfo = null) {
         this.ctx.save();
 
@@ -861,77 +861,79 @@ class RenderSystem {
         this.ctx.stroke();
         this.ctx.restore();
 
-        // Layout: 2 rows, 2 columns each
-        const rowHeight = height / 2;
-        const colWidth = width / 2;
+        // Vertical layout with centered horizontal alignment and custom spacing
+        const centerX = x + width / 2;
+        const topMargin = 8; // Small margin above lives bar
+        const largeSpacing = height / 4; // Larger spacing for main elements (lives and coins)
+        const smallSpacing = height / 8; // Smaller spacing for text elements
+        let currentY = y + topMargin;
 
-        // Row 1: Lives and Wave
-        // Lives (top left)
+        // 1. LIVES BAR (Most Important - Large and Visual, aligned with green border)
         if (gameStateInfo) {
             const livesRemaining = gameStateInfo.maxEnemiesAllowed - gameStateInfo.enemiesReachedGoal;
             const totalLives = gameStateInfo.maxEnemiesAllowed;
             const lifePercentage = livesRemaining / totalLives;
 
-            this.ctx.fillStyle = '#FFF';
-            this.ctx.font = 'bold 16px Arial';
-            this.ctx.textAlign = 'center';
-            this.ctx.fillText(`Lives: ${livesRemaining}/${totalLives}`, x + colWidth / 2, y + 20);
-            this.renderLifeBar(x + colWidth / 2 - 30, y + 30, 60, 8, lifePercentage);
+            // Enhanced life bar - doubled in size for better visibility, aligned with green border
+            const barWidth = width - 4; // Full width minus 2px margin on each side to align with green border
+            const barHeight = 32; // Doubled from 16 to 32
+            const barX = x + 2; // 2px margin from left edge to align with green border
+            const barY = currentY - barHeight / 2;
+
+            this.renderEnhancedLifeBar(barX, barY, barWidth, barHeight, lifePercentage);
+            currentY += barHeight / 2 + largeSpacing; // Add margin above coins
         }
 
-        // Wave (top right)
-        this.ctx.fillStyle = '#FFF';
-        this.ctx.font = 'bold 16px Arial';
-        this.ctx.textAlign = 'center';
-        if (waveInfo) {
-            this.ctx.fillText(`Wave: ${waveInfo.currentWave || 1}`, x + colWidth + colWidth / 2, y + 25);
-        } else {
-            this.ctx.fillText('Wave: 1', x + colWidth + colWidth / 2, y + 25);
-        }
-
-        // Row 2: Difficulty and Coins
-        // Difficulty (bottom left)
-        this.ctx.fillStyle = '#FFD700';
-        this.ctx.font = 'bold 16px Arial';
-        const difficulty = gridSystem ? gridSystem.getDifficulty() : 'easy';
-        const difficultyText = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
-        this.ctx.fillText(`Difficulty: ${difficultyText}`, x + colWidth / 2, y + rowHeight + 20);
-
-        // Coins (bottom right)
+        // 2. COINS (Second Priority - Larger Text with Gameplay Coin Animation)
         const coinCount = resourceInfo ? (resourceInfo.coins || 0) : 0;
         this.ctx.fillStyle = '#FFD700';
-        this.ctx.font = 'bold 18px Arial';
-        this.ctx.fillText(`💰 ${coinCount}`, x + colWidth + colWidth / 2, y + rowHeight + 20);
+        this.ctx.font = 'bold 24px Arial'; // Increased from 20px to 24px
+        this.ctx.textAlign = 'center';
 
-        // Small animated coin icon next to coins
-        const coinX = x + colWidth + colWidth / 2 + 40;
-        const coinY = y + rowHeight + 15;
+        // Calculate text width to position animated coin
+        const coinText = `${coinCount}`;
+        const textWidth = this.ctx.measureText(coinText).width;
+        const coinIconSize = 24; // Match gameplay coin size
+        const spacing = 20; // Increased from 12px to 20px for more space between text and coin
+        const totalWidth = textWidth + coinIconSize + spacing;
 
-        this.ctx.save();
-        this.ctx.translate(coinX, coinY);
+        // Draw coin text with proper vertical alignment
+        this.ctx.fillText(coinText, centerX - totalWidth / 2 + textWidth / 2, currentY + 6); // +6 for better vertical centering
 
-        // Subtle rotation animation
-        const time = Date.now() / 1000;
-        const rotation = Math.sin(time * 2) * 0.1;
-        this.ctx.rotate(rotation);
+        // Draw gameplay-style animated coin next to text
+        const coinX = centerX - totalWidth / 2 + textWidth + spacing + coinIconSize / 2;
+        const coinY = currentY;
 
-        // Small coin with gradient
-        const coinGradient = this.ctx.createRadialGradient(-2, -2, 0, 0, 0, 8);
-        coinGradient.addColorStop(0, '#FFE082');
-        coinGradient.addColorStop(0.7, '#FFD700');
-        coinGradient.addColorStop(1, '#B8860B');
+        this.renderGameplayStyleCoin(coinX, coinY, coinIconSize);
+        currentY += largeSpacing; // Add margin above remaining text elements
 
-        this.ctx.fillStyle = coinGradient;
-        this.ctx.beginPath();
-        this.ctx.arc(0, 0, 8, 0, Math.PI * 2);
-        this.ctx.fill();
+        // 3. ENEMY SPAWN TRACKER (New Feature)
+        if (waveInfo && waveInfo.totalEnemies > 0) {
+            this.ctx.fillStyle = '#E0E0E0';
+            this.ctx.font = '14px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText(`Enemies: ${waveInfo.enemiesSpawned}/${waveInfo.totalEnemies}`, centerX, currentY);
+            currentY += smallSpacing; // Smaller spacing between text elements
+        }
 
-        // Coin border
-        this.ctx.strokeStyle = '#B8860B';
-        this.ctx.lineWidth = 1;
-        this.ctx.stroke();
+        // 4. WAVE (Small Text)
+        this.ctx.fillStyle = '#B0B0B0';
+        this.ctx.font = '12px Arial';
+        this.ctx.textAlign = 'center';
+        if (waveInfo) {
+            this.ctx.fillText(`Wave ${waveInfo.currentWave || 1}`, centerX, currentY);
+        } else {
+            this.ctx.fillText('Wave 1', centerX, currentY);
+        }
+        currentY += smallSpacing; // Smaller spacing between text elements
 
-        this.ctx.restore();
+        // 5. DIFFICULTY (Small Text)
+        this.ctx.fillStyle = '#B0B0B0';
+        this.ctx.font = '12px Arial';
+        this.ctx.textAlign = 'center';
+        const difficulty = gridSystem ? gridSystem.getDifficulty() : 'easy';
+        const difficultyText = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
+        this.ctx.fillText(difficultyText, centerX, currentY);
 
         this.ctx.restore();
     }
@@ -2013,6 +2015,140 @@ class RenderSystem {
         this.ctx.strokeStyle = '#FFF';
         this.ctx.lineWidth = 1;
         this.ctx.strokeRect(x, y, width, height);
+
+        this.ctx.restore();
+    }
+
+    // Render enhanced life bar with better visual feedback and color coding
+    renderEnhancedLifeBar(x, y, width, height, lifePercentage) {
+        this.ctx.save();
+
+        // Rounded corners for modern look
+        this.ctx.beginPath();
+        this.ctx.roundRect(x, y, width, height, height / 2);
+        this.ctx.clip();
+
+        // Background bar with subtle gradient
+        const bgGradient = this.ctx.createLinearGradient(x, y, x, y + height);
+        bgGradient.addColorStop(0, 'rgba(100, 100, 100, 0.4)');
+        bgGradient.addColorStop(1, 'rgba(50, 50, 50, 0.6)');
+        this.ctx.fillStyle = bgGradient;
+        this.ctx.fillRect(x, y, width, height);
+
+        // Life bar with enhanced color coding and gradient
+        const lifeWidth = width * Math.max(0, lifePercentage);
+        if (lifeWidth > 0) {
+            let lifeColor, lifeGradient;
+
+            if (lifePercentage > 0.6) {
+                // Green - Full health
+                lifeGradient = this.ctx.createLinearGradient(x, y, x, y + height);
+                lifeGradient.addColorStop(0, '#66BB6A');
+                lifeGradient.addColorStop(0.5, '#4CAF50');
+                lifeGradient.addColorStop(1, '#388E3C');
+            } else if (lifePercentage > 0.3) {
+                // Yellow/Orange - Half health
+                lifeGradient = this.ctx.createLinearGradient(x, y, x, y + height);
+                lifeGradient.addColorStop(0, '#FFB74D');
+                lifeGradient.addColorStop(0.5, '#FF9800');
+                lifeGradient.addColorStop(1, '#F57C00');
+            } else {
+                // Red - Low health
+                lifeGradient = this.ctx.createLinearGradient(x, y, x, y + height);
+                lifeGradient.addColorStop(0, '#EF5350');
+                lifeGradient.addColorStop(0.5, '#F44336');
+                lifeGradient.addColorStop(1, '#D32F2F');
+            }
+
+            this.ctx.fillStyle = lifeGradient;
+            this.ctx.fillRect(x, y, lifeWidth, height);
+
+            // Inner highlight for 3D effect
+            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            this.ctx.fillRect(x, y, lifeWidth, height * 0.3);
+        }
+
+        this.ctx.restore();
+
+        // Enhanced border with glow effect for low health
+        this.ctx.save();
+        if (lifePercentage <= 0.3) {
+            // Pulsing red border for critical health
+            const pulse = Math.sin(Date.now() / 200) * 0.3 + 0.7;
+            this.ctx.strokeStyle = `rgba(244, 67, 54, ${pulse})`;
+            this.ctx.lineWidth = 3;
+        } else {
+            this.ctx.strokeStyle = '#FFF';
+            this.ctx.lineWidth = 2;
+        }
+
+        this.ctx.beginPath();
+        this.ctx.roundRect(x, y, width, height, height / 2);
+        this.ctx.stroke();
+        this.ctx.restore();
+    }
+
+    // Render gameplay-style coin with bounce, sway, rotation, and sparkles
+    renderGameplayStyleCoin(centerX, centerY, size) {
+        const time = Date.now() / 1000;
+
+        // Create a mock coin object for animation calculations
+        const mockCoin = {
+            id: 12345, // Fixed ID for consistent animation
+            bounceHeight: Math.sin(time * 0.004) * 8, // Bounce animation
+            swayOffset: Math.sin(time * 0.003) * 1, // Sway animation
+            animationTime: time * 1000, // Convert to milliseconds
+            warningProgress: 0, // Normal coin state
+            expired: false,
+            collected: false
+        };
+
+        // Calculate animated position
+        const bounceY = centerY + mockCoin.bounceHeight;
+        const swayX = centerX + mockCoin.swayOffset;
+
+        // Add subtle rotation animation (same as gameplay)
+        const rotation = Math.sin(time * 2 + mockCoin.id * 0.1) * 0.1;
+
+        this.ctx.save();
+        this.ctx.translate(swayX, bounceY);
+        this.ctx.rotate(rotation);
+
+        // Scale factor to match the requested size
+        const scale = size / 24; // 24 is the base gameplay coin size
+        this.ctx.scale(scale, scale);
+
+        // Draw coin with enhanced glow effect (same as gameplay)
+        this.ctx.shadowColor = '#FFD700';
+        this.ctx.shadowBlur = 8;
+
+        // Main coin body
+        this.ctx.fillStyle = '#FFD700';
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, 24, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Enhanced coin border with gradient and high contrast
+        const gradient = this.ctx.createRadialGradient(0, 0, 18, 0, 0, 24);
+        gradient.addColorStop(0, '#FFA500');
+        gradient.addColorStop(1, '#B8860B');
+        this.ctx.strokeStyle = gradient;
+        this.ctx.lineWidth = 4;
+        this.ctx.stroke();
+
+        // Add inner dark outline for maximum contrast
+        this.ctx.strokeStyle = '#000000';
+        this.ctx.lineWidth = 1;
+        this.ctx.stroke();
+
+        // Inner coin highlight
+        this.ctx.fillStyle = '#FFF8DC';
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, 15, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Draw sparkle effects around coin (same as gameplay)
+        this.renderCoinSparkles(0, 0, time, mockCoin.id);
 
         this.ctx.restore();
     }
