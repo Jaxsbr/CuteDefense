@@ -666,7 +666,7 @@ class RenderSystem {
 
         // Section 3: Selection Actions (third)
         const actionsY = selectionY + sectionHeight + padding;
-        this.renderSelectionActionsSection(hudX + padding, actionsY, sectionWidth, sectionHeight, selectedTower, towerManager);
+        this.renderSelectionActionsSection(hudX + padding, actionsY, sectionWidth, sectionHeight, selectedTower, selectedEnemy, popupInfo, towerManager);
 
         // Section 4: Coin Info (bottom)
         const coinY = actionsY + sectionHeight + padding;
@@ -702,10 +702,11 @@ class RenderSystem {
         }
 
         // Split the combined section: portrait on left, info on right
-        const portraitWidth = 80;
-        const infoWidth = width - portraitWidth - 10; // 10px gap
-        const portraitX = x;
-        const infoX = x + portraitWidth + 10;
+        // Enhanced portrait size for better prominence
+        const portraitWidth = 120; // Increased from 80px for better visual hierarchy
+        const infoWidth = width - portraitWidth - 15; // 15px gap for better spacing
+        const portraitX = x + 5; // Small margin from left edge
+        const infoX = x + portraitWidth + 15;
 
         // Render portrait
         this.renderTowerPortrait(portraitX, y, portraitWidth, selectedTower);
@@ -787,13 +788,89 @@ class RenderSystem {
         const difficultyText = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
         this.ctx.fillText(`Difficulty: ${difficultyText}`, x + width / 2, y + 100);
 
-        // Add pause and restart instructions
-        this.ctx.fillStyle = '#FFD700'; // Golden color for instruction
-        this.ctx.font = 'bold 14px Arial';
-        this.ctx.fillText('Press ESC to pause', x + width / 2, y + 120);
-        this.ctx.fillText('Press R to restart', x + width / 2, y + 140);
+        // Render mobile control buttons instead of keyboard instructions
+        this.renderMobileControlButtons(x, y + 110, width, height - 110);
 
         this.ctx.restore();
+    }
+
+    // Render mobile control buttons with animations and tactile feedback
+    renderMobileControlButtons(x, y, width, height) {
+        this.ctx.save();
+        
+        const buttonWidth = (width - 20) / 4; // 4 buttons with spacing
+        const buttonHeight = Math.min(height - 20, 50);
+        const buttonSpacing = 5;
+        
+        // Button configurations
+        const buttons = [
+            { icon: '⏸️', label: 'Pause', action: 'pause', color: '#FF6B6B' },
+            { icon: '🔄', label: 'Restart', action: 'restart', color: '#4ECDC4' },
+            { icon: '🏠', label: 'Menu', action: 'menu', color: '#45B7D1' },
+            { icon: '🔊', label: 'Sound', action: 'sound', color: '#96CEB4' }
+        ];
+        
+        buttons.forEach((button, index) => {
+            const buttonX = x + 10 + index * (buttonWidth + buttonSpacing);
+            const buttonY = y + 10;
+            
+            // Button background with rounded corners
+            this.ctx.save();
+            this.ctx.beginPath();
+            this.ctx.roundRect(buttonX, buttonY, buttonWidth, buttonHeight, 8);
+            this.ctx.clip();
+            
+            // Animated gradient background
+            const time = Date.now() / 1000;
+            const pulse = Math.sin(time * 2) * 0.1 + 0.9; // Subtle pulsing
+            const gradient = this.ctx.createLinearGradient(buttonX, buttonY, buttonX, buttonY + buttonHeight);
+            gradient.addColorStop(0, this.lightenColor(button.color, 0.3 * pulse));
+            gradient.addColorStop(1, this.darkenColor(button.color, 0.2 * pulse));
+            
+            this.ctx.fillStyle = gradient;
+            this.ctx.fillRect(buttonX, buttonY, buttonWidth, buttonHeight);
+            this.ctx.restore();
+            
+            // Button border with subtle glow
+            this.ctx.save();
+            this.ctx.strokeStyle = this.lightenColor(button.color, 0.5);
+            this.ctx.lineWidth = 2;
+            this.ctx.beginPath();
+            this.ctx.roundRect(buttonX, buttonY, buttonWidth, buttonHeight, 8);
+            this.ctx.stroke();
+            this.ctx.restore();
+            
+            // Button icon (larger, centered)
+            this.ctx.fillStyle = '#FFF';
+            this.ctx.font = 'bold 20px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText(button.icon, buttonX + buttonWidth / 2, buttonY + buttonHeight / 2 - 5);
+            
+            // Button label (smaller, below icon)
+            this.ctx.fillStyle = '#FFF';
+            this.ctx.font = 'bold 10px Arial';
+            this.ctx.fillText(button.label, buttonX + buttonWidth / 2, buttonY + buttonHeight / 2 + 12);
+        });
+        
+        this.ctx.restore();
+    }
+
+    // Helper method to lighten colors for gradients
+    lightenColor(color, amount) {
+        const hex = color.replace('#', '');
+        const r = Math.min(255, parseInt(hex.substr(0, 2), 16) + Math.floor(255 * amount));
+        const g = Math.min(255, parseInt(hex.substr(2, 2), 16) + Math.floor(255 * amount));
+        const b = Math.min(255, parseInt(hex.substr(4, 2), 16) + Math.floor(255 * amount));
+        return `rgb(${r}, ${g}, ${b})`;
+    }
+
+    // Helper method to darken colors for gradients
+    darkenColor(color, amount) {
+        const hex = color.replace('#', '');
+        const r = Math.max(0, parseInt(hex.substr(0, 2), 16) - Math.floor(255 * amount));
+        const g = Math.max(0, parseInt(hex.substr(2, 2), 16) - Math.floor(255 * amount));
+        const b = Math.max(0, parseInt(hex.substr(4, 2), 16) - Math.floor(255 * amount));
+        return `rgb(${r}, ${g}, ${b})`;
     }
 
     // Render selection portrait section with cartoony styling
@@ -896,7 +973,7 @@ class RenderSystem {
     }
 
     // Render selection actions section
-    renderSelectionActionsSection(x, y, width, height, selectedTower, towerManager) {
+    renderSelectionActionsSection(x, y, width, height, selectedTower, selectedEnemy, popupInfo, towerManager) {
         this.ctx.save();
 
         // Section background with rounded corners
@@ -923,37 +1000,13 @@ class RenderSystem {
         this.ctx.textAlign = 'center';
         this.ctx.fillText('Actions', x + width / 2, y + Math.floor(20 * scaleFactor));
 
-        if (selectedTower) {
-            // Render upgrade button with responsive scaling
-            const upgradeInfo = towerManager.getTowerUpgradeInfo(selectedTower.x, selectedTower.y);
-            if (upgradeInfo) {
-                // Use responsive scaling for button dimensions (scaleFactor already declared above)
-                const buttonWidth = width - Math.floor(20 * scaleFactor);
-                const buttonHeight = Math.floor(30 * scaleFactor);
-                const buttonX = x + Math.floor(10 * scaleFactor);
-                const buttonY = y + Math.floor(35 * scaleFactor);
-
-                const canAfford = this.resourceSystem && this.resourceSystem.canAfford(upgradeInfo.cost);
-
-                // Button background
-                this.ctx.fillStyle = canAfford ? '#4CAF50' : '#9E9E9E';
-                this.ctx.fillRect(buttonX, buttonY, buttonWidth, buttonHeight);
-
-                // Button border
-                this.ctx.strokeStyle = canAfford ? '#2E7D32' : '#424242';
-                this.ctx.lineWidth = 2;
-                this.ctx.strokeRect(buttonX, buttonY, buttonWidth, buttonHeight);
-
-                // Button text with responsive font size
-                this.ctx.fillStyle = '#FFF';
-                this.ctx.font = `bold ${Math.floor(14 * scaleFactor)}px Arial`;
-                this.ctx.textAlign = 'center';
-                this.ctx.fillText('⬆️ Upgrade', buttonX + buttonWidth / 2, buttonY + Math.floor(20 * scaleFactor));
-
-                // Cost text with responsive font size
-                this.ctx.font = `${Math.floor(12 * scaleFactor)}px Arial`;
-                this.ctx.fillText(`💰 ${upgradeInfo.cost}`, buttonX + buttonWidth / 2, buttonY + Math.floor(35 * scaleFactor));
-            }
+        // Context-aware action buttons
+        if (selectedEnemy) {
+            this.renderEnemyActions(x, y + Math.floor(35 * scaleFactor), width, height - Math.floor(35 * scaleFactor), selectedEnemy, scaleFactor);
+        } else if (popupInfo && !selectedTower && !selectedEnemy) {
+            this.renderTowerPlacementActions(x, y + Math.floor(35 * scaleFactor), width, height - Math.floor(35 * scaleFactor), popupInfo, scaleFactor);
+        } else if (selectedTower) {
+            this.renderTowerActions(x, y + Math.floor(35 * scaleFactor), width, height - Math.floor(35 * scaleFactor), selectedTower, towerManager, scaleFactor);
         } else {
             // Show clean no actions with responsive font
             this.ctx.font = `${Math.floor(14 * scaleFactor)}px Arial`;
@@ -963,6 +1016,102 @@ class RenderSystem {
             this.ctx.fillText('No Actions', x + width / 2, y + height / 2);
         }
 
+        this.ctx.restore();
+    }
+
+    // Render tower-specific actions
+    renderTowerActions(x, y, width, height, selectedTower, towerManager, scaleFactor) {
+        const upgradeInfo = towerManager.getTowerUpgradeInfo(selectedTower.x, selectedTower.y);
+        
+        if (upgradeInfo) {
+            const buttonWidth = width - Math.floor(20 * scaleFactor);
+            const buttonHeight = Math.floor(30 * scaleFactor);
+            const buttonX = x + Math.floor(10 * scaleFactor);
+            const buttonY = y;
+
+            const canAfford = this.resourceSystem && this.resourceSystem.canAfford(upgradeInfo.cost);
+
+            // Enhanced upgrade button with better styling
+            this.renderAnimatedButton(buttonX, buttonY, buttonWidth, buttonHeight, 
+                '⬆️ Upgrade', `💰 ${upgradeInfo.cost}`, 
+                canAfford ? '#4CAF50' : '#9E9E9E', scaleFactor);
+
+            // Add sell button if tower is not level 1
+            if (selectedTower.level > 1) {
+                const sellY = buttonY + buttonHeight + Math.floor(10 * scaleFactor);
+                const sellCost = Math.floor(upgradeInfo.cost * 0.7); // 70% refund
+                this.renderAnimatedButton(buttonX, sellY, buttonWidth, buttonHeight, 
+                    '🗑️ Sell', `💰 ${sellCost}`, '#FF6B6B', scaleFactor);
+            }
+        }
+    }
+
+    // Render enemy-specific actions
+    renderEnemyActions(x, y, width, height, selectedEnemy, scaleFactor) {
+        const buttonWidth = width - Math.floor(20 * scaleFactor);
+        const buttonHeight = Math.floor(30 * scaleFactor);
+        const buttonX = x + Math.floor(10 * scaleFactor);
+        const buttonY = y;
+
+        // Info button for enemy details
+        this.renderAnimatedButton(buttonX, buttonY, buttonWidth, buttonHeight, 
+            '📊 Enemy Info', 'View detailed stats', '#4ECDC4', scaleFactor);
+    }
+
+    // Render tower placement actions
+    renderTowerPlacementActions(x, y, width, height, popupInfo, scaleFactor) {
+        const buttonWidth = (width - Math.floor(30 * scaleFactor)) / 2; // Two buttons side by side
+        const buttonHeight = Math.floor(30 * scaleFactor);
+        const buttonX = x + Math.floor(10 * scaleFactor);
+        const buttonY = y;
+
+        // Cycle tower type button
+        this.renderAnimatedButton(buttonX, buttonY, buttonWidth, buttonHeight, 
+            '🔄 Cycle Type', 'Next tower', '#45B7D1', scaleFactor);
+
+        // Place tower button
+        const placeButtonX = buttonX + buttonWidth + Math.floor(10 * scaleFactor);
+        const towerType = popupInfo.selectedType || 'BASIC';
+        const towerCost = TOWER_TYPES[towerType]?.cost || 50;
+        const canAfford = this.resourceSystem && this.resourceSystem.canAfford(towerCost);
+        
+        this.renderAnimatedButton(placeButtonX, buttonY, buttonWidth, buttonHeight, 
+            '✅ Place Tower', `💰 ${towerCost}`, 
+            canAfford ? '#4CAF50' : '#9E9E9E', scaleFactor);
+    }
+
+    // Render animated button with tactile feedback
+    renderAnimatedButton(x, y, width, height, text, subtext, color, scaleFactor) {
+        this.ctx.save();
+        
+        const time = Date.now() / 1000;
+        const pulse = Math.sin(time * 3) * 0.05 + 0.95; // Subtle pulsing
+        
+        // Button background with gradient
+        const gradient = this.ctx.createLinearGradient(x, y, x, y + height);
+        gradient.addColorStop(0, this.lightenColor(color, 0.2 * pulse));
+        gradient.addColorStop(1, this.darkenColor(color, 0.1 * pulse));
+        
+        this.ctx.fillStyle = gradient;
+        this.ctx.fillRect(x, y, width, height);
+        
+        // Button border with subtle glow
+        this.ctx.strokeStyle = this.lightenColor(color, 0.4);
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(x, y, width, height);
+        
+        // Button text
+        this.ctx.fillStyle = '#FFF';
+        this.ctx.font = `bold ${Math.floor(14 * scaleFactor)}px Arial`;
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText(text, x + width / 2, y + Math.floor(18 * scaleFactor));
+        
+        // Subtext if provided
+        if (subtext) {
+            this.ctx.font = `${Math.floor(11 * scaleFactor)}px Arial`;
+            this.ctx.fillText(subtext, x + width / 2, y + Math.floor(32 * scaleFactor));
+        }
+        
         this.ctx.restore();
     }
 
@@ -1139,44 +1288,91 @@ class RenderSystem {
         this.renderCoinDisplayInHUD(fill2X, contentY, fill2Width, contentHeight, resourceInfo);
     }
 
-    // Render tower information section (now with more space)
+    // Render tower information section with enhanced typography and special effects
     renderTowerInfo(x, y, tower) {
+        this.ctx.save();
+        
+        // Enhanced tower title with better typography
         this.ctx.fillStyle = '#FFF';
-        this.ctx.font = 'bold 18px Arial';
+        this.ctx.font = 'bold 22px Arial'; // Larger, more prominent
         this.ctx.textAlign = 'left';
         this.ctx.fillText(`${tower.type} Tower`, x, y);
 
-        this.ctx.font = '16px Arial';
-        this.ctx.fillText(`Level: ${tower.level}`, x, y + 25);
-        this.ctx.fillText(`Damage: ${tower.damage}`, x, y + 45);
-        this.ctx.fillText(`Range: ${tower.range}`, x, y + 65);
+        // Enhanced stats with better spacing and icons
+        const lineHeight = 30; // Increased spacing
+        let currentY = y + 35;
+        
+        // Level with icon and better styling
+        this.ctx.fillStyle = '#FFD700'; // Gold color for level
+        this.ctx.font = 'bold 18px Arial';
+        this.ctx.fillText(`⚡ Level: ${tower.level}`, x, currentY);
+        currentY += lineHeight;
 
-        // Display fire rate as clear text stats (now has space)
+        // Damage with icon and highlighting
+        this.ctx.fillStyle = '#FF6B6B'; // Red for damage
+        this.ctx.font = 'bold 18px Arial';
+        this.ctx.fillText(`💥 Damage: ${tower.damage}`, x, currentY);
+        currentY += lineHeight;
+
+        // Range with icon
+        this.ctx.fillStyle = '#4ECDC4'; // Teal for range
+        this.ctx.font = 'bold 18px Arial';
+        this.ctx.fillText(`🎯 Range: ${tower.range}`, x, currentY);
+        currentY += lineHeight;
+
+        // Enhanced fire rate display with special effects highlighting
         const fireRateMs = Math.round(tower.fireRate);
         const baseRateMs = Math.round(tower.baseFireRate || tower.fireRate);
         const isFaster = fireRateMs < baseRateMs;
         const isSlower = fireRateMs > baseRateMs;
 
-        // Show fire rate with inline status indicator
-        this.ctx.fillStyle = '#FFF';
-        this.ctx.font = '16px Arial';
+        this.ctx.fillStyle = '#FFF'; // Base color
+        this.ctx.font = 'bold 18px Arial';
+        this.ctx.fillText(`⚡ Fire: ${fireRateMs}ms`, x, currentY);
 
         if (isFaster || isSlower) {
             const diff = baseRateMs - fireRateMs;
             const sign = diff > 0 ? '+' : '';
             const status = isFaster ? 'FAST' : 'SLOW';
+            const statusColor = isFaster ? '#4CAF50' : '#FF9800';
 
-            // Render fire rate and status on same line
-            this.ctx.fillText(`Fire: ${fireRateMs}ms`, x, y + 85);
-
-            // Color code the status text inline
-            this.ctx.fillStyle = isFaster ? '#4CAF50' : '#FF9800';
-            this.ctx.font = '14px Arial';
-            this.ctx.fillText(`${status} ${sign}${Math.abs(diff)}ms`, x + 120, y + 85);
-        } else {
-            // Just show fire rate if no variation
-            this.ctx.fillText(`Fire: ${fireRateMs}ms`, x, y + 85);
+            // Enhanced special effect highlighting with glow
+            this.renderSpecialEffectHighlight(x + 140, currentY - 15, status, statusColor, `${sign}${Math.abs(diff)}ms`);
         }
+        
+        this.ctx.restore();
+    }
+
+    // Render special effect highlighting with glow and animation
+    renderSpecialEffectHighlight(x, y, effect, color, details) {
+        this.ctx.save();
+        
+        const time = Date.now() / 1000;
+        const pulse = Math.sin(time * 4) * 0.3 + 0.7; // Pulsing effect
+        
+        // Background glow
+        this.ctx.globalAlpha = 0.3 * pulse;
+        this.ctx.fillStyle = color;
+        this.ctx.fillRect(x - 5, y - 5, 120, 20);
+        
+        // Border glow
+        this.ctx.globalAlpha = 0.6 * pulse;
+        this.ctx.strokeStyle = color;
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(x - 5, y - 5, 120, 20);
+        
+        // Text with enhanced styling
+        this.ctx.globalAlpha = 1.0;
+        this.ctx.fillStyle = color;
+        this.ctx.font = 'bold 14px Arial';
+        this.ctx.fillText(effect, x + 2, y + 12);
+        
+        // Details in smaller text
+        this.ctx.fillStyle = '#FFF';
+        this.ctx.font = '12px Arial';
+        this.ctx.fillText(details, x + 60, y + 12);
+        
+        this.ctx.restore();
     }
 
     renderTowerPortrait(x, y, size, tower) {
@@ -1188,13 +1384,21 @@ class RenderSystem {
         const time = Date.now() / 1000;
         const pulseRadius = radius + Math.sin(time * 2) * 2;
 
-        // Background glow
+        // Enhanced background glow for better prominence
         this.ctx.save();
-        this.ctx.globalAlpha = 0.3;
+        this.ctx.globalAlpha = 0.4; // Slightly more visible
         this.ctx.fillStyle = tower.color;
         this.ctx.beginPath();
         this.ctx.arc(centerX, centerY, pulseRadius, 0, Math.PI * 2);
         this.ctx.fill();
+        
+        // Add subtle outer glow ring
+        this.ctx.globalAlpha = 0.2;
+        this.ctx.strokeStyle = tower.color;
+        this.ctx.lineWidth = 8;
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY, pulseRadius + 4, 0, Math.PI * 2);
+        this.ctx.stroke();
         this.ctx.restore();
 
         // Tower circle with 3D gradient (same as main tower rendering)
@@ -1249,10 +1453,11 @@ class RenderSystem {
     // Render enemy selection with portrait and stats
     renderEnemySelection(x, y, width, height, enemy) {
         // Split the section: portrait on left, info on right
-        const portraitWidth = 80;
-        const infoWidth = width - portraitWidth - 10; // 10px gap
-        const portraitX = x;
-        const infoX = x + portraitWidth + 10;
+        // Enhanced portrait size for consistency with tower selection
+        const portraitWidth = 120; // Increased from 80px for better visual hierarchy
+        const infoWidth = width - portraitWidth - 15; // 15px gap for better spacing
+        const portraitX = x + 5; // Small margin from left edge
+        const infoX = x + portraitWidth + 15;
 
         // Render enemy portrait
         this.renderEnemyPortrait(portraitX, y, portraitWidth, enemy);
@@ -1357,32 +1562,69 @@ class RenderSystem {
     // Render enemy information
     renderEnemyInfo(x, y, width, height, enemy) {
         this.ctx.save();
-        this.ctx.fillStyle = '#FFF';
-        this.ctx.font = 'bold 16px Arial';
+        
+        // Enhanced enemy title with better typography
+        this.ctx.fillStyle = '#FF6B6B'; // Red for enemy
+        this.ctx.font = 'bold 22px Arial'; // Larger, more prominent
         this.ctx.textAlign = 'left';
+        this.ctx.fillText(`${enemy.type.name.toUpperCase()}`, x, y);
 
-        // Enemy name (use the name from the type object)
-        this.ctx.fillText(enemy.type.name.toUpperCase(), x, y + 20);
+        // Enhanced stats with better spacing and icons
+        const lineHeight = 30; // Increased spacing
+        let currentY = y + 35;
+        
+        // Health with icon and progress bar
+        this.ctx.fillStyle = '#4CAF50'; // Green for health
+        this.ctx.font = 'bold 18px Arial';
+        this.ctx.fillText(`❤️ Health: ${Math.ceil(enemy.health)}/${enemy.maxHealth}`, x, currentY);
+        
+        // Health bar visualization
+        this.renderHealthBar(x, currentY + 20, width - 20, 8, enemy.health / enemy.maxHealth);
+        currentY += lineHeight + 15;
 
-        // Health info
-        this.ctx.font = '14px Arial';
-        this.ctx.fillText(`Health: ${Math.ceil(enemy.health)}/${enemy.maxHealth}`, x, y + 40);
+        // Speed with icon
+        this.ctx.fillStyle = '#4ECDC4'; // Teal for speed
+        this.ctx.font = 'bold 18px Arial';
+        this.ctx.fillText(`🏃 Speed: ${enemy.speed.toFixed(1)}`, x, currentY);
+        currentY += lineHeight;
 
-        // Speed info
-        this.ctx.fillText(`Speed: ${enemy.speed.toFixed(1)}`, x, y + 60);
+        // Reward with icon
+        this.ctx.fillStyle = '#FFD700'; // Gold for reward
+        this.ctx.font = 'bold 18px Arial';
+        this.ctx.fillText(`💰 Reward: ${enemy.reward} coins`, x, currentY);
+        currentY += lineHeight;
 
-        // Reward info
-        this.ctx.fillText(`Reward: ${enemy.reward} coins`, x, y + 80);
-
-        // Special abilities (if any) - check the type id
+        // Special abilities with enhanced highlighting
         if (enemy.type.id === 'fast') {
-            this.ctx.fillStyle = '#4ECDC4';
-            this.ctx.fillText('⚡ Quick Movement', x, y + 100);
+            this.renderSpecialEffectHighlight(x, currentY - 10, '⚡ QUICK MOVEMENT', '#4ECDC4', '');
         } else if (enemy.type.id === 'strong') {
-            this.ctx.fillStyle = '#45B7D1';
-            this.ctx.fillText('🛡️ High Defense', x, y + 100);
+            this.renderSpecialEffectHighlight(x, currentY - 10, '🛡️ HIGH DEFENSE', '#45B7D1', '');
         }
 
+        this.ctx.restore();
+    }
+
+    // Render health bar visualization
+    renderHealthBar(x, y, width, height, healthPercentage) {
+        this.ctx.save();
+        
+        // Background bar
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        this.ctx.fillRect(x, y, width, height);
+        
+        // Health bar
+        const healthWidth = width * Math.max(0, healthPercentage);
+        const healthColor = healthPercentage > 0.6 ? '#4CAF50' : 
+                           healthPercentage > 0.3 ? '#FF9800' : '#F44336';
+        
+        this.ctx.fillStyle = healthColor;
+        this.ctx.fillRect(x, y, healthWidth, height);
+        
+        // Border
+        this.ctx.strokeStyle = '#FFF';
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeRect(x, y, width, height);
+        
         this.ctx.restore();
     }
 
@@ -1394,10 +1636,11 @@ class RenderSystem {
         if (!typeCfg) return;
 
         // Split the section: portrait on left, info on right
-        const portraitWidth = 80;
-        const infoWidth = width - portraitWidth - 10; // 10px gap
-        const portraitX = x;
-        const infoX = x + portraitWidth + 10;
+        // Enhanced portrait size for consistency with other selections
+        const portraitWidth = 120; // Increased from 80px for better visual hierarchy
+        const infoWidth = width - portraitWidth - 15; // 15px gap for better spacing
+        const portraitX = x + 5; // Small margin from left edge
+        const infoX = x + portraitWidth + 15;
 
         // Render proposed tower portrait with special styling
         this.renderProposedTowerPortrait(portraitX, y, portraitWidth, typeCfg, time);
