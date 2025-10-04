@@ -651,24 +651,28 @@ class RenderSystem {
         // Use responsive scaling for padding
         const scaleFactor = window.gameState && window.gameState.responsiveScaling ? window.gameState.responsiveScaling.getScaleFactor() : 1.0;
         const padding = Math.floor(20 * scaleFactor);
-        const sectionHeight = (hudHeight - (padding * 5)) / 4; // 4 sections with 4 gaps
+        const sectionHeight = (hudHeight - (padding * 6)) / 5; // 5 sections with 5 gaps
 
         // Vertical layout for left-docked HUD
         const sectionWidth = hudWidth - (padding * 2);
 
-        // Section 1: Wave Info (top)
+        // Section 1: Compact Wave Info (top)
         const waveInfoY = hudY + padding;
-        this.renderWaveInfoSection(hudX + padding, waveInfoY, sectionWidth, sectionHeight, waveInfo, gameStateInfo, gridSystem);
+        this.renderCompactWaveInfoSection(hudX + padding, waveInfoY, sectionWidth, sectionHeight, waveInfo, gameStateInfo, gridSystem);
 
-        // Section 2: Combined Selection (second)
-        const selectionY = waveInfoY + sectionHeight + padding;
+        // Section 2: Mobile Controls (second)
+        const controlsY = waveInfoY + sectionHeight + padding;
+        this.renderMobileControlsSection(hudX + padding, controlsY, sectionWidth, sectionHeight);
+
+        // Section 3: Combined Selection (third) - more space
+        const selectionY = controlsY + sectionHeight + padding;
         this.renderCombinedSelectionSection(hudX + padding, selectionY, sectionWidth, sectionHeight, selectedTower, selectedEnemy, popupInfo);
 
-        // Section 3: Selection Actions (third)
+        // Section 4: Selection Actions (fourth)
         const actionsY = selectionY + sectionHeight + padding;
         this.renderSelectionActionsSection(hudX + padding, actionsY, sectionWidth, sectionHeight, selectedTower, selectedEnemy, popupInfo, towerManager);
 
-        // Section 4: Coin Info (bottom)
+        // Section 5: Coin Info (bottom)
         const coinY = actionsY + sectionHeight + padding;
         this.renderCoinInfoSection(hudX + padding, coinY, sectionWidth, sectionHeight, resourceInfo);
     }
@@ -766,7 +770,7 @@ class RenderSystem {
             }
 
             this.ctx.fillText(`Lives: ${livesRemaining}/${totalLives}`, x + width / 2, y + 40);
-            
+
             // Render life bar below the text
             this.renderLifeBar(x + width / 2 - 60, y + 50, 120, 12, lifePercentage);
         }
@@ -797,18 +801,102 @@ class RenderSystem {
         this.ctx.restore();
     }
 
+    // Render compact wave info section (lives, wave, difficulty only)
+    renderCompactWaveInfoSection(x, y, width, height, waveInfo, gameStateInfo, gridSystem = null) {
+        this.ctx.save();
+
+        // Section background with rounded corners
+        this.ctx.beginPath();
+        this.ctx.roundRect(x, y, width, height, 8);
+        this.ctx.clip();
+        this.ctx.fillStyle = 'rgba(0, 100, 200, 0.3)';
+        this.ctx.fillRect(x, y, width, height);
+        this.ctx.restore();
+
+        // Section border
+        this.ctx.save();
+        this.ctx.strokeStyle = '#4CAF50';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.roundRect(x, y, width, height, 8);
+        this.ctx.stroke();
+        this.ctx.restore();
+
+        // Compact layout - 3 items in a row
+        const itemWidth = width / 3;
+        
+        // Lives (left)
+        if (gameStateInfo) {
+            const livesRemaining = gameStateInfo.maxEnemiesAllowed - gameStateInfo.enemiesReachedGoal;
+            const totalLives = gameStateInfo.maxEnemiesAllowed;
+            const lifePercentage = livesRemaining / totalLives;
+            
+            this.ctx.fillStyle = '#FFF';
+            this.ctx.font = 'bold 16px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText(`Lives: ${livesRemaining}/${totalLives}`, x + itemWidth / 2, y + 20);
+            this.renderLifeBar(x + itemWidth / 2 - 30, y + 30, 60, 8, lifePercentage);
+        }
+        
+        // Wave (center)
+        this.ctx.fillStyle = '#FFF';
+        this.ctx.font = 'bold 16px Arial';
+        this.ctx.textAlign = 'center';
+        if (waveInfo) {
+            this.ctx.fillText(`Wave: ${waveInfo.currentWave || 1}`, x + itemWidth + itemWidth / 2, y + 25);
+        } else {
+            this.ctx.fillText('Wave: 1', x + itemWidth + itemWidth / 2, y + 25);
+        }
+        
+        // Difficulty (right)
+        this.ctx.fillStyle = '#FFD700';
+        this.ctx.font = 'bold 16px Arial';
+        const difficulty = gridSystem ? gridSystem.getDifficulty() : 'easy';
+        const difficultyText = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
+        this.ctx.fillText(`Difficulty: ${difficultyText}`, x + itemWidth * 2 + itemWidth / 2, y + 25);
+
+        this.ctx.restore();
+    }
+
+    // Render dedicated mobile controls section
+    renderMobileControlsSection(x, y, width, height) {
+        this.ctx.save();
+
+        // Section background with rounded corners
+        this.ctx.beginPath();
+        this.ctx.roundRect(x, y, width, height, 8);
+        this.ctx.clip();
+        this.ctx.fillStyle = 'rgba(100, 100, 100, 0.3)';
+        this.ctx.fillRect(x, y, width, height);
+        this.ctx.restore();
+
+        // Section border
+        this.ctx.save();
+        this.ctx.strokeStyle = '#666';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.roundRect(x, y, width, height, 8);
+        this.ctx.stroke();
+        this.ctx.restore();
+
+        // Render mobile control buttons in this dedicated section
+        this.renderMobileControlButtons(x, y, width, height);
+        
+        this.ctx.restore();
+    }
+
     // Render mobile control buttons with animations and tactile feedback
     renderMobileControlButtons(x, y, width, height) {
         this.ctx.save();
-        
+
         // Store button bounds for click detection
         this.mobileButtonBounds = [];
-        
+
         const buttonSpacing = 8;
         const buttonWidth = (width - (buttonSpacing * 3)) / 2; // 2 buttons per row
         const buttonHeight = (height - (buttonSpacing * 3)) / 2; // 2 rows
         const buttonMargin = 5;
-        
+
         // Button configurations - arranged in 2x2 grid
         const buttons = [
             { icon: '⏸️', label: 'Pause', action: 'pause', color: '#FF6B6B', row: 0, col: 0 },
@@ -816,34 +904,34 @@ class RenderSystem {
             { icon: '🏠', label: 'Menu', action: 'menu', color: '#45B7D1', row: 1, col: 0 },
             { icon: '🔊', label: 'Sound', action: 'sound', color: '#96CEB4', row: 1, col: 1 }
         ];
-        
+
         buttons.forEach((button) => {
             const buttonX = x + buttonMargin + button.col * (buttonWidth + buttonSpacing);
             const buttonY = y + buttonMargin + button.row * (buttonHeight + buttonSpacing);
-            
+
             // Store button bounds for click detection
             this.mobileButtonBounds.push({
                 action: button.action,
                 bounds: { x: buttonX, y: buttonY, width: buttonWidth, height: buttonHeight }
             });
-            
+
             // Button background with rounded corners
             this.ctx.save();
             this.ctx.beginPath();
             this.ctx.roundRect(buttonX, buttonY, buttonWidth, buttonHeight, 10);
             this.ctx.clip();
-            
+
             // Animated gradient background
             const time = Date.now() / 1000;
             const pulse = Math.sin(time * 2) * 0.1 + 0.9; // Subtle pulsing
             const gradient = this.ctx.createLinearGradient(buttonX, buttonY, buttonX, buttonY + buttonHeight);
             gradient.addColorStop(0, this.lightenColor(button.color, 0.3 * pulse));
             gradient.addColorStop(1, this.darkenColor(button.color, 0.2 * pulse));
-            
+
             this.ctx.fillStyle = gradient;
             this.ctx.fillRect(buttonX, buttonY, buttonWidth, buttonHeight);
             this.ctx.restore();
-            
+
             // Button border with subtle glow
             this.ctx.save();
             this.ctx.strokeStyle = this.lightenColor(button.color, 0.5);
@@ -852,19 +940,19 @@ class RenderSystem {
             this.ctx.roundRect(buttonX, buttonY, buttonWidth, buttonHeight, 10);
             this.ctx.stroke();
             this.ctx.restore();
-            
+
             // Button icon (larger, centered)
             this.ctx.fillStyle = '#FFF';
             this.ctx.font = 'bold 24px Arial'; // Increased from 20px
             this.ctx.textAlign = 'center';
             this.ctx.fillText(button.icon, buttonX + buttonWidth / 2, buttonY + buttonHeight / 2 - 8);
-            
+
             // Button label (larger, below icon)
             this.ctx.fillStyle = '#FFF';
             this.ctx.font = 'bold 14px Arial'; // Increased from 10px
             this.ctx.fillText(button.label, buttonX + buttonWidth / 2, buttonY + buttonHeight / 2 + 16);
         });
-        
+
         this.ctx.restore();
     }
 
@@ -993,7 +1081,7 @@ class RenderSystem {
         this.ctx.beginPath();
         this.ctx.roundRect(x, y, width, height, 12);
         this.ctx.clip();
-        
+
         // Animated gradient background
         const time = Date.now() / 1000;
         const pulse = Math.sin(time * 2) * 0.05 + 0.95;
@@ -1011,7 +1099,7 @@ class RenderSystem {
         this.ctx.beginPath();
         this.ctx.roundRect(x, y, width, height, 12);
         this.ctx.stroke();
-        
+
         // Inner glow
         this.ctx.strokeStyle = 'rgba(76, 175, 80, 0.5)';
         this.ctx.lineWidth = 1;
@@ -1169,7 +1257,7 @@ class RenderSystem {
         this.ctx.beginPath();
         this.ctx.roundRect(x, y, width, height, 12);
         this.ctx.stroke();
-        
+
         // Inner glow
         this.ctx.strokeStyle = 'rgba(255, 215, 0, 0.5)';
         this.ctx.lineWidth = 1;
@@ -1197,7 +1285,7 @@ class RenderSystem {
 
         this.ctx.save();
         this.ctx.translate(coinX, coinY);
-        
+
         // Subtle rotation animation
         const rotation = Math.sin(time * 2) * 0.1;
         this.ctx.rotate(rotation);
@@ -1207,7 +1295,7 @@ class RenderSystem {
         coinGradient.addColorStop(0, '#FFE082');
         coinGradient.addColorStop(0.7, '#FFD700');
         coinGradient.addColorStop(1, '#B8860B');
-        
+
         this.ctx.fillStyle = coinGradient;
         this.ctx.beginPath();
         this.ctx.arc(0, 0, 15, 0, Math.PI * 2);
@@ -1217,7 +1305,7 @@ class RenderSystem {
         this.ctx.strokeStyle = '#B8860B';
         this.ctx.lineWidth = 3;
         this.ctx.stroke();
-        
+
         // Outer glow
         this.ctx.strokeStyle = 'rgba(255, 215, 0, 0.5)';
         this.ctx.lineWidth = 6;
@@ -1395,59 +1483,59 @@ class RenderSystem {
     // Render special effect highlighting with glow and animation
     renderSpecialEffectHighlight(x, y, effect, color, details) {
         this.ctx.save();
-        
+
         const time = Date.now() / 1000;
         const pulse = Math.sin(time * 4) * 0.3 + 0.7; // Pulsing effect
-        
+
         // Background glow
         this.ctx.globalAlpha = 0.3 * pulse;
         this.ctx.fillStyle = color;
         this.ctx.fillRect(x - 5, y - 5, 120, 20);
-        
+
         // Border glow
         this.ctx.globalAlpha = 0.6 * pulse;
         this.ctx.strokeStyle = color;
         this.ctx.lineWidth = 2;
         this.ctx.strokeRect(x - 5, y - 5, 120, 20);
-        
+
         // Text with enhanced styling
         this.ctx.globalAlpha = 1.0;
         this.ctx.fillStyle = color;
         this.ctx.font = 'bold 14px Arial';
         this.ctx.fillText(effect, x + 2, y + 12);
-        
+
         // Details in smaller text
         this.ctx.fillStyle = '#FFF';
         this.ctx.font = '12px Arial';
         this.ctx.fillText(details, x + 60, y + 12);
-        
+
         this.ctx.restore();
     }
 
     // Render special effect vertically to avoid HUD bounds overlap
     renderSpecialEffectVertical(x, y, effect, color, details) {
         this.ctx.save();
-        
+
         const time = Date.now() / 1000;
         const pulse = Math.sin(time * 4) * 0.3 + 0.7; // Pulsing effect
-        
+
         // Background glow - vertical layout
         this.ctx.globalAlpha = 0.3 * pulse;
         this.ctx.fillStyle = color;
         this.ctx.fillRect(x - 5, y - 5, 200, 25); // Wider to fit text
-        
+
         // Border glow
         this.ctx.globalAlpha = 0.6 * pulse;
         this.ctx.strokeStyle = color;
         this.ctx.lineWidth = 2;
         this.ctx.strokeRect(x - 5, y - 5, 200, 25);
-        
+
         // Effect text with enhanced styling
         this.ctx.globalAlpha = 1.0;
         this.ctx.fillStyle = color;
         this.ctx.font = 'bold 16px Arial';
         this.ctx.fillText(`${effect} ${details}`, x + 5, y + 16);
-        
+
         this.ctx.restore();
     }
 
@@ -1683,24 +1771,24 @@ class RenderSystem {
     // Render life bar visualization
     renderLifeBar(x, y, width, height, lifePercentage) {
         this.ctx.save();
-        
+
         // Background bar
         this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
         this.ctx.fillRect(x, y, width, height);
-        
+
         // Life bar
         const lifeWidth = width * Math.max(0, lifePercentage);
-        const lifeColor = lifePercentage > 0.6 ? '#4CAF50' : 
-                         lifePercentage > 0.3 ? '#FF9800' : '#F44336';
-        
+        const lifeColor = lifePercentage > 0.6 ? '#4CAF50' :
+            lifePercentage > 0.3 ? '#FF9800' : '#F44336';
+
         this.ctx.fillStyle = lifeColor;
         this.ctx.fillRect(x, y, lifeWidth, height);
-        
+
         // Border
         this.ctx.strokeStyle = '#FFF';
         this.ctx.lineWidth = 1;
         this.ctx.strokeRect(x, y, width, height);
-        
+
         this.ctx.restore();
     }
 

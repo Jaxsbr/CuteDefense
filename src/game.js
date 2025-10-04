@@ -426,19 +426,22 @@ function handleHUDClick(clickX, clickY) {
 
         gameState.logger.info('✅ Click is within HUD bounds');
 
-        // Calculate section layout (4 equal sections VERTICAL) - use responsive padding
+        // Calculate section layout (5 equal sections VERTICAL) - use responsive padding
         const scaleFactor = gameState.responsiveScaling ? gameState.responsiveScaling.getScaleFactor() : 1.0;
         const padding = Math.floor(20 * scaleFactor); // Match renderer padding
-        const sectionHeight = (hudHeight - (padding * 5)) / 4; // 4 sections with 4 gaps (match renderer)
+        const sectionHeight = (hudHeight - (padding * 6)) / 5; // 5 sections with 5 gaps (match renderer)
         const sectionWidth = hudWidth - (padding * 2);
 
-        // Section 1: Wave Info (mobile control buttons)
+        // Section 1: Compact Wave Info (no clickable elements)
         const waveInfoY = hudY + padding;
         
-        // Check for mobile control button clicks in Wave Info section
+        // Section 2: Mobile Controls (dedicated section)
+        const controlsY = waveInfoY + sectionHeight + padding;
+        
+        // Check for mobile control button clicks in Mobile Controls section
         if (gameState.renderer.mobileButtonBounds && 
             clickX >= hudX + padding && clickX <= hudX + padding + sectionWidth &&
-            clickY >= waveInfoY + 110 && clickY <= waveInfoY + sectionHeight) {
+            clickY >= controlsY && clickY <= controlsY + sectionHeight) {
             
             // Check each mobile button
             for (const button of gameState.renderer.mobileButtonBounds) {
@@ -474,10 +477,10 @@ function handleHUDClick(clickX, clickY) {
             }
         }
 
-        // Section 2: Combined Selection (no clickable elements)
-        const selectionY = waveInfoY + sectionHeight + padding;
+        // Section 3: Combined Selection (no clickable elements)
+        const selectionY = controlsY + sectionHeight + padding;
 
-        // Section 3: Selection Actions (upgrade button) - THIS IS THE IMPORTANT ONE
+        // Section 4: Selection Actions (upgrade button) - THIS IS THE IMPORTANT ONE
         const actionsY = selectionY + sectionHeight + padding;
         if (gameState.selectedTower &&
             clickX >= hudX + padding && clickX <= hudX + padding + sectionWidth &&
