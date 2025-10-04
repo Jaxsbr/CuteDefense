@@ -17,7 +17,7 @@ class InputSystem {
     setGridSystem(gridSystem) {
         this.gridSystem = gridSystem;
     }
-    
+
     // Set responsive scaling system reference
     setResponsiveScaling(responsiveScaling) {
         this.responsiveScaling = responsiveScaling;
@@ -81,8 +81,10 @@ class InputSystem {
     handleKeyDown(e) {
         if (e.key === '1' && this.gridSystem) {
             this.gridSystem.setDifficulty('easy');
+            // Note: Starting coins will be updated by the main game loop
         } else if (e.key === '2' && this.gridSystem) {
             this.gridSystem.setDifficulty('hard');
+            // Note: Starting coins will be updated by the main game loop
         }
     }
 

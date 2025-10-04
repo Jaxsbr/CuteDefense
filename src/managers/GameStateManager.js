@@ -142,6 +142,17 @@ class GameStateManager {
     }
 
     /**
+     * Toggle pause state
+     */
+    togglePause() {
+        if (this.gameState === 'playing') {
+            this.setPaused(true);
+        } else if (this.gameState === 'paused') {
+            this.setPaused(false);
+        }
+    }
+
+    /**
      * Get current game state information
      */
     getGameStateInfo() {

@@ -12,6 +12,10 @@ class TowerSystem {
         this.audioManager = null; // Audio manager reference
         this.logger = null; // Logger reference
         this.gridSystem = null; // Grid system reference for coordinate conversion
+
+        // Tile size constants - will be updated by grid system
+        this.tileSize = 96; // Default tile size, will be updated dynamically
+        this.halfTileSize = this.tileSize / 2; // Half tile size for centering
     }
 
     // Add a new tower
@@ -242,6 +246,12 @@ class TowerSystem {
     // Set grid system reference for coordinate conversion
     setGridSystem(gridSystem) {
         this.gridSystem = gridSystem;
+        // Update tile size from grid system
+        if (gridSystem && gridSystem.tileSize) {
+            this.tileSize = gridSystem.tileSize;
+            this.halfTileSize = this.tileSize / 2;
+            if (this.logger) this.logger.info(`TowerSystem: Updated tile size to ${this.tileSize}px`);
+        }
     }
 
     // Shoot at target
@@ -264,13 +274,13 @@ class TowerSystem {
         tower.firingAnimation.time = 0;
 
         // Calculate direction vector for projectile using grid system coordinate conversion
-        const startScreenPos = this.gridSystem ? this.gridSystem.gridToScreen(tower.x, tower.y) : { x: tower.x * 64, y: tower.y * 64 };
-        const targetScreenPos = this.gridSystem ? this.gridSystem.gridToScreen(target.x, target.y) : { x: target.x * 64, y: target.y * 64 };
+        const startScreenPos = this.gridSystem ? this.gridSystem.gridToScreen(tower.x, tower.y) : { x: tower.x * this.tileSize, y: tower.y * this.tileSize };
+        const targetScreenPos = this.gridSystem ? this.gridSystem.gridToScreen(target.x, target.y) : { x: target.x * this.tileSize, y: target.y * this.tileSize };
 
-        const startX = startScreenPos.x + 32; // Add half tile size for center
-        const startY = startScreenPos.y + 32; // Add half tile size for center
-        const targetX = targetScreenPos.x + 32; // Add half tile size for center
-        const targetY = targetScreenPos.y + 32; // Add half tile size for center
+        const startX = startScreenPos.x + this.halfTileSize; // Add half tile size for center
+        const startY = startScreenPos.y + this.halfTileSize; // Add half tile size for center
+        const targetX = targetScreenPos.x + this.halfTileSize; // Add half tile size for center
+        const targetY = targetScreenPos.y + this.halfTileSize; // Add half tile size for center
 
 
         // Check if this is a strong tower with bomb capability
@@ -282,7 +292,7 @@ class TowerSystem {
         // Predictive targeting for bombs - calculate where enemy will be
         if (isBomb) {
             const bombSpeed = tower.bombSpeed;
-            const enemySpeed = target.speed * 64; // Convert tiles/sec to pixels/sec
+            const enemySpeed = target.speed * this.tileSize; // Convert tiles/sec to pixels/sec
 
             // Calculate time for bomb to reach current enemy position
             const dx = targetX - startX;
@@ -353,8 +363,8 @@ class TowerSystem {
             color: isBomb ? tower.bombColor : tower.color,
             size: isBomb ? 18 : 12, // Larger bombs for visibility (scaled for 96px tiles)
             // TTL (Time To Live) in milliseconds
-            ttl: isBomb ? 4000 : 3000, // Bombs last longer
-            maxDistance: tower.range * 64 * 1.5, // Max distance based on tower range
+            ttl: 10000, // 10 seconds for all projectiles to ensure they clear the screen when missing enemies
+            maxDistance: 2000, // Large distance to ensure projectiles clear screen (was tower.range * 64 * 1.5)
             distanceTraveled: 0,
             // Visual effects
             trail: [], // Trail effect for better visibility
@@ -432,16 +442,16 @@ class TowerSystem {
     // Enhanced collision detection for projectiles
     checkProjectileCollision(projectile, enemy) {
         // Convert enemy position to screen coordinates
-        const enemyScreenPos = this.gridSystem ? this.gridSystem.gridToScreen(enemy.x, enemy.y) : { x: enemy.x * 64, y: enemy.y * 64 };
-        const enemyScreenX = enemyScreenPos.x + 32;
-        const enemyScreenY = enemyScreenPos.y + 32;
+        const enemyScreenPos = this.gridSystem ? this.gridSystem.gridToScreen(enemy.x, enemy.y) : { x: enemy.x * this.tileSize, y: enemy.y * this.tileSize };
+        const enemyScreenX = enemyScreenPos.x + this.halfTileSize;
+        const enemyScreenY = enemyScreenPos.y + this.halfTileSize;
 
         const dx = projectile.x - enemyScreenX;
         const dy = projectile.y - enemyScreenY;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
         // Use enemy size for collision radius, with some tolerance for fast enemies
-        const collisionRadius = (64 * enemy.size) / 2 + 8; // Add 8px tolerance for better hit detection
+        const collisionRadius = (this.tileSize * enemy.size) / 2 + 8; // Add 8px tolerance for better hit detection
 
         return distance <= collisionRadius;
     }
@@ -461,12 +471,14 @@ class TowerSystem {
         this.createBombExplosionEffect(projectile.x, projectile.y, projectile.bombRadius);
 
         // Damage all enemies within bomb radius
-        const bombRadiusPixels = projectile.bombRadius * 64; // Convert tiles to pixels
+        const bombRadiusPixels = projectile.bombRadius * this.tileSize; // Convert tiles to pixels
         let enemiesHit = 0;
 
         enemies.forEach(enemy => {
-            const enemyScreenX = enemy.x * 64 + 32;
-            const enemyScreenY = enemy.y * 64 + 32;
+            // Use consistent coordinate conversion with grid system
+            const enemyScreenPos = this.gridSystem ? this.gridSystem.gridToScreen(enemy.x, enemy.y) : { x: enemy.x * this.tileSize, y: enemy.y * this.tileSize };
+            const enemyScreenX = enemyScreenPos.x + this.halfTileSize;
+            const enemyScreenY = enemyScreenPos.y + this.halfTileSize;
 
             const dx = projectile.x - enemyScreenX;
             const dy = projectile.y - enemyScreenY;
@@ -478,8 +490,7 @@ class TowerSystem {
                 enemySystem.addDamageIndicator(enemy, projectile.damage);
 
                 // Create bomb damage text
-                const enemyScreenPos = this.gridSystem ? this.gridSystem.gridToScreen(enemy.x, enemy.y) : { x: enemy.x * 64, y: enemy.y * 64 };
-                this.createBombDamageText(enemyScreenPos.x + 32, enemyScreenPos.y + 32, projectile.damage);
+                this.createBombDamageText(enemyScreenX, enemyScreenY, projectile.damage);
 
                 // Deal damage and check if enemy dies
                 const coinsEarned = enemySystem.damageEnemy(enemy.id, projectile.damage);
@@ -488,9 +499,8 @@ class TowerSystem {
                     enemySystem.startDeathAnimation(enemy);
 
                     // Spawn coin at enemy's current position
-                    const enemyScreenPos = this.gridSystem ? this.gridSystem.gridToScreen(enemy.x, enemy.y) : { x: enemy.x * 64, y: enemy.y * 64 };
-                    const coinX = enemyScreenPos.x + 32;
-                    const coinY = enemyScreenPos.y + 32;
+                    const coinX = enemyScreenX;
+                    const coinY = enemyScreenY;
                     resourceSystem.spawnCoin(coinX, coinY, coinsEarned);
                     if (this.logger) this.logger.info(`Enemy killed by bomb! Earned ${coinsEarned} coins at (${coinX}, ${coinY})`);
                 }
@@ -527,9 +537,9 @@ class TowerSystem {
             enemySystem.startDeathAnimation(enemy);
 
             // Spawn coin at enemy's current position
-            const enemyScreenPos = this.gridSystem ? this.gridSystem.gridToScreen(enemy.x, enemy.y) : { x: enemy.x * 64, y: enemy.y * 64 };
-            const coinX = enemyScreenPos.x + 32;
-            const coinY = enemyScreenPos.y + 32;
+            const enemyScreenPos = this.gridSystem ? this.gridSystem.gridToScreen(enemy.x, enemy.y) : { x: enemy.x * this.tileSize, y: enemy.y * this.tileSize };
+            const coinX = enemyScreenPos.x + this.halfTileSize;
+            const coinY = enemyScreenPos.y + this.halfTileSize;
             resourceSystem.spawnCoin(coinX, coinY, coinsEarned);
             if (this.logger) this.logger.info(`Enemy killed! Earned ${coinsEarned} coins at (${coinX}, ${coinY})`);
         }
@@ -578,7 +588,7 @@ class TowerSystem {
 
         // Create large explosion particles
         const particleCount = 20;
-        const radiusPixels = radius * 64; // Convert tiles to pixels
+        const radiusPixels = radius * this.tileSize; // Convert tiles to pixels
 
         for (let i = 0; i < particleCount; i++) {
             const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.5;
@@ -639,9 +649,9 @@ class TowerSystem {
     // Create upgrade particle effect
     createUpgradeParticles(tower) {
         const particles = [];
-        const towerScreenPos = this.gridSystem ? this.gridSystem.gridToScreen(tower.x, tower.y) : { x: tower.x * 64, y: tower.y * 64 };
-        const centerX = towerScreenPos.x + 32;
-        const centerY = towerScreenPos.y + 32;
+        const towerScreenPos = this.gridSystem ? this.gridSystem.gridToScreen(tower.x, tower.y) : { x: tower.x * this.tileSize, y: tower.y * this.tileSize };
+        const centerX = towerScreenPos.x + this.halfTileSize;
+        const centerY = towerScreenPos.y + this.halfTileSize;
 
         // Create 12 particles in a circle around the tower
         for (let i = 0; i < 12; i++) {

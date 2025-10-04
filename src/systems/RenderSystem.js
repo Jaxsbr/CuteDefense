@@ -200,7 +200,8 @@ class RenderSystem {
         // Sound label
         this.ctx.fillStyle = '#333333';
         this.ctx.font = 'bold 16px Arial';
-        this.ctx.fillText('🔊 Sound', soundToggleX + 80, soundToggleY + 20);
+        const soundEmoji = gameState.soundEnabled ? '🔊' : '🔇';
+        this.ctx.fillText(`${soundEmoji} Sound`, soundToggleX + 80, soundToggleY + 20);
 
         // Animated Play button
         const playButtonX = menuX + 150;
@@ -979,7 +980,7 @@ class RenderSystem {
             { icon: '⏸️', label: 'Pause', action: 'pause', color: '#FF6B6B', row: 0, col: 0 },
             { icon: '🔄', label: 'Restart', action: 'restart', color: '#4ECDC4', row: 0, col: 1 },
             { icon: '🏠', label: 'Menu', action: 'menu', color: '#45B7D1', row: 1, col: 0 },
-            { icon: '🔊', label: 'Sound', action: 'sound', color: '#96CEB4', row: 1, col: 1 }
+            { icon: gameState.soundEnabled ? '🔊' : '🔇', label: 'Sound', action: 'sound', color: '#96CEB4', row: 1, col: 1 }
         ];
 
         buttons.forEach((button) => {
@@ -3753,7 +3754,7 @@ class RenderSystem {
     renderPauseOverlay() {
         // Semi-transparent dark overlay
         this.ctx.save();
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         this.ctx.fillRect(0, 0, this.width, this.height);
         this.ctx.restore();
 
@@ -3768,20 +3769,48 @@ class RenderSystem {
         this.ctx.strokeStyle = '#FFFFFF';
         this.ctx.lineWidth = 5;
 
-        this.ctx.strokeText('PAUSED', centerX, centerY - 40);
-        this.ctx.fillText('PAUSED', centerX, centerY - 40);
+        this.ctx.strokeText('PAUSED', centerX, centerY - 80);
+        this.ctx.fillText('PAUSED', centerX, centerY - 80);
         this.ctx.restore();
 
         // Render instructions
         this.ctx.save();
-        this.ctx.font = '28px Arial';
+        this.ctx.font = '24px Arial';
         this.ctx.textAlign = 'center';
         this.ctx.fillStyle = '#FFFFFF';
         this.ctx.strokeStyle = '#000000';
         this.ctx.lineWidth = 2;
 
-        this.ctx.strokeText('Press ESC to resume', centerX, centerY + 40);
-        this.ctx.fillText('Press ESC to resume', centerX, centerY + 40);
+        this.ctx.strokeText('Press ESC or click Continue to resume', centerX, centerY - 20);
+        this.ctx.fillText('Press ESC or click Continue to resume', centerX, centerY - 20);
+        this.ctx.restore();
+
+        // Continue button
+        const buttonWidth = 200;
+        const buttonHeight = 60;
+        const buttonX = centerX - buttonWidth / 2;
+        const buttonY = centerY + 20;
+
+        // Button background with gradient
+        this.ctx.save();
+        const buttonGradient = this.ctx.createLinearGradient(buttonX, buttonY, buttonX, buttonY + buttonHeight);
+        buttonGradient.addColorStop(0, '#4CAF50');
+        buttonGradient.addColorStop(1, '#45A049');
+        this.ctx.fillStyle = buttonGradient;
+        this.ctx.beginPath();
+        this.ctx.roundRect(buttonX, buttonY, buttonWidth, buttonHeight, 15);
+        this.ctx.fill();
+
+        // Button border
+        this.ctx.strokeStyle = '#4CAF50';
+        this.ctx.lineWidth = 3;
+        this.ctx.stroke();
+
+        // Button text
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.font = 'bold 24px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('▶️ Continue', centerX, buttonY + 38);
         this.ctx.restore();
     }
 

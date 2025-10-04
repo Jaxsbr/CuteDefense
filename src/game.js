@@ -142,6 +142,10 @@ function initGame() {
     // Set grid system references for coordinate conversion
     gameState.towerSystem.setGridSystem(gameState.grid);
     gameState.enemySystem.setGridSystem(gameState.grid);
+    gameState.resourceSystem.setGridSystem(gameState.grid);
+
+    // Initialize starting coins based on difficulty
+    gameState.resourceSystem.initializeStartingCoins();
 
     // Safety check for GameStateManager
     if (gameState.gameStateManager && typeof gameState.gameStateManager.setLogger === 'function') {
@@ -154,8 +158,8 @@ function initGame() {
     // Set up input handlers
     setupInputHandlers();
 
-    // Start wave system
-    gameState.enemyManager.startWaveSystem();
+    // Don't start wave system yet - wait for play button
+    // gameState.enemyManager.startWaveSystem(); // Moved to when play is clicked
 
     // Start background music
     gameState.audioManager.startPreparationMusic();
@@ -172,10 +176,12 @@ function initGame() {
         if (gameState.showStartMenu) {
             if (e.key === '1') {
                 gameState.grid.setDifficulty('easy');
+                gameState.resourceSystem.updateStartingCoins();
                 gameState.showStartMenu = false;
                 gameState.logger.info('🎮 Starting game with easy difficulty');
             } else if (e.key === '2') {
                 gameState.grid.setDifficulty('hard');
+                gameState.resourceSystem.updateStartingCoins();
                 gameState.showStartMenu = false;
                 gameState.logger.info('🎮 Starting game with hard difficulty');
             }
@@ -323,6 +329,9 @@ function render() {
             if (progress >= 1) {
                 gameState.showStartMenu = false;
                 gameState.transition.active = false;
+                // Start the wave system now that the game is actually beginning
+                gameState.enemyManager.startWaveSystem();
+                gameState.logger.info('🌊 Wave system started - game is now active');
             }
         }
         return;
@@ -466,11 +475,11 @@ function handleHUDClick(clickX, clickY) {
                             gameState.logger.info('⏸️ Game paused/unpaused');
                             break;
                         case 'restart':
-                            gameState.showStartMenu = true;
-                            gameState.logger.info('🔄 Returning to start menu');
+                            restartGame();
+                            gameState.logger.info('🔄 Game restarted with current map');
                             break;
                         case 'menu':
-                            gameState.showStartMenu = true;
+                            resetGameToMenu();
                             gameState.logger.info('🏠 Returning to main menu');
                             break;
                         case 'sound':
@@ -616,6 +625,27 @@ function handleRestartButtonClick(clickX, clickY) {
     return false;
 }
 
+function handlePauseOverlayClick(clickX, clickY) {
+    // Calculate continue button bounds (same as in renderPauseOverlay)
+    const centerX = gameState.renderer.width / 2;
+    const centerY = gameState.renderer.height / 2;
+    const buttonWidth = 200;
+    const buttonHeight = 60;
+    const buttonX = centerX - buttonWidth / 2;
+    const buttonY = centerY + 20;
+
+    // Check if click is within continue button bounds
+    if (clickX >= buttonX && clickX <= buttonX + buttonWidth &&
+        clickY >= buttonY && clickY <= buttonY + buttonHeight) {
+
+        gameState.logger.info('▶️ Continue button clicked!');
+        gameState.gameStateManager.togglePause();
+        return true;
+    }
+
+    return false;
+}
+
 // Restart the game
 function restartGame() {
     gameState.logger.info('🔄 Restarting game...');
@@ -640,6 +670,35 @@ function restartGame() {
     gameState.enemyManager.startWaveSystem();
 
     gameState.logger.info('✅ Game restarted successfully!');
+}
+
+// Reset game to menu state (for menu button)
+function resetGameToMenu() {
+    gameState.logger.info('🔄 Resetting game to menu state...');
+
+    // Stop wave system
+    gameState.enemyManager.stopWaveSystem();
+
+    // Reset game state manager
+    gameState.gameStateManager.reset();
+
+    // Clear all enemies
+    gameState.enemySystem.clearAllEnemies();
+
+    // Clear all towers
+    gameState.towerManager.clearAllTowers();
+
+    // Reset resource system to starting coins
+    gameState.resourceSystem.reset();
+
+    // Clear selections
+    gameState.selectedTower = null;
+    gameState.selectedEnemy = null;
+
+    // Show start menu
+    gameState.showStartMenu = true;
+
+    gameState.logger.info('✅ Game reset to menu state successfully!');
 }
 
 // Show audio hint if needed
@@ -682,6 +741,7 @@ function handleInput() {
                 gameState.logger.info(`🔊 Sound ${gameState.soundEnabled ? 'enabled' : 'disabled'}`);
             } else if (result === 'easy' || result === 'hard') {
                 gameState.grid.setDifficulty(result);
+                gameState.resourceSystem.updateStartingCoins();
                 gameState.logger.info(`📋 Difficulty set to ${result}`);
             } else if (result === 'play') {
                 // Start transition effect
@@ -693,6 +753,13 @@ function handleInput() {
         }
 
         gameState.logger.info(`📍 Clicked at screen (${clickPos.x}, ${clickPos.y})`);
+
+        // Check if game is paused and continue button was clicked
+        if (gameState.gameStateManager.isPaused()) {
+            if (handlePauseOverlayClick(clickPos.x, clickPos.y)) {
+                return; // Pause overlay click handled
+            }
+        }
 
         // Check if game is in terminal state and restart button was clicked
         if (gameState.gameStateManager.isTerminalState()) {

@@ -5,18 +5,53 @@
 
 class ResourceSystem {
     constructor() {
-        this.coins = 20; // Starting coins (reduced for challenge)
+        this.coins = 40; // Default starting coins (will be set based on difficulty)
         this.coinAnimations = [];
         this.lastCoinSpawn = 0;
         this.collectionEffects = []; // Particle effects for coin collection
         this.coinTotalPulse = { active: false, time: 0, duration: 1000 }; // Pulse animation for coin total
         this.audioManager = null; // Audio manager reference
         this.logger = null; // Logger reference
+        this.gridSystem = null; // Grid system reference for difficulty
     }
 
     // Set audio manager reference
     setAudioManager(audioManager) {
         this.audioManager = audioManager;
+    }
+
+    // Set grid system reference for difficulty access
+    setGridSystem(gridSystem) {
+        this.gridSystem = gridSystem;
+    }
+
+    // Get starting coins based on difficulty
+    getStartingCoins() {
+        if (!this.gridSystem) {
+            return 40; // Default to easy if no grid system
+        }
+
+        const difficulty = this.gridSystem.getDifficulty();
+        switch (difficulty) {
+            case 'easy':
+                return 40;
+            case 'hard':
+                return 30;
+            default:
+                return 40; // Default to easy
+        }
+    }
+
+    // Initialize starting coins based on current difficulty
+    initializeStartingCoins() {
+        this.coins = this.getStartingCoins();
+        if (this.logger) this.logger.info(`💰 Initialized with ${this.coins} starting coins (difficulty: ${this.gridSystem ? this.gridSystem.getDifficulty() : 'unknown'})`);
+    }
+
+    // Update starting coins when difficulty changes
+    updateStartingCoins() {
+        this.coins = this.getStartingCoins();
+        if (this.logger) this.logger.info(`💰 Updated to ${this.coins} starting coins (difficulty: ${this.gridSystem ? this.gridSystem.getDifficulty() : 'unknown'})`);
     }
 
     // Set logger reference
@@ -286,7 +321,8 @@ class ResourceSystem {
 
     // Reset resources (for new game)
     reset() {
-        this.coins = 50;
+        this.coins = this.getStartingCoins();
         this.coinAnimations = [];
+        if (this.logger) this.logger.info(`💰 Reset to ${this.coins} starting coins (difficulty: ${this.gridSystem ? this.gridSystem.getDifficulty() : 'unknown'})`);
     }
 }
