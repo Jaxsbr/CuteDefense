@@ -426,13 +426,13 @@ function handleHUDClick(clickX, clickY) {
 
         gameState.logger.info('✅ Click is within HUD bounds');
 
-        // Calculate section layout (5 equal sections VERTICAL) - use responsive padding
+        // Calculate section layout (4 equal sections VERTICAL) - use responsive padding
         const scaleFactor = gameState.responsiveScaling ? gameState.responsiveScaling.getScaleFactor() : 1.0;
         const padding = Math.floor(20 * scaleFactor); // Match renderer padding
-        const sectionHeight = (hudHeight - (padding * 6)) / 5; // 5 sections with 5 gaps (match renderer)
+        const sectionHeight = (hudHeight - (padding * 5)) / 4; // 4 sections with 4 gaps (match renderer)
         const sectionWidth = hudWidth - (padding * 2);
 
-        // Section 1: Compact Wave Info (no clickable elements)
+        // Section 1: Wave Info with Coins (no clickable elements)
         const waveInfoY = hudY + padding;
         
         // Section 2: Mobile Controls (dedicated section)

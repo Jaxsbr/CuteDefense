@@ -651,14 +651,14 @@ class RenderSystem {
         // Use responsive scaling for padding
         const scaleFactor = window.gameState && window.gameState.responsiveScaling ? window.gameState.responsiveScaling.getScaleFactor() : 1.0;
         const padding = Math.floor(20 * scaleFactor);
-        const sectionHeight = (hudHeight - (padding * 6)) / 5; // 5 sections with 5 gaps
+        const sectionHeight = (hudHeight - (padding * 5)) / 4; // 4 sections with 4 gaps
 
         // Vertical layout for left-docked HUD
         const sectionWidth = hudWidth - (padding * 2);
 
-        // Section 1: Compact Wave Info (top)
+        // Section 1: Wave Info with Coins (top)
         const waveInfoY = hudY + padding;
-        this.renderCompactWaveInfoSection(hudX + padding, waveInfoY, sectionWidth, sectionHeight, waveInfo, gameStateInfo, gridSystem);
+        this.renderWaveInfoWithCoinsSection(hudX + padding, waveInfoY, sectionWidth, sectionHeight, waveInfo, gameStateInfo, gridSystem, resourceInfo);
 
         // Section 2: Mobile Controls (second)
         const controlsY = waveInfoY + sectionHeight + padding;
@@ -671,10 +671,6 @@ class RenderSystem {
         // Section 4: Selection Actions (fourth)
         const actionsY = selectionY + sectionHeight + padding;
         this.renderSelectionActionsSection(hudX + padding, actionsY, sectionWidth, sectionHeight, selectedTower, selectedEnemy, popupInfo, towerManager);
-
-        // Section 5: Coin Info (bottom)
-        const coinY = actionsY + sectionHeight + padding;
-        this.renderCoinInfoSection(hudX + padding, coinY, sectionWidth, sectionHeight, resourceInfo);
     }
 
     // Render combined selection section (portrait + info) with more space
@@ -801,8 +797,8 @@ class RenderSystem {
         this.ctx.restore();
     }
 
-    // Render compact wave info section (lives, wave, difficulty only)
-    renderCompactWaveInfoSection(x, y, width, height, waveInfo, gameStateInfo, gridSystem = null) {
+    // Render wave info section with integrated coins
+    renderWaveInfoWithCoinsSection(x, y, width, height, waveInfo, gameStateInfo, gridSystem = null, resourceInfo = null) {
         this.ctx.save();
 
         // Section background with rounded corners
@@ -822,10 +818,12 @@ class RenderSystem {
         this.ctx.stroke();
         this.ctx.restore();
 
-        // Compact layout - 3 items in a row
-        const itemWidth = width / 3;
+        // Layout: 2 rows, 2 columns each
+        const rowHeight = height / 2;
+        const colWidth = width / 2;
         
-        // Lives (left)
+        // Row 1: Lives and Wave
+        // Lives (top left)
         if (gameStateInfo) {
             const livesRemaining = gameStateInfo.maxEnemiesAllowed - gameStateInfo.enemiesReachedGoal;
             const totalLives = gameStateInfo.maxEnemiesAllowed;
@@ -834,26 +832,63 @@ class RenderSystem {
             this.ctx.fillStyle = '#FFF';
             this.ctx.font = 'bold 16px Arial';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText(`Lives: ${livesRemaining}/${totalLives}`, x + itemWidth / 2, y + 20);
-            this.renderLifeBar(x + itemWidth / 2 - 30, y + 30, 60, 8, lifePercentage);
+            this.ctx.fillText(`Lives: ${livesRemaining}/${totalLives}`, x + colWidth / 2, y + 20);
+            this.renderLifeBar(x + colWidth / 2 - 30, y + 30, 60, 8, lifePercentage);
         }
         
-        // Wave (center)
+        // Wave (top right)
         this.ctx.fillStyle = '#FFF';
         this.ctx.font = 'bold 16px Arial';
         this.ctx.textAlign = 'center';
         if (waveInfo) {
-            this.ctx.fillText(`Wave: ${waveInfo.currentWave || 1}`, x + itemWidth + itemWidth / 2, y + 25);
+            this.ctx.fillText(`Wave: ${waveInfo.currentWave || 1}`, x + colWidth + colWidth / 2, y + 25);
         } else {
-            this.ctx.fillText('Wave: 1', x + itemWidth + itemWidth / 2, y + 25);
+            this.ctx.fillText('Wave: 1', x + colWidth + colWidth / 2, y + 25);
         }
         
-        // Difficulty (right)
+        // Row 2: Difficulty and Coins
+        // Difficulty (bottom left)
         this.ctx.fillStyle = '#FFD700';
         this.ctx.font = 'bold 16px Arial';
         const difficulty = gridSystem ? gridSystem.getDifficulty() : 'easy';
         const difficultyText = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
-        this.ctx.fillText(`Difficulty: ${difficultyText}`, x + itemWidth * 2 + itemWidth / 2, y + 25);
+        this.ctx.fillText(`Difficulty: ${difficultyText}`, x + colWidth / 2, y + rowHeight + 20);
+        
+        // Coins (bottom right)
+        const coinCount = resourceInfo ? (resourceInfo.coins || 0) : 0;
+        this.ctx.fillStyle = '#FFD700';
+        this.ctx.font = 'bold 18px Arial';
+        this.ctx.fillText(`💰 ${coinCount}`, x + colWidth + colWidth / 2, y + rowHeight + 20);
+        
+        // Small animated coin icon next to coins
+        const coinX = x + colWidth + colWidth / 2 + 40;
+        const coinY = y + rowHeight + 15;
+        
+        this.ctx.save();
+        this.ctx.translate(coinX, coinY);
+        
+        // Subtle rotation animation
+        const time = Date.now() / 1000;
+        const rotation = Math.sin(time * 2) * 0.1;
+        this.ctx.rotate(rotation);
+
+        // Small coin with gradient
+        const coinGradient = this.ctx.createRadialGradient(-2, -2, 0, 0, 0, 8);
+        coinGradient.addColorStop(0, '#FFE082');
+        coinGradient.addColorStop(0.7, '#FFD700');
+        coinGradient.addColorStop(1, '#B8860B');
+        
+        this.ctx.fillStyle = coinGradient;
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, 8, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Coin border
+        this.ctx.strokeStyle = '#B8860B';
+        this.ctx.lineWidth = 1;
+        this.ctx.stroke();
+
+        this.ctx.restore();
 
         this.ctx.restore();
     }
@@ -881,7 +916,7 @@ class RenderSystem {
 
         // Render mobile control buttons in this dedicated section
         this.renderMobileControlButtons(x, y, width, height);
-        
+
         this.ctx.restore();
     }
 
