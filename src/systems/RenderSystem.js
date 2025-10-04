@@ -1637,7 +1637,7 @@ class RenderSystem {
         this.ctx.font = 'bold 18px Arial'; // Increased from 16px
         this.ctx.textAlign = 'center';
         this.ctx.fillText(text, x + width / 2, y + height / 2 - 8); // Better vertical positioning
-        
+
         // Subtext if provided - larger and better positioned
         if (subtext) {
             this.ctx.font = 'bold 14px Arial'; // Increased from 12px
