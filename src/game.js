@@ -426,10 +426,10 @@ function handleHUDClick(clickX, clickY) {
 
         gameState.logger.info('✅ Click is within HUD bounds');
 
-        // Calculate section layout (4 equal sections VERTICAL) - use responsive padding
+        // Calculate section layout (3 equal sections VERTICAL) - use responsive padding
         const scaleFactor = gameState.responsiveScaling ? gameState.responsiveScaling.getScaleFactor() : 1.0;
         const padding = Math.floor(20 * scaleFactor); // Match renderer padding
-        const sectionHeight = (hudHeight - (padding * 5)) / 4; // 4 sections with 4 gaps (match renderer)
+        const sectionHeight = (hudHeight - (padding * 4)) / 3; // 3 sections with 3 gaps (match renderer)
         const sectionWidth = hudWidth - (padding * 2);
 
         // Section 1: Wave Info with Coins (no clickable elements)
@@ -477,26 +477,33 @@ function handleHUDClick(clickX, clickY) {
             }
         }
 
-        // Section 3: Combined Selection (no clickable elements)
+        // Section 3: Enhanced Selection with integrated actions (upgrade buttons)
         const selectionY = controlsY + sectionHeight + padding;
-
-        // Section 4: Selection Actions (upgrade button) - THIS IS THE IMPORTANT ONE
-        const actionsY = selectionY + sectionHeight + padding;
+        
+        // Check for upgrade/sell button clicks in the selection section
         if (gameState.selectedTower &&
             clickX >= hudX + padding && clickX <= hudX + padding + sectionWidth &&
-            clickY >= actionsY && clickY <= actionsY + sectionHeight) {
+            clickY >= selectionY && clickY <= selectionY + sectionHeight) {
 
-            // Check if clicking upgrade button - use responsive dimensions (scaleFactor already declared above)
-            const buttonWidth = sectionWidth - Math.floor(20 * scaleFactor);
-            const buttonHeight = Math.floor(30 * scaleFactor);
-            const buttonX = hudX + padding + Math.floor(10 * scaleFactor);
-            const buttonY = actionsY + Math.floor(35 * scaleFactor);
+            // Calculate button positions based on the enhanced selection layout
+            const portraitWidth = 120;
+            const infoX = hudX + padding + portraitWidth + 15;
+            const infoWidth = sectionWidth - portraitWidth - 15;
+            
+            // Estimate button positions (these should match the renderTowerInfoWithActions method)
+            const buttonWidth = infoWidth - 20;
+            const buttonHeight = 35;
+            const buttonX = infoX + 10;
+            
+            // First button (upgrade) is positioned after stats
+            const upgradeButtonY = selectionY + 200; // Approximate position after stats
+            const sellButtonY = upgradeButtonY + buttonHeight + 10;
 
-            gameState.logger.info(`🎯 Upgrade Button Debug: button bounds: (${buttonX}, ${buttonY}) to (${buttonX + buttonWidth}, ${buttonY + buttonHeight})`);
-            gameState.logger.info(`🎯 Upgrade Button Debug: click(${clickX}, ${clickY}) scaleFactor=${scaleFactor}`);
+            gameState.logger.info(`🎯 Enhanced Button Debug: upgrade button bounds: (${buttonX}, ${upgradeButtonY}) to (${buttonX + buttonWidth}, ${upgradeButtonY + buttonHeight})`);
 
+            // Check upgrade button click
             if (clickX >= buttonX && clickX <= buttonX + buttonWidth &&
-                clickY >= buttonY && clickY <= buttonY + buttonHeight) {
+                clickY >= upgradeButtonY && clickY <= upgradeButtonY + buttonHeight) {
 
                 gameState.logger.info('✅ Click is within upgrade button bounds - attempting upgrade');
                 // Try to upgrade the selected tower
@@ -518,6 +525,17 @@ function handleHUDClick(clickX, clickY) {
                     const updatedTower = gameState.towerManager.getTowerAt(gameState.selectedTower.x, gameState.selectedTower.y);
                     gameState.selectedTower = updatedTower;
                 }
+                return true;
+            }
+            
+            // Check sell button click (if tower level > 1)
+            if (gameState.selectedTower.level > 1 &&
+                clickX >= buttonX && clickX <= buttonX + buttonWidth &&
+                clickY >= sellButtonY && clickY <= sellButtonY + buttonHeight) {
+
+                gameState.logger.info('✅ Click is within sell button bounds - attempting sell');
+                // TODO: Implement sell functionality
+                gameState.logger.info(`🗑️ Tower sell functionality not yet implemented`);
                 return true;
             }
         }

@@ -651,7 +651,7 @@ class RenderSystem {
         // Use responsive scaling for padding
         const scaleFactor = window.gameState && window.gameState.responsiveScaling ? window.gameState.responsiveScaling.getScaleFactor() : 1.0;
         const padding = Math.floor(20 * scaleFactor);
-        const sectionHeight = (hudHeight - (padding * 5)) / 4; // 4 sections with 4 gaps
+        const sectionHeight = (hudHeight - (padding * 4)) / 3; // 3 sections with 3 gaps
 
         // Vertical layout for left-docked HUD
         const sectionWidth = hudWidth - (padding * 2);
@@ -664,13 +664,51 @@ class RenderSystem {
         const controlsY = waveInfoY + sectionHeight + padding;
         this.renderMobileControlsSection(hudX + padding, controlsY, sectionWidth, sectionHeight);
 
-        // Section 3: Combined Selection (third) - more space
+        // Section 3: Enhanced Selection with integrated actions (third) - much more space
         const selectionY = controlsY + sectionHeight + padding;
-        this.renderCombinedSelectionSection(hudX + padding, selectionY, sectionWidth, sectionHeight, selectedTower, selectedEnemy, popupInfo);
+        this.renderEnhancedSelectionSection(hudX + padding, selectionY, sectionWidth, sectionHeight, selectedTower, selectedEnemy, popupInfo, towerManager);
+    }
 
-        // Section 4: Selection Actions (fourth)
-        const actionsY = selectionY + sectionHeight + padding;
-        this.renderSelectionActionsSection(hudX + padding, actionsY, sectionWidth, sectionHeight, selectedTower, selectedEnemy, popupInfo, towerManager);
+    // Render enhanced selection section with integrated actions
+    renderEnhancedSelectionSection(x, y, width, height, selectedTower, selectedEnemy, popupInfo, towerManager) {
+        // Priority: Enemy selection overrides tower selection
+        if (selectedEnemy) {
+            this.renderEnemySelection(x, y, width, height, selectedEnemy);
+            return;
+        }
+
+        // Show proposed tower preview when placement popup is open
+        if (popupInfo && !selectedTower && !selectedEnemy) {
+            const proposedType = popupInfo.selectedType || 'BASIC';
+            this.renderProposedTowerPreview(x, y, width, height, proposedType);
+            return;
+        }
+
+        if (!selectedTower) {
+            // Show placeholder when no selection
+            this.ctx.save();
+            this.ctx.fillStyle = '#333';
+            this.ctx.fillRect(x, y, width, height);
+            this.ctx.fillStyle = '#666';
+            this.ctx.font = '20px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText('Select a tower or enemy', x + width / 2, y + height / 2);
+            this.ctx.restore();
+            return;
+        }
+
+        // Split the section: portrait on left, info + actions on right
+        // Enhanced portrait size for better prominence
+        const portraitWidth = 120; // Increased from 80px for better visual hierarchy
+        const infoWidth = width - portraitWidth - 15; // 15px gap for better spacing
+        const portraitX = x + 5; // Small margin from left edge
+        const infoX = x + portraitWidth + 15;
+
+        // Render portrait
+        this.renderTowerPortrait(portraitX, y, portraitWidth, selectedTower);
+
+        // Render tower info with integrated upgrade button
+        this.renderTowerInfoWithActions(infoX, y, infoWidth, height, selectedTower, towerManager);
     }
 
     // Render combined selection section (portrait + info) with more space
@@ -821,21 +859,21 @@ class RenderSystem {
         // Layout: 2 rows, 2 columns each
         const rowHeight = height / 2;
         const colWidth = width / 2;
-        
+
         // Row 1: Lives and Wave
         // Lives (top left)
         if (gameStateInfo) {
             const livesRemaining = gameStateInfo.maxEnemiesAllowed - gameStateInfo.enemiesReachedGoal;
             const totalLives = gameStateInfo.maxEnemiesAllowed;
             const lifePercentage = livesRemaining / totalLives;
-            
+
             this.ctx.fillStyle = '#FFF';
             this.ctx.font = 'bold 16px Arial';
             this.ctx.textAlign = 'center';
             this.ctx.fillText(`Lives: ${livesRemaining}/${totalLives}`, x + colWidth / 2, y + 20);
             this.renderLifeBar(x + colWidth / 2 - 30, y + 30, 60, 8, lifePercentage);
         }
-        
+
         // Wave (top right)
         this.ctx.fillStyle = '#FFF';
         this.ctx.font = 'bold 16px Arial';
@@ -845,7 +883,7 @@ class RenderSystem {
         } else {
             this.ctx.fillText('Wave: 1', x + colWidth + colWidth / 2, y + 25);
         }
-        
+
         // Row 2: Difficulty and Coins
         // Difficulty (bottom left)
         this.ctx.fillStyle = '#FFD700';
@@ -853,20 +891,20 @@ class RenderSystem {
         const difficulty = gridSystem ? gridSystem.getDifficulty() : 'easy';
         const difficultyText = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
         this.ctx.fillText(`Difficulty: ${difficultyText}`, x + colWidth / 2, y + rowHeight + 20);
-        
+
         // Coins (bottom right)
         const coinCount = resourceInfo ? (resourceInfo.coins || 0) : 0;
         this.ctx.fillStyle = '#FFD700';
         this.ctx.font = 'bold 18px Arial';
         this.ctx.fillText(`💰 ${coinCount}`, x + colWidth + colWidth / 2, y + rowHeight + 20);
-        
+
         // Small animated coin icon next to coins
         const coinX = x + colWidth + colWidth / 2 + 40;
         const coinY = y + rowHeight + 15;
-        
+
         this.ctx.save();
         this.ctx.translate(coinX, coinY);
-        
+
         // Subtle rotation animation
         const time = Date.now() / 1000;
         const rotation = Math.sin(time * 2) * 0.1;
@@ -877,7 +915,7 @@ class RenderSystem {
         coinGradient.addColorStop(0, '#FFE082');
         coinGradient.addColorStop(0.7, '#FFD700');
         coinGradient.addColorStop(1, '#B8860B');
-        
+
         this.ctx.fillStyle = coinGradient;
         this.ctx.beginPath();
         this.ctx.arc(0, 0, 8, 0, Math.PI * 2);
@@ -1457,6 +1495,153 @@ class RenderSystem {
 
         // Render coin display in right fill section
         this.renderCoinDisplayInHUD(fill2X, contentY, fill2Width, contentHeight, resourceInfo);
+    }
+
+    // Render tower information with integrated upgrade button
+    renderTowerInfoWithActions(x, y, width, height, tower, towerManager) {
+        this.ctx.save();
+        
+        // Enhanced tower title with better typography
+        this.ctx.fillStyle = '#FFF';
+        this.ctx.font = 'bold 22px Arial'; // Larger, more prominent
+        this.ctx.textAlign = 'left';
+        this.ctx.fillText(`${tower.type} Tower`, x, y);
+
+        // Enhanced stats with better spacing and icons
+        const lineHeight = 30; // Increased spacing
+        let currentY = y + 35;
+        
+        // Level with icon and better styling
+        this.ctx.fillStyle = '#FFD700'; // Gold color for level
+        this.ctx.font = 'bold 18px Arial';
+        this.ctx.fillText(`⚡ Level: ${tower.level}`, x, currentY);
+        currentY += lineHeight;
+
+        // Damage with icon and highlighting
+        this.ctx.fillStyle = '#FF6B6B'; // Red for damage
+        this.ctx.font = 'bold 18px Arial';
+        this.ctx.fillText(`💥 Damage: ${tower.damage}`, x, currentY);
+        currentY += lineHeight;
+
+        // Range with icon
+        this.ctx.fillStyle = '#4ECDC4'; // Teal for range
+        this.ctx.font = 'bold 18px Arial';
+        this.ctx.fillText(`🎯 Range: ${tower.range}`, x, currentY);
+        currentY += lineHeight;
+
+        // Enhanced fire rate display with special effects highlighting
+        const fireRateMs = Math.round(tower.fireRate);
+        const baseRateMs = Math.round(tower.baseFireRate || tower.fireRate);
+        const isFaster = fireRateMs < baseRateMs;
+        const isSlower = fireRateMs > baseRateMs;
+
+        this.ctx.fillStyle = '#FFF'; // Base color
+        this.ctx.font = 'bold 18px Arial';
+        this.ctx.fillText(`⚡ Fire: ${fireRateMs}ms`, x, currentY);
+
+        if (isFaster || isSlower) {
+            const diff = baseRateMs - fireRateMs;
+            const sign = diff > 0 ? '+' : '';
+            const status = isFaster ? 'FAST' : 'SLOW';
+            const statusColor = isFaster ? '#4CAF50' : '#FF9800';
+
+            // Render special effect vertically below the fire rate
+            currentY += lineHeight;
+            this.renderSpecialEffectVertical(x, currentY - 10, status, statusColor, `${sign}${Math.abs(diff)}ms`);
+        }
+        
+        // Add upgrade button below stats
+        currentY += lineHeight + 20;
+        const upgradeInfo = towerManager.getTowerUpgradeInfo(tower.x, tower.y);
+        
+        if (upgradeInfo) {
+            const buttonWidth = width - 20;
+            const buttonHeight = 35;
+            const buttonX = x + 10;
+            const buttonY = currentY;
+
+            const canAfford = this.resourceSystem && this.resourceSystem.canAfford(upgradeInfo.cost);
+
+            // Enhanced upgrade button with better visuals
+            this.renderEnhancedButton(buttonX, buttonY, buttonWidth, buttonHeight, 
+                '⬆️ Upgrade', `💰 ${upgradeInfo.cost}`, 
+                canAfford ? '#4CAF50' : '#9E9E9E', canAfford);
+
+            // Add sell button if tower is not level 1
+            if (tower.level > 1) {
+                const sellY = buttonY + buttonHeight + 10;
+                const sellCost = Math.floor(upgradeInfo.cost * 0.7); // 70% refund
+                this.renderEnhancedButton(buttonX, sellY, buttonWidth, buttonHeight, 
+                    '🗑️ Sell', `💰 ${sellCost}`, '#FF6B6B', true);
+            }
+        }
+        
+        this.ctx.restore();
+    }
+
+    // Render enhanced button with improved visuals
+    renderEnhancedButton(x, y, width, height, text, subtext, color, enabled = true) {
+        this.ctx.save();
+        
+        const time = Date.now() / 1000;
+        const pulse = Math.sin(time * 3) * 0.05 + 0.95; // Subtle pulsing
+        
+        // Enhanced button background with rounded corners
+        this.ctx.beginPath();
+        this.ctx.roundRect(x, y, width, height, 8);
+        this.ctx.clip();
+        
+        // Gradient background with animation
+        const gradient = this.ctx.createLinearGradient(x, y, x, y + height);
+        if (enabled) {
+            gradient.addColorStop(0, this.lightenColor(color, 0.3 * pulse));
+            gradient.addColorStop(1, this.darkenColor(color, 0.2 * pulse));
+        } else {
+            gradient.addColorStop(0, this.lightenColor(color, 0.1));
+            gradient.addColorStop(1, this.darkenColor(color, 0.3));
+        }
+        
+        this.ctx.fillStyle = gradient;
+        this.ctx.fillRect(x, y, width, height);
+        this.ctx.restore();
+        
+        // Enhanced border with glow effect
+        this.ctx.save();
+        if (enabled) {
+            this.ctx.strokeStyle = this.lightenColor(color, 0.6);
+            this.ctx.lineWidth = 3;
+        } else {
+            this.ctx.strokeStyle = '#666';
+            this.ctx.lineWidth = 2;
+        }
+        this.ctx.beginPath();
+        this.ctx.roundRect(x, y, width, height, 8);
+        this.ctx.stroke();
+        
+        // Inner glow for enabled buttons
+        if (enabled) {
+            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            this.ctx.lineWidth = 1;
+            this.ctx.beginPath();
+            this.ctx.roundRect(x + 1, y + 1, width - 2, height - 2, 7);
+            this.ctx.stroke();
+        }
+        this.ctx.restore();
+        
+        // Button text with enhanced styling
+        this.ctx.fillStyle = enabled ? '#FFF' : '#999';
+        this.ctx.font = 'bold 16px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText(text, x + width / 2, y + height / 2 - 5);
+        
+        // Subtext if provided
+        if (subtext) {
+            this.ctx.font = 'bold 12px Arial';
+            this.ctx.fillStyle = enabled ? '#FFF' : '#999';
+            this.ctx.fillText(subtext, x + width / 2, y + height / 2 + 12);
+        }
+        
+        this.ctx.restore();
     }
 
     // Render tower information section with enhanced typography and special effects
