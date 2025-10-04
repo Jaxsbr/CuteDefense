@@ -337,7 +337,7 @@ class EnemySystem {
             maxLife: 1.0,
             velocityY: -30,
             color: '#FF4444',
-            size: 24,  // Increased from 16 for better readability
+            size: 36,  // Scaled for 96px tiles (1.5x from 24)
             alpha: 1.0
         };
 

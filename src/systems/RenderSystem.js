@@ -580,7 +580,7 @@ class RenderSystem {
     getTilemapHeight() {
         // This should match the grid system's actual height
         // For now, we'll calculate based on standard grid size
-        return 12 * 64; // 12 rows * 64px tile size
+        return 12 * 96;//64; // 12 rows * 64px tile size
     }
 
     // Calculate game area offset for left-docked HUD
@@ -590,11 +590,11 @@ class RenderSystem {
 
     // Calculate grid offset for centering
     getGridOffsetX() {
-        return 400 + 120; // HUD width + horizontal margin
+        return 400;// + 120; // HUD width + horizontal margin
     }
 
     getGridOffsetY() {
-        return 200; // Vertical margin for centering
+        return 0;//200; // Vertical margin for centering
     }
 
     // Render main HUD panel - left-docked layout for tablet optimization
@@ -3295,16 +3295,16 @@ class RenderSystem {
 
             // Bomb fuse
             this.ctx.strokeStyle = '#8B4513';
-            this.ctx.lineWidth = 3;
+            this.ctx.lineWidth = 4;
             this.ctx.beginPath();
             this.ctx.moveTo(0, -projectile.size);
-            this.ctx.lineTo(0, -projectile.size - 10);
+            this.ctx.lineTo(0, -projectile.size - 15);
             this.ctx.stroke();
 
             // Bomb sparkle on fuse
             this.ctx.fillStyle = '#FFD700';
             this.ctx.beginPath();
-            this.ctx.arc(0, -projectile.size - 10, 3, 0, Math.PI * 2);
+            this.ctx.arc(0, -projectile.size - 15, 4, 0, Math.PI * 2);
             this.ctx.fill();
 
             // Bomb border
@@ -3636,11 +3636,11 @@ class RenderSystem {
         // Main coin body
         this.ctx.fillStyle = coinColor;
         this.ctx.beginPath();
-        this.ctx.arc(0, 0, 16, 0, Math.PI * 2);
+        this.ctx.arc(0, 0, 24, 0, Math.PI * 2);
         this.ctx.fill();
 
         // Enhanced coin border with gradient and high contrast
-        const gradient = this.ctx.createRadialGradient(0, 0, 12, 0, 0, 16);
+        const gradient = this.ctx.createRadialGradient(0, 0, 18, 0, 0, 24);
         gradient.addColorStop(0, borderColor);
         gradient.addColorStop(1, coin.expired ? '#333333' : '#B8860B');
         this.ctx.strokeStyle = gradient;
@@ -3655,7 +3655,7 @@ class RenderSystem {
         // Inner coin highlight
         this.ctx.fillStyle = innerColor;
         this.ctx.beginPath();
-        this.ctx.arc(0, 0, 10, 0, Math.PI * 2);
+        this.ctx.arc(0, 0, 15, 0, Math.PI * 2);
         this.ctx.fill();
 
         // Draw sparkle effects around coin (only for normal coins)
@@ -3783,10 +3783,10 @@ class RenderSystem {
         // Get current coins for cost checking
         const currentCoins = this.resourceSystem ? this.resourceSystem.getCoins() : 0;
 
-        // Calculate compact popup position (1.5-2 tiles max)
+        // Calculate compact popup position - more square shape
         // x and y are now screen coordinates, not grid coordinates
-        const popupWidth = Math.min(1.6 * tileSize, 150);
-        const popupHeight = Math.min(1.6 * tileSize, 100);
+        const popupWidth = Math.min(1.8 * tileSize, 180);  // Increased from 1.6 * tileSize
+        const popupHeight = Math.min(1.8 * tileSize, 180); // Made same as width for square shape
         const popupX = x + (tileSize - popupWidth) / 2;
         const popupY = y + (tileSize - popupHeight) / 2;
 
@@ -3798,12 +3798,12 @@ class RenderSystem {
 
         // Modern popup background with gradient
         this.ctx.beginPath();
-        this.ctx.roundRect(finalX, finalY, popupWidth, popupHeight, 12);
+        this.ctx.roundRect(finalX, finalY, popupWidth, popupHeight, 18); // Scaled up from 12
         this.ctx.clip();
 
         const gradient = this.ctx.createLinearGradient(finalX, finalY, finalX, finalY + popupHeight);
-        gradient.addColorStop(0, 'rgba(40, 40, 40, 0.95)');
-        gradient.addColorStop(1, 'rgba(20, 20, 20, 0.9)');
+        gradient.addColorStop(0, 'rgba(40, 40, 40, 0.7)'); // More transparent: 0.95 → 0.7
+        gradient.addColorStop(1, 'rgba(20, 20, 20, 0.6)'); // More transparent: 0.9 → 0.6
 
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(finalX, finalY, popupWidth, popupHeight);
@@ -3813,11 +3813,11 @@ class RenderSystem {
         // Popup border with glow effect
         this.ctx.save();
         this.ctx.strokeStyle = '#FFD700';
-        this.ctx.lineWidth = 3;
+        this.ctx.lineWidth = 4; // Scaled up from 3
         this.ctx.shadowColor = '#FFD700';
-        this.ctx.shadowBlur = 10;
+        this.ctx.shadowBlur = 15; // Scaled up from 10
         this.ctx.beginPath();
-        this.ctx.roundRect(finalX, finalY, popupWidth, popupHeight, 12);
+        this.ctx.roundRect(finalX, finalY, popupWidth, popupHeight, 18); // Scaled up from 12
         this.ctx.stroke();
         this.ctx.restore();
 
@@ -3826,10 +3826,10 @@ class RenderSystem {
         const selectedType = (popupInfo.selectedType && TOWER_TYPES[popupInfo.selectedType]) ? popupInfo.selectedType : 'BASIC';
         const typeCfg = TOWER_TYPES[selectedType];
         const canAffordSelected = currentCoins >= typeCfg.cost;
-        const mainBtnW = popupWidth - 16;
-        const mainBtnH = Math.max(30, Math.min(40, popupHeight - 40));
-        const mainBtnX = finalX + 8;
-        const mainBtnY = finalY + 8;
+        const mainBtnW = popupWidth - 24; // Increased margin from 16
+        const mainBtnH = (popupHeight - 36) / 2; // Half the height minus margins (12px top + 6px middle + 12px bottom + 6px gap)
+        const mainBtnX = finalX + 12; // Increased margin from 8
+        const mainBtnY = finalY + 12; // Increased margin from 8
 
         // Simple ghost preview with clear range indication
         // x and y are now screen coordinates, not grid coordinates
@@ -3879,20 +3879,21 @@ class RenderSystem {
 
         // Main selected button (coin graphic + cost only, centered)
         this.ctx.save();
+        this.ctx.globalAlpha = 0.8; // Add transparency to button
         this.ctx.fillStyle = canAffordSelected ? typeCfg.color : '#666';
         this.ctx.beginPath();
-        this.ctx.roundRect(mainBtnX, mainBtnY, mainBtnW, mainBtnH, 8);
+        this.ctx.roundRect(mainBtnX, mainBtnY, mainBtnW, mainBtnH, 12); // Scaled up from 8
         this.ctx.fill();
         this.ctx.strokeStyle = canAffordSelected ? '#FFF' : '#999';
-        this.ctx.lineWidth = 2;
+        this.ctx.lineWidth = 3; // Scaled up from 2
         this.ctx.stroke();
 
         // Compute centered layout for coin + cost text
         const costText = `${typeCfg.cost}`;
-        this.ctx.font = 'bold 18px Arial';
+        this.ctx.font = 'bold 27px Arial'; // Scaled up from 18px
         const textWidth = this.ctx.measureText(costText).width;
-        const coinRadius = 10;
-        const spacing = 8;
+        const coinRadius = 15; // Scaled up from 10
+        const spacing = 12; // Scaled up from 8
         const totalWidth = coinRadius * 2 + spacing + textWidth;
         const contentStartX = mainBtnX + (mainBtnW - totalWidth) / 2;
         const contentCenterY = mainBtnY + mainBtnH / 2;
@@ -3904,7 +3905,7 @@ class RenderSystem {
         this.ctx.arc(coinCenterX, contentCenterY, coinRadius, 0, Math.PI * 2);
         this.ctx.fill();
         this.ctx.strokeStyle = '#B8860B';
-        this.ctx.lineWidth = 2;
+        this.ctx.lineWidth = 3; // Scaled up from 2
         this.ctx.stroke();
 
         // Draw cost text
@@ -3916,10 +3917,10 @@ class RenderSystem {
         this.ctx.restore();
 
         // Cycle and Cancel buttons aligned and stretched under main button
-        const bottomMargin = 4; // margin between selected button and bottom row
-        const buttonGap = 6; // small gap between cycle and cancel
+        const bottomMargin = 12; // Increased margin to push bottom buttons down (was 3)
+        const buttonGap = 9; // small gap between cycle and cancel (scaled up from 6)
         const bottomBtnY = mainBtnY + mainBtnH + bottomMargin;
-        const bottomBtnH = mainBtnH; // same height as selected button
+        const bottomBtnH = mainBtnH; // same height as selected button (half the popup height)
 
         // Calculate widths: cycle and cancel fill remaining space
         const availableWidth = mainBtnW;
@@ -3932,15 +3933,16 @@ class RenderSystem {
 
         // Cycle button
         this.ctx.save();
+        this.ctx.globalAlpha = 0.8; // Add transparency to button
         this.ctx.fillStyle = '#1976D2';
         this.ctx.beginPath();
-        this.ctx.roundRect(cycleX, bottomBtnY, cycleW, bottomBtnH, 6);
+        this.ctx.roundRect(cycleX, bottomBtnY, cycleW, bottomBtnH, 9); // Scaled up from 6
         this.ctx.fill();
         this.ctx.strokeStyle = '#BBDEFB';
-        this.ctx.lineWidth = 1.5;
+        this.ctx.lineWidth = 2; // Scaled up from 1.5
         this.ctx.stroke();
         this.ctx.fillStyle = '#FFFFFF';
-        this.ctx.font = 'bold 32px Arial';
+        this.ctx.font = 'bold 48px Arial'; // Scaled up from 32px
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'middle';
         this.ctx.fillText('⟳', cycleX + cycleW / 2, bottomBtnY + bottomBtnH / 2);
@@ -3948,15 +3950,16 @@ class RenderSystem {
 
         // Cancel button
         this.ctx.save();
+        this.ctx.globalAlpha = 0.8; // Add transparency to button
         this.ctx.fillStyle = '#C62828';
         this.ctx.beginPath();
-        this.ctx.roundRect(cancelX, bottomBtnY, cancelW, bottomBtnH, 6);
+        this.ctx.roundRect(cancelX, bottomBtnY, cancelW, bottomBtnH, 9); // Scaled up from 6
         this.ctx.fill();
         this.ctx.strokeStyle = '#FFCDD2';
-        this.ctx.lineWidth = 1.5;
+        this.ctx.lineWidth = 2; // Scaled up from 1.5
         this.ctx.stroke();
         this.ctx.fillStyle = '#FFFFFF';
-        this.ctx.font = 'bold 16px Arial';
+        this.ctx.font = 'bold 24px Arial'; // Scaled up from 16px
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'middle';
         this.ctx.fillText('X', cancelX + cancelW / 2, bottomBtnY + bottomBtnH / 2);
@@ -4227,10 +4230,10 @@ class RenderSystem {
 
             // Create ambient lighting overlay only over tilemap area
             // Use grid offset coordinates to match the actual grid position
-            const gridOffsetX = 400 + 120; // HUD width + horizontal margin (CONFIG.HUD_WIDTH + CONFIG.GRID_OFFSET_X)
-            const gridOffsetY = 200; // Vertical margin (CONFIG.GRID_OFFSET_Y)
-            const tilemapHeight = 12 * 64; // 12 rows * 64px tile size
-            const tilemapWidth = 30 * 64; // 30 columns * 64px tile size
+            const gridOffsetX = 400; // HUD width only (matching getGridOffsetX changes)
+            const gridOffsetY = 0;   // No vertical offset (matching getGridOffsetY changes)
+            const tilemapHeight = 12 * 96; // 12 rows * 96px tile size
+            const tilemapWidth = 22 * 96;  // 22 columns * 96px tile size
 
             const overlayAlpha = 1.0 - ambientLight;
             this.ctx.fillStyle = `rgba(0, 0, 0, ${overlayAlpha})`;

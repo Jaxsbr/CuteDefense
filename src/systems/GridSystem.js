@@ -141,10 +141,10 @@ class GridSystem {
     }
 
     screenToGrid(screenX, screenY) {
-        // Account for grid offset (HUD width + horizontal margin)
-        // Use CONFIG values from game.js for consistency
-        const gridOffsetX = CONFIG.HUD_WIDTH + CONFIG.GRID_OFFSET_X; // Dynamic scaling
-        const gridOffsetY = CONFIG.GRID_OFFSET_Y; // Dynamic scaling
+        // Account for grid offset - match RenderSystem changes
+        // HUD width only (no additional offset), no vertical offset
+        const gridOffsetX = 400; // HUD width only (matching RenderSystem.getGridOffsetX())
+        const gridOffsetY = 0;   // No vertical offset (matching RenderSystem.getGridOffsetY())
 
         const gridX = Math.floor((screenX - gridOffsetX) / this.tileSize);
         const gridY = Math.floor((screenY - gridOffsetY) / this.tileSize);
@@ -156,10 +156,10 @@ class GridSystem {
     }
 
     gridToScreen(gridX, gridY) {
-        // Account for grid offset (HUD width + horizontal margin)
-        // Use CONFIG values from game.js for consistency
-        const gridOffsetX = CONFIG.HUD_WIDTH + CONFIG.GRID_OFFSET_X; // Dynamic scaling
-        const gridOffsetY = CONFIG.GRID_OFFSET_Y; // Dynamic scaling
+        // Account for grid offset - match RenderSystem changes
+        // HUD width only (no additional offset), no vertical offset
+        const gridOffsetX = 400; // HUD width only (matching RenderSystem.getGridOffsetX())
+        const gridOffsetY = 0;   // No vertical offset (matching RenderSystem.getGridOffsetY())
 
         return {
             x: gridX * this.tileSize + gridOffsetX,

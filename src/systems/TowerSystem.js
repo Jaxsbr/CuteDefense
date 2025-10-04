@@ -351,7 +351,7 @@ class TowerSystem {
             speed: isBomb ? tower.bombSpeed : tower.projectileSpeed,
             damage: isBomb ? tower.bombDamage : tower.damage,
             color: isBomb ? tower.bombColor : tower.color,
-            size: isBomb ? 12 : 8, // Larger bombs for visibility
+            size: isBomb ? 18 : 12, // Larger bombs for visibility (scaled for 96px tiles)
             // TTL (Time To Live) in milliseconds
             ttl: isBomb ? 4000 : 3000, // Bombs last longer
             maxDistance: tower.range * 64 * 1.5, // Max distance based on tower range
@@ -547,7 +547,7 @@ class TowerSystem {
             maxLife: isCritical ? 2000 : 1200,
             text: damage.toString(),
             alpha: 1.0,
-            size: isCritical ? 20 : 14, // Larger for crits
+            size: isCritical ? 30 : 21, // Larger for crits (scaled for 96px tiles)
             isCritical: isCritical
         };
         this.impactEffects.push(damageText);
@@ -565,7 +565,7 @@ class TowerSystem {
             maxLife: 1500,
             text: damage.toString(),
             alpha: 1.0,
-            size: 16, // Slightly larger than regular damage
+            size: 24, // Slightly larger than regular damage (scaled for 96px tiles)
             isBomb: true
         };
         this.impactEffects.push(damageText);
@@ -653,7 +653,7 @@ class TowerSystem {
                 vy: Math.sin(angle) * 2, // Velocity in Y direction
                 life: 1.0, // Life remaining (0-1)
                 maxLife: 1.0,
-                size: 4 + Math.random() * 4, // Random size between 4-8
+                size: 6 + Math.random() * 6, // Random size between 6-12 (scaled for 96px tiles)
                 color: tower.color,
                 alpha: 1.0
             };
@@ -777,7 +777,7 @@ class TowerSystem {
             maxLife: 1200,
             text: damage.toString(),
             alpha: 1.0,
-            size: 14 + Math.min(damage * 2, 6) // Larger text for higher damage
+            size: 21 + Math.min(damage * 3, 9) // Larger text for higher damage (scaled for 96px tiles)
         };
         this.impactEffects.push(damageText);
     }

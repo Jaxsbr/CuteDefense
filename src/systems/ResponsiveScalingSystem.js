@@ -4,14 +4,14 @@
 class ResponsiveScalingSystem {
     constructor() {
         this.baseConfig = {
-            width: 2560,
-            height: 1169,
-            aspectRatio: 2560 / 1169, // ~2.19
-            gridCols: 30,
+            width: 2514,
+            height: 1154,
+            aspectRatio: 2514 / 1154, // ~2.19
+            gridCols: 22,
             gridRows: 12,
-            tileSize: 64,
+            tileSize: 96,
             hudWidth: 400,
-            hudHeight: 1169,
+            hudHeight: 1154,
             gridOffsetX: 120,
             gridOffsetY: 200
         };

@@ -51,7 +51,7 @@ class ResourceSystem {
                 vy: Math.sin(angle) * speed - 20, // Slight upward bias
                 life: 1200 + Math.random() * 400, // 1.2-1.6 seconds
                 maxLife: 1200 + Math.random() * 400,
-                size: 3 + Math.random() * 5,
+                size: 4.5 + Math.random() * 7.5, // Scaled for 96px tiles (1.5x)
                 color: coinValue > 1 ? '#FFA500' : '#FFD700', // Different colors for different values
                 alpha: 1.0,
                 rotation: Math.random() * Math.PI * 2,
@@ -80,7 +80,7 @@ class ResourceSystem {
                 vy: Math.sin(angle) * speed - 30, // Strong upward bias for dramatic effect
                 life: 1500 + Math.random() * 500, // 1.5-2 seconds
                 maxLife: 1500 + Math.random() * 500,
-                size: 4 + Math.random() * 6,
+                size: 6 + Math.random() * 9, // Scaled for 96px tiles (1.5x)
                 color: coinValue > 1 ? '#FF4444' : '#FF6666', // Red colors for negative feedback
                 alpha: 1.0,
                 rotation: Math.random() * Math.PI * 2,
