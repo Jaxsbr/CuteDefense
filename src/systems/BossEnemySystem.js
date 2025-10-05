@@ -60,6 +60,9 @@ class BossEnemySystem extends EnemySystem {
             if (boss.reachedGoal && !boss.goalReachedTracked) {
                 this.bossEnemiesReachedGoalCount++;
                 boss.goalReachedTracked = true;
+                if (this.logger) {
+                    this.logger.info(`🎯 Boss enemy reached goal: ${boss.bossType} - Total boss goals: ${this.bossEnemiesReachedGoalCount}`);
+                }
                 if (this.audioManager) {
                     this.audioManager.playSound('enemy_reach_end');
                 }
@@ -305,11 +308,15 @@ class BossEnemySystem extends EnemySystem {
                 Math.pow(screenY - enemyScreenY, 2)
             );
 
-            // Use enemy size for hit detection
-            const enemyRadius = (tileSize * enemy.size) / 2;
-            if (distance <= enemyRadius + tolerance) {
+            // Debug logging for each boss enemy
+            if (this.logger) {
+                this.logger.info(`🎯 Boss check: ${enemy.bossType} at grid(${enemy.x},${enemy.y}) screen(${enemyScreenX.toFixed(1)},${enemyScreenY.toFixed(1)}) click(${screenX},${screenY}) distance:${distance.toFixed(1)} tolerance:${tolerance}`);
+            }
+
+            // Use same hit detection logic as regular enemies for consistency
+            if (distance <= tolerance) {
                 if (this.logger) {
-                    this.logger.info(`🎯 Boss enemy selected: ${enemy.bossType} at distance ${distance.toFixed(1)} (radius: ${enemyRadius.toFixed(1)})`);
+                    this.logger.info(`🎯 Boss enemy selected: ${enemy.bossType} at distance ${distance.toFixed(1)} (tolerance: ${tolerance})`);
                 }
                 return enemy;
             }

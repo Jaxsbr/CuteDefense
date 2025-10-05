@@ -613,6 +613,11 @@ class EnemyManager {
             } else if (this.currentWave >= 5) {
                 bossLivesLost = bossEnemiesReached * 3; // Wave 5+ boss = 3 lives each
             }
+            
+            // Debug logging for boss lives calculation
+            if (this.logger) {
+                this.logger.info(`🎯 Boss lives calculation: Wave ${this.currentWave}, ${bossEnemiesReached} bosses reached, ${bossLivesLost} lives lost`);
+            }
         }
         
         return regularEnemiesReached + bossLivesLost;
