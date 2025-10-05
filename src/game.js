@@ -288,7 +288,7 @@ function update() {
         ...gameState.enemySystem.getEnemiesForRendering(),
         ...gameState.enemyManager.bossEnemySystem.getBossEnemies()
     ];
-    gameState.towerManager.update(deltaTime, allEnemies, gameState.enemySystem);
+    gameState.towerManager.update(deltaTime, allEnemies, gameState.enemySystem, gameState.enemyManager.bossEnemySystem);
     gameState.resourceSystem.update(deltaTime);
 
     // Update game state management

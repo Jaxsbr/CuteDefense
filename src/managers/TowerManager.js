@@ -102,9 +102,9 @@ class TowerManager {
     }
 
     // Update tower manager
-    update(deltaTime, enemies, enemySystem) {
+    update(deltaTime, enemies, enemySystem, bossEnemySystem = null) {
         // Update tower system with damage system integration
-        this.towerSystem.update(deltaTime, enemies, enemySystem, this.resourceSystem);
+        this.towerSystem.update(deltaTime, enemies, enemySystem, this.resourceSystem, bossEnemySystem);
     }
 
     // Get towers for rendering

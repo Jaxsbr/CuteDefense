@@ -124,7 +124,7 @@ class TowerSystem {
     }
 
     // Update all towers
-    update(deltaTime, enemies, enemySystem, resourceSystem) {
+    update(deltaTime, enemies, enemySystem, resourceSystem, bossEnemySystem = null) {
         this.lastUpdateTime += deltaTime;
 
         // Debug: Check if enemies are being passed
@@ -143,7 +143,7 @@ class TowerSystem {
         });
 
         // Update projectiles with damage system (use combined enemy list for collision detection)
-        this.updateProjectiles(deltaTime, enemies, enemySystem, resourceSystem);
+        this.updateProjectiles(deltaTime, enemies, enemySystem, resourceSystem, bossEnemySystem);
 
         // Update impact effects
         this.updateImpactEffects(deltaTime);
@@ -383,7 +383,7 @@ class TowerSystem {
     }
 
     // Update all projectiles with TTL and collision detection
-    updateProjectiles(deltaTime, enemies, enemySystem, resourceSystem) {
+    updateProjectiles(deltaTime, enemies, enemySystem, resourceSystem, bossEnemySystem = null) {
         this.projectiles = this.projectiles.filter(projectile => {
             // Update TTL
             projectile.ttl -= deltaTime;
@@ -421,7 +421,7 @@ class TowerSystem {
                         this.handleBombExplosion(projectile, aliveEnemies, enemySystem, resourceSystem);
                     } else {
                         // Regular projectile hit
-                        this.handleProjectileHit(projectile, enemy, enemySystem, resourceSystem);
+                        this.handleProjectileHit(projectile, enemy, enemySystem, resourceSystem, bossEnemySystem);
                     }
                     // Remove projectile after hit
                     return false;
@@ -511,7 +511,7 @@ class TowerSystem {
     }
 
     // Handle regular projectile hit
-    handleProjectileHit(projectile, enemy, enemySystem, resourceSystem) {
+    handleProjectileHit(projectile, enemy, enemySystem, resourceSystem, bossEnemySystem = null) {
         // Check if this is a boss enemy with active shield
         if (enemy.isBoss && enemy.abilityStates && enemy.abilityStates.shield && enemy.abilityStates.shield.active) {
             // Shield is active - no damage taken, but create shield impact effect
@@ -539,7 +539,15 @@ class TowerSystem {
         this.createDamageText(projectile.x, projectile.y, finalDamage, isCritical);
 
         // Deal damage and check if enemy dies
-        const coinsEarned = enemySystem.damageEnemy(enemy.id, finalDamage);
+        let coinsEarned = 0;
+        if (enemy.isBoss && bossEnemySystem) {
+            // Handle boss enemy damage
+            coinsEarned = bossEnemySystem.damageBossEnemy(enemy.id, finalDamage);
+        } else {
+            // Handle regular enemy damage
+            coinsEarned = enemySystem.damageEnemy(enemy.id, finalDamage);
+        }
+        
         if (coinsEarned > 0) {
             // Start death animation
             enemySystem.startDeathAnimation(enemy);

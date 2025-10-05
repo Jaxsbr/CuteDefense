@@ -287,6 +287,37 @@ class BossEnemySystem extends EnemySystem {
     }
 
     /**
+     * Damage a boss enemy with visual feedback
+     */
+    damageBossEnemy(enemyId, damage) {
+        const boss = this.bossEnemies.find(b => b.id === enemyId);
+        if (boss && boss.isAlive) {
+            boss.health -= damage;
+            boss.lastDamageTime = Date.now();
+            boss.isFlashing = true;
+
+            // Start hit face animation (with timer to prevent overlap)
+            this.startHitAnimation(boss);
+
+            // Check if boss is dead
+            if (boss.health <= 0) {
+                boss.isAlive = false;
+                boss.isDying = true;
+                boss.deathTime = Date.now();
+                
+                // Play death sound
+                if (this.audioManager) {
+                    this.audioManager.playSound('enemy_death');
+                }
+                
+                // Return coin reward
+                return boss.reward || 10; // Default reward if not set
+            }
+        }
+        return 0; // No coins earned
+    }
+
+    /**
      * Get all enemies including boss enemies
      */
     getAllEnemies() {
