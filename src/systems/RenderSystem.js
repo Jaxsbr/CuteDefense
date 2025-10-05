@@ -873,7 +873,7 @@ class RenderSystem {
             const livesRemaining = gameStateInfo.maxEnemiesAllowed - gameStateInfo.enemiesReachedGoal;
             const totalLives = gameStateInfo.maxEnemiesAllowed;
             const lifePercentage = livesRemaining / totalLives;
-            
+
             // Debug: Log lives bar values
             if (this.logger && gameStateInfo.enemiesReachedGoal > 0) {
                 this.logger.info(`🎮 Lives Bar: ${livesRemaining}/${totalLives} (${lifePercentage.toFixed(2)}%) - Enemies reached: ${gameStateInfo.enemiesReachedGoal}`);
