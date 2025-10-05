@@ -41,6 +41,10 @@ class BossEnemySystem extends EnemySystem {
     updateBossEnemies(deltaTime) {
         // Only update if there are actually boss enemies
         if (this.bossEnemies.length === 0) {
+            // Debug: Log when updateBossEnemies is called with no boss enemies
+            if (this.logger && this.bossEnemiesReachedGoalCount > 0) {
+                this.logger.info(`🎯 updateBossEnemies called with no boss enemies but count is ${this.bossEnemiesReachedGoalCount}`);
+            }
             return;
         }
 
