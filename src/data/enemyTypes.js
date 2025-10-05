@@ -181,7 +181,7 @@ const WAVE_CONFIG = {
         // New scaling factors
         WAVE_INTERVAL_REDUCTION: 0.95, // 5% faster spawn intervals per wave
         BOSS_WAVE_MULTIPLIER: 1.5,     // 50% boost for boss waves (every 5 waves)
-        MAX_SCALING_WAVES: 10          // Stop scaling after 10 waves to prevent impossible difficulty
+        MAX_SCALING_WAVES: 15          // Stop scaling after 15 waves to prevent impossible difficulty
     },
 
     // Base wave patterns - enemies to spawn per wave (scaled dynamically)
@@ -262,6 +262,46 @@ const WAVE_CONFIG = {
             ],
             isBossWave: true,
             bossType: 'speed'
+        },
+        // Wave 11: Escalating difficulty with advanced formations
+        {
+            enemies: [
+                { type: 'basic', count: 15, formation: 'phalanx' },
+                { type: 'fast', count: 12, formation: 'swarm' },
+                { type: 'strong', count: 8, formation: 'line' }
+            ]
+        },
+        // Wave 12: Fast enemy dominance with swarm tactics
+        {
+            enemies: [
+                { type: 'basic', count: 10, formation: 'single' },
+                { type: 'fast', count: 18, formation: 'swarm' },
+                { type: 'strong', count: 6, formation: 'phalanx' }
+            ]
+        },
+        // Wave 13: Strong enemy focus with defensive formations
+        {
+            enemies: [
+                { type: 'basic', count: 12, formation: 'wedge' },
+                { type: 'fast', count: 10, formation: 'line' },
+                { type: 'strong', count: 12, formation: 'phalanx' }
+            ]
+        },
+        // Wave 14: Ultimate challenge - all enemy types in maximum formations
+        {
+            enemies: [
+                { type: 'basic', count: 20, formation: 'phalanx' },
+                { type: 'fast', count: 15, formation: 'swarm' },
+                { type: 'strong', count: 10, formation: 'phalanx' }
+            ]
+        },
+        // Wave 15: Final Boss wave - Regenerate Boss (boss only)
+        {
+            enemies: [
+                { type: 'boss_regenerate', count: 1, formation: 'single' }
+            ],
+            isBossWave: true,
+            bossType: 'regenerate'
         }
     ]
 };

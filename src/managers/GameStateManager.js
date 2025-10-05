@@ -6,7 +6,7 @@ class GameStateManager {
         this.gameState = 'playing'; // 'playing', 'gameOver', 'victory', 'paused'
         this.gameOverReason = null; // 'enemiesReachedGoal', 'timeout', etc.
         this.victoryCondition = null; // 'wavesCompleted', 'scoreReached', etc.
-        this.maxWaves = 10; // Default victory condition
+        this.maxWaves = 15; // Extended victory condition to include all boss waves
         this.enemiesReachedGoal = 0;
         this.maxEnemiesAllowed = 5; // Game over if this many enemies reach goal
         this.gameStartTime = Date.now();
