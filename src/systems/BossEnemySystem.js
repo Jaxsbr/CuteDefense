@@ -41,10 +41,6 @@ class BossEnemySystem extends EnemySystem {
     updateBossEnemies(deltaTime) {
         // Only update if there are actually boss enemies
         if (this.bossEnemies.length === 0) {
-            // Debug: Log when updateBossEnemies is called with no boss enemies
-            if (this.logger && this.bossEnemiesReachedGoalCount > 0) {
-                this.logger.info(`🎯 updateBossEnemies called with no boss enemies but count is ${this.bossEnemiesReachedGoalCount}`);
-            }
             return;
         }
 
@@ -325,9 +321,6 @@ class BossEnemySystem extends EnemySystem {
      * Get count of boss enemies that reached the goal
      */
     getBossEnemiesReachedGoalCount() {
-        if (this.logger && this.bossEnemiesReachedGoalCount > 0) {
-            this.logger.info(`🎯 getBossEnemiesReachedGoalCount called: ${this.bossEnemiesReachedGoalCount} bosses reached goal`);
-        }
         return this.bossEnemiesReachedGoalCount;
     }
 
@@ -335,11 +328,10 @@ class BossEnemySystem extends EnemySystem {
      * Clear all boss enemies (for wave transitions)
      */
     clearAllBossEnemies() {
-        const previousCount = this.bossEnemiesReachedGoalCount;
         this.bossEnemies = [];
         this.bossEnemiesReachedGoalCount = 0;
         if (this.logger) {
-            this.logger.info(`🗑️ All boss enemies cleared (was ${previousCount} reached goal)`);
+            this.logger.info('🗑️ All boss enemies cleared');
         }
     }
 

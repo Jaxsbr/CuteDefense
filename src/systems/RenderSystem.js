@@ -3194,16 +3194,7 @@ class RenderSystem {
 
         // Render dramatic death effects (explosion and sparkles)
         if (enemy.isDying && enemy.deathAnimation) {
-            console.log('🎆 Rendering death effects for enemy');
             this.renderDramaticDeathEffects(enemy, centerX, centerY);
-        } else {
-            // Debug why death effects aren't rendering
-            if (enemy.isDying) {
-                console.log('🎆 Enemy isDying=true but no deathAnimation:', enemy.deathAnimation);
-            }
-            if (enemy.deathAnimation) {
-                console.log('🎆 Enemy has deathAnimation but isDying=false:', enemy.isDying);
-            }
         }
 
         // Restore context state

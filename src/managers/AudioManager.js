@@ -32,9 +32,6 @@ class SimpleAudioManager {
         // Enhanced death sound with higher volume for more dramatic effect
         if (this.sounds['enemy_death']) {
             this.sounds['enemy_death'].volume = 0.9; // Higher volume for dramatic death sound
-            console.log('🔊 enemy_death sound loaded successfully, volume set to 0.9');
-        } else {
-            console.log('❌ enemy_death sound failed to load');
         }
         this.loadSound('enemy_spawn', 'sounds/enemy_spawn.ogg');
         this.loadSound('enemy_reach_end', 'sounds/enemy_reach_end.ogg');
@@ -47,7 +44,6 @@ class SimpleAudioManager {
         this.unlockAudio();
 
         // Note: Logger not available in AudioManager constructor
-        console.log('Audio system initialized');
     }
 
     /**
@@ -71,7 +67,6 @@ class SimpleAudioManager {
      */
     playSound(name) {
         if (this.muted) {
-            console.log(`🔇 Audio muted, skipping sound: ${name}`);
             return;
         }
 
@@ -85,15 +80,11 @@ class SimpleAudioManager {
                 this.sounds[name].play().catch(error => {
                     // Ignore autoplay errors silently
                     // Audio play failed - this is expected for autoplay restrictions
-                    console.log(`🔊 Audio play failed for ${name}:`, error);
                 });
-                console.log(`🔊 Playing sound: ${name}`);
             } catch (error) {
-                console.log(`❌ Error playing sound ${name}:`, error);
                 if (this.logger) this.logger.warn(`Error playing sound ${name}:`, error);
             }
         } else {
-            console.log(`❌ Sound not found: ${name}`);
             if (this.logger) this.logger.warn(`Sound not found: ${name}`);
         }
     }

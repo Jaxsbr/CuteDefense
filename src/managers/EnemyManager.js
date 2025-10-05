@@ -550,18 +550,9 @@ class EnemyManager {
     skipToNextWave() {
         if (!this.isActive) return;
 
-        if (this.logger) {
-            this.logger.info(`🚀 Debug: Skipping from wave ${this.currentWave} to wave ${this.currentWave + 1}`);
-            this.logger.info(`🚀 Before clear: Regular enemies reached: ${this.enemySystem.getEnemiesReachedGoalCount()}, Boss enemies reached: ${this.bossEnemySystem.getBossEnemiesReachedGoalCount()}`);
-        }
-
         // Clear all current enemies (both regular and boss)
         this.enemySystem.clearAllEnemies();
         this.bossEnemySystem.clearAllBossEnemies();
-
-        if (this.logger) {
-            this.logger.info(`🚀 After clear: Regular enemies reached: ${this.enemySystem.getEnemiesReachedGoalCount()}, Boss enemies reached: ${this.bossEnemySystem.getBossEnemiesReachedGoalCount()}`);
-        }
 
         // Reset wave state
         this.waveState = 'complete';
@@ -613,10 +604,6 @@ class EnemyManager {
         const bossEnemiesReached = this.bossEnemySystem.getBossEnemiesReachedGoalCount();
         let bossLivesLost = 0;
 
-        // Debug logging for all lives calculation
-        if (this.logger) {
-            this.logger.info(`🎯 Lives calculation: Wave ${this.currentWave}, Regular: ${regularEnemiesReached}, Boss reached: ${bossEnemiesReached}, Boss enemies in system: ${this.bossEnemySystem.getBossEnemies().length}`);
-        }
 
         // Calculate lives lost from boss enemies based on current wave
         if (bossEnemiesReached > 0) {

@@ -193,16 +193,10 @@ class EnemySystem {
                 enemy.isAlive = false;
                 // Play enemy death sound with enhanced volume
                 if (this.audioManager) {
-                    console.log('🔊 Attempting to play enemy_death sound');
                     this.audioManager.playSound('enemy_death');
-                } else {
-                    console.log('❌ No audioManager available for death sound');
                 }
                 // Start dramatic death animation
                 this.startDramaticDeathAnimation(enemy);
-                console.log('🎆 Death animation started for enemy with', enemy.deathAnimation.sparkleCount, 'particles');
-                console.log('🎆 Enemy death animation object:', enemy.deathAnimation);
-                console.log('🎆 Enemy isDying:', enemy.isDying);
                 return enemy.reward; // Return coins earned
             }
         }

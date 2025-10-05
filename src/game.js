@@ -953,6 +953,5 @@ function setupInputHandlers() {
 // Start game when page loads
 document.addEventListener('DOMContentLoaded', () => {
     // Note: Logger not available yet, using console for DOM loaded message
-    console.log('DOM loaded, starting game initialization...');
     initGame();
 });
