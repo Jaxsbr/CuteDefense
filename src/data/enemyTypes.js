@@ -51,6 +51,115 @@ const ENEMY_TYPES = {
         glowColor: '#7DB8D1',   // Glow effect color
         animationSpeed: 0.7,    // Animation speed multiplier
         description: 'A strong enemy with high health but moves slowly'
+    },
+    // Boss Enemy Types - Unique enemies that appear every 5th wave
+    BOSS_SHIELD: {
+        id: 'boss_shield',
+        name: 'Shield Boss',
+        speed: 0.8,
+        health: 500,
+        color: '#9B59B6',  // Purple
+        size: 1.3,         // Larger than regular enemies
+        reward: 25,        // Higher reward
+        // Visual enhancements
+        shape: 'hexagon',  // Unique shape for bosses
+        borderColor: '#8E44AD', // Purple border
+        borderWidth: 4,    // Thicker border
+        glowColor: '#BB8FCE',   // Light purple glow
+        animationSpeed: 0.8,    // Animation speed multiplier
+        description: 'A boss with temporary damage immunity',
+        // Boss-specific properties
+        isBoss: true,
+        bossType: 'shield',
+        specialAbilities: {
+            shield: {
+                duration: 3000,  // 3 seconds of immunity
+                cooldown: 8000,  // 8 second cooldown
+                active: false,
+                lastUsed: 0
+            }
+        }
+    },
+    BOSS_SPEED: {
+        id: 'boss_speed',
+        name: 'Speed Boss',
+        speed: 1.8,        // Very fast
+        health: 300,
+        color: '#E74C3C',  // Red
+        size: 1.2,
+        reward: 20,
+        // Visual enhancements
+        shape: 'diamond',  // Sharp, fast-looking shape
+        borderColor: '#C0392B', // Dark red border
+        borderWidth: 4,
+        glowColor: '#F1948A',   // Light red glow
+        animationSpeed: 2.0,    // Fast animation
+        description: 'A boss that can boost its speed',
+        // Boss-specific properties
+        isBoss: true,
+        bossType: 'speed',
+        specialAbilities: {
+            speedBoost: {
+                multiplier: 2.0,  // Double speed
+                duration: 4000,   // 4 seconds
+                cooldown: 10000,  // 10 second cooldown
+                active: false,
+                lastUsed: 0
+            }
+        }
+    },
+    BOSS_REGENERATE: {
+        id: 'boss_regenerate',
+        name: 'Regenerate Boss',
+        speed: 0.6,
+        health: 600,       // High health
+        color: '#27AE60',  // Green
+        size: 1.4,         // Largest boss
+        reward: 30,
+        // Visual enhancements
+        shape: 'octagon',  // Complex shape
+        borderColor: '#1E8449', // Dark green border
+        borderWidth: 4,
+        glowColor: '#82E0AA',   // Light green glow
+        animationSpeed: 0.6,    // Slow, steady animation
+        description: 'A boss that regenerates health over time',
+        // Boss-specific properties
+        isBoss: true,
+        bossType: 'regenerate',
+        specialAbilities: {
+            regeneration: {
+                rate: 2,         // 2 health per second
+                interval: 1000,  // Every 1 second
+                lastTick: 0
+            }
+        }
+    },
+    BOSS_SPLIT: {
+        id: 'boss_split',
+        name: 'Split Boss',
+        speed: 0.9,
+        health: 400,
+        color: '#F39C12',  // Orange
+        size: 1.3,
+        reward: 15,        // Lower initial reward, but creates more enemies
+        // Visual enhancements
+        shape: 'star',     // Unique star shape
+        borderColor: '#D68910', // Dark orange border
+        borderWidth: 4,
+        glowColor: '#F7DC6F',   // Light yellow glow
+        animationSpeed: 1.2,    // Moderate animation
+        description: 'A boss that splits into smaller enemies when defeated',
+        // Boss-specific properties
+        isBoss: true,
+        bossType: 'split',
+        specialAbilities: {
+            split: {
+                splitCount: 3,   // Creates 3 smaller enemies
+                splitType: 'basic', // Type of enemies created
+                splitHealth: 50,  // Health of split enemies
+                splitReward: 5    // Reward per split enemy
+            }
+        }
     }
 };
 
@@ -106,13 +215,14 @@ const WAVE_CONFIG = {
                 { type: 'strong', count: 2, formation: 'single' }
             ]
         },
-        // Wave 5: Boss wave with complex formations
+        // Wave 5: First Boss wave - Shield Boss
         {
             enemies: [
-                { type: 'basic', count: 8, formation: 'phalanx' },
-                { type: 'fast', count: 6, formation: 'swarm' },
-                { type: 'strong', count: 3, formation: 'single' }
-            ]
+                { type: 'basic', count: 6, formation: 'single' },
+                { type: 'boss_shield', count: 1, formation: 'single' }
+            ],
+            isBossWave: true,
+            bossType: 'shield'
         },
         // Wave 6: Escalating difficulty with mixed formations
         {
@@ -146,13 +256,15 @@ const WAVE_CONFIG = {
                 { type: 'strong', count: 8, formation: 'phalanx' }
             ]
         },
-        // Wave 10: Ultimate challenge with all formation types
+        // Wave 10: Second Boss wave - Speed Boss
         {
             enemies: [
-                { type: 'basic', count: 15, formation: 'phalanx' },
-                { type: 'fast', count: 12, formation: 'swarm' },
-                { type: 'strong', count: 8, formation: 'wedge' }
-            ]
+                { type: 'basic', count: 8, formation: 'line' },
+                { type: 'fast', count: 4, formation: 'swarm' },
+                { type: 'boss_speed', count: 1, formation: 'single' }
+            ],
+            isBossWave: true,
+            bossType: 'speed'
         }
     ]
 };

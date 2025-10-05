@@ -3141,6 +3141,15 @@ class RenderSystem {
             case 'square':
                 this.drawSquare(centerX, centerY, radius);
                 break;
+            case 'hexagon':
+                this.drawHexagon(centerX, centerY, radius);
+                break;
+            case 'octagon':
+                this.drawOctagon(centerX, centerY, radius);
+                break;
+            case 'star':
+                this.drawStar(centerX, centerY, radius);
+                break;
             default:
                 this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
         }
@@ -3295,6 +3304,52 @@ class RenderSystem {
     drawSquare(centerX, centerY, radius) {
         const halfSize = radius * 0.8; // Slightly smaller for better visual balance
         this.ctx.rect(centerX - halfSize, centerY - halfSize, halfSize * 2, halfSize * 2);
+    }
+
+    // Boss enemy shape drawing functions
+    drawHexagon(centerX, centerY, radius) {
+        const sides = 6;
+        const angleStep = (Math.PI * 2) / sides;
+        
+        this.ctx.moveTo(centerX + radius, centerY);
+        for (let i = 1; i <= sides; i++) {
+            const angle = i * angleStep;
+            const x = centerX + Math.cos(angle) * radius;
+            const y = centerY + Math.sin(angle) * radius;
+            this.ctx.lineTo(x, y);
+        }
+        this.ctx.closePath();
+    }
+
+    drawOctagon(centerX, centerY, radius) {
+        const sides = 8;
+        const angleStep = (Math.PI * 2) / sides;
+        
+        this.ctx.moveTo(centerX + radius, centerY);
+        for (let i = 1; i <= sides; i++) {
+            const angle = i * angleStep;
+            const x = centerX + Math.cos(angle) * radius;
+            const y = centerY + Math.sin(angle) * radius;
+            this.ctx.lineTo(x, y);
+        }
+        this.ctx.closePath();
+    }
+
+    drawStar(centerX, centerY, radius) {
+        const points = 5;
+        const outerRadius = radius;
+        const innerRadius = radius * 0.4;
+        const angleStep = Math.PI / points;
+        
+        this.ctx.moveTo(centerX + outerRadius, centerY);
+        for (let i = 0; i < points * 2; i++) {
+            const angle = i * angleStep;
+            const currentRadius = i % 2 === 0 ? outerRadius : innerRadius;
+            const x = centerX + Math.cos(angle) * currentRadius;
+            const y = centerY + Math.sin(angle) * currentRadius;
+            this.ctx.lineTo(x, y);
+        }
+        this.ctx.closePath();
     }
 
     renderEnemyHealthBar(enemy, centerX, centerY, radius, tileSize) {

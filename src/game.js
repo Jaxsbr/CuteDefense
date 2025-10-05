@@ -365,6 +365,9 @@ function render() {
 
     // Render enemies
     gameState.renderer.renderEnemies(gameState.enemySystem.getEnemiesForRendering(), CONFIG.TILE_SIZE, gameState.selectedEnemy);
+    
+    // Render boss enemies
+    gameState.renderer.renderEnemies(gameState.enemyManager.bossEnemySystem.getBossEnemies(), CONFIG.TILE_SIZE, gameState.selectedEnemy);
 
     // Render towers
     gameState.renderer.renderTowers(gameState.towerManager.getTowersForRendering(), CONFIG.TILE_SIZE, gameState.towerManager, gameState.selectedTower);

@@ -6,6 +6,7 @@ class EnemyManager {
         this.enemySystem = enemySystem;
         this.gridSystem = gridSystem;
         this.audioManager = null; // Audio manager reference
+        this.bossEnemySystem = new BossEnemySystem(); // Boss enemy system
 
         // Wave state
         this.currentWave = 0;
@@ -67,6 +68,9 @@ class EnemyManager {
                 this.updateWaveComplete(currentTime);
                 break;
         }
+
+        // Update boss enemies
+        this.bossEnemySystem.updateBossEnemies(deltaTime);
     }
 
     /**
@@ -422,6 +426,8 @@ class EnemyManager {
      */
     setAudioManager(audioManager) {
         this.audioManager = audioManager;
+        // Set audio manager for boss enemy system
+        this.bossEnemySystem.audioManager = audioManager;
     }
 
     /**
@@ -436,13 +442,29 @@ class EnemyManager {
             if (path.length > 0) {
                 const spawnPoint = path[0];
 
-                // Create enemy with formation data
-                const enemy = this.enemySystem.createEnemy(
-                    enemyToSpawn.type,
-                    spawnPoint.x,
-                    spawnPoint.y,
-                    path
-                );
+                // Create enemy with formation data (check if it's a boss)
+                let enemy;
+                if (enemyToSpawn.type.isBoss) {
+                    // Create boss enemy
+                    enemy = this.bossEnemySystem.createBossEnemy(
+                        enemyToSpawn.type,
+                        spawnPoint.x,
+                        spawnPoint.y,
+                        path
+                    );
+                    
+                    if (this.logger) {
+                        this.logger.info(`👑 Spawning ${enemyToSpawn.type.name} (Boss Wave ${this.currentWave})`);
+                    }
+                } else {
+                    // Create regular enemy
+                    enemy = this.enemySystem.createEnemy(
+                        enemyToSpawn.type,
+                        spawnPoint.x,
+                        spawnPoint.y,
+                        path
+                    );
+                }
 
                 // Add formation behavior to enemy
                 if (enemyToSpawn.formation && enemyToSpawn.formation !== 'single') {
@@ -549,7 +571,7 @@ class EnemyManager {
         return {
             currentWave: this.currentWave,
             waveState: this.waveState,
-            enemiesAlive: this.enemySystem.getAliveEnemies().length,
+            enemiesAlive: this.enemySystem.getAliveEnemies().length + this.bossEnemySystem.getBossEnemies().length,
             enemiesSpawned: this.enemiesSpawned,
             totalEnemies: this.totalEnemiesInWave,
             announcement: this.waveAnnouncement
