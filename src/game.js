@@ -837,22 +837,31 @@ function handleInput() {
         
         if (enemyAtPosition) {
             // Enemy exists - select it for HUD display
+            const wasAlreadySelected = gameState.selectedEnemy && gameState.selectedEnemy.id === enemyAtPosition.id;
             gameState.selectedEnemy = enemyAtPosition;
             gameState.selectedTower = null; // Clear tower selection
             const enemyType = enemyAtPosition.isBoss ? `Boss (${enemyAtPosition.bossType})` : enemyAtPosition.type.name;
-            gameState.logger.info(`🎯 Enemy selected: ${enemyType} - Health: ${enemyAtPosition.health}`);
+            
+            if (wasAlreadySelected) {
+                gameState.logger.info(`🎯 Enemy deselected: ${enemyType} - clicked same enemy`);
+                gameState.selectedEnemy = null; // Deselect if clicking same enemy
+            } else {
+                gameState.logger.info(`🎯 Enemy selected: ${enemyType} - Health: ${enemyAtPosition.health}`);
+            }
+            
             // Clear any popup
             gameState.towerPlacementPopup = null;
             return;
         }
 
-        // No tower at position - show placement popup if buildable
+        // No enemy found at this position - handle deselection and tower placement
+        
+        // First, clear any existing selections (this handles deselection)
+        gameState.selectedTower = null;
+        gameState.selectedEnemy = null;
+        
         if (gameState.grid.canPlaceTower(gridPos.x, gridPos.y)) {
-            // Clear any existing selections when showing placement popup
-            gameState.selectedTower = null;
-            gameState.selectedEnemy = null;
-
-            // Convert grid coordinates to screen coordinates for popup positioning
+            // Show placement popup if buildable
             const screenPos = gameState.grid.gridToScreen(gridPos.x, gridPos.y);
             gameState.towerPlacementPopup = {
                 x: screenPos.x,  // Use screen coordinates
@@ -864,10 +873,8 @@ function handleInput() {
             };
             gameState.logger.info(`🏗️ Show placement popup at grid (${gridPos.x}, ${gridPos.y}) -> screen (${screenPos.x}, ${screenPos.y}) - cleared selections`);
         } else {
-            gameState.logger.info(`❌ Cannot build at (${gridPos.x}, ${gridPos.y})`);
-            // Clear all selections and popup if clicking non-buildable space
-            gameState.selectedTower = null;
-            gameState.selectedEnemy = null;
+            gameState.logger.info(`❌ Cannot build at (${gridPos.x}, ${gridPos.y}) - cleared selections`);
+            // Clear popup if clicking non-buildable space
             gameState.towerPlacementPopup = null;
         }
     }
