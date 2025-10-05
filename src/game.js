@@ -144,6 +144,7 @@ function initGame() {
     gameState.towerSystem.setGridSystem(gameState.grid);
     gameState.enemySystem.setGridSystem(gameState.grid);
     gameState.resourceSystem.setGridSystem(gameState.grid);
+    gameState.enemyManager.bossEnemySystem.setGridSystem(gameState.grid);
 
     // Initialize starting coins based on difficulty
     gameState.resourceSystem.initializeStartingCoins();
@@ -372,7 +373,7 @@ function render() {
 
     // Render enemies
     gameState.renderer.renderEnemies(gameState.enemySystem.getEnemiesForRendering(), CONFIG.TILE_SIZE, gameState.selectedEnemy);
-    
+
     // Render boss enemies
     gameState.renderer.renderEnemies(gameState.enemyManager.bossEnemySystem.getBossEnemies(), CONFIG.TILE_SIZE, gameState.selectedEnemy);
 
@@ -829,37 +830,37 @@ function handleInput() {
 
         // Check if there's an enemy at this position (regular enemies first)
         let enemyAtPosition = gameState.enemySystem.getEnemyAtPosition(clickPos.x, clickPos.y);
-        
+
         // If no regular enemy found, check boss enemies
         if (!enemyAtPosition) {
             enemyAtPosition = gameState.enemyManager.bossEnemySystem.getEnemyAtPosition(clickPos.x, clickPos.y);
         }
-        
+
         if (enemyAtPosition) {
             // Enemy exists - select it for HUD display
             const wasAlreadySelected = gameState.selectedEnemy && gameState.selectedEnemy.id === enemyAtPosition.id;
             gameState.selectedEnemy = enemyAtPosition;
             gameState.selectedTower = null; // Clear tower selection
             const enemyType = enemyAtPosition.isBoss ? `Boss (${enemyAtPosition.bossType})` : enemyAtPosition.type.name;
-            
+
             if (wasAlreadySelected) {
                 gameState.logger.info(`🎯 Enemy deselected: ${enemyType} - clicked same enemy`);
                 gameState.selectedEnemy = null; // Deselect if clicking same enemy
             } else {
                 gameState.logger.info(`🎯 Enemy selected: ${enemyType} - Health: ${enemyAtPosition.health}`);
             }
-            
+
             // Clear any popup
             gameState.towerPlacementPopup = null;
             return;
         }
 
         // No enemy found at this position - handle deselection and tower placement
-        
+
         // First, clear any existing selections (this handles deselection)
         gameState.selectedTower = null;
         gameState.selectedEnemy = null;
-        
+
         if (gameState.grid.canPlaceTower(gridPos.x, gridPos.y)) {
             // Show placement popup if buildable
             const screenPos = gameState.grid.gridToScreen(gridPos.x, gridPos.y);

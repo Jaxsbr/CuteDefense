@@ -301,7 +301,6 @@ class EnemySystem {
      */
     getEnemyAtPosition(screenX, screenY) {
         const tileSize = 64; // Should match CONFIG.TILE_SIZE
-        const tolerance = tileSize * 0.4; // 40% of tile size for click tolerance
 
         for (let enemy of this.enemies) {
             if (!enemy.isAlive || enemy.reachedGoal) continue;
@@ -310,6 +309,11 @@ class EnemySystem {
             const enemyScreenPos = this.gridSystem ? this.gridSystem.gridToScreen(enemy.x, enemy.y) : { x: enemy.x * tileSize, y: enemy.y * tileSize };
             const enemyScreenX = enemyScreenPos.x + tileSize / 2;
             const enemyScreenY = enemyScreenPos.y + tileSize / 2;
+
+            // Calculate tolerance based on enemy size for consistent click detection
+            const baseTolerance = tileSize * 0.4; // Base tolerance
+            const sizeMultiplier = enemy.size || 1.0; // Regular enemies have size 0.8, boss enemies have 1.3
+            const tolerance = baseTolerance * sizeMultiplier;
 
             // Check if click is within enemy bounds
             const distance = Math.sqrt(
