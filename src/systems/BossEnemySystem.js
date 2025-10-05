@@ -280,6 +280,36 @@ class BossEnemySystem extends EnemySystem {
     }
 
     /**
+     * Get boss enemy at specific screen position
+     */
+    getEnemyAtPosition(screenX, screenY) {
+        const tileSize = 64; // Should match CONFIG.TILE_SIZE
+        const tolerance = tileSize * 0.4; // 40% of tile size for click tolerance
+
+        for (let enemy of this.bossEnemies) {
+            if (!enemy.isAlive || enemy.reachedGoal) continue;
+
+            // Convert enemy position to screen coordinates using grid system
+            const enemyScreenPos = this.gridSystem ? this.gridSystem.gridToScreen(enemy.x, enemy.y) : { x: enemy.x * tileSize, y: enemy.y * tileSize };
+            const enemyScreenX = enemyScreenPos.x + tileSize / 2;
+            const enemyScreenY = enemyScreenPos.y + tileSize / 2;
+
+            // Check if click is within enemy bounds
+            const distance = Math.sqrt(
+                Math.pow(screenX - enemyScreenX, 2) +
+                Math.pow(screenY - enemyScreenY, 2)
+            );
+
+            // Use enemy size for hit detection
+            const enemyRadius = (tileSize * enemy.size) / 2;
+            if (distance <= enemyRadius + tolerance) {
+                return enemy;
+            }
+        }
+        return null;
+    }
+
+    /**
      * Get count of boss enemies that reached the goal
      */
     getBossEnemiesReachedGoalCount() {

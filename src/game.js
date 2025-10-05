@@ -296,8 +296,10 @@ function update() {
 
     // Clear enemy selection if selected enemy is dead or no longer alive
     if (gameState.selectedEnemy) {
-        // Check if enemy is still in the active enemies list
-        const isEnemyStillActive = gameState.enemySystem.getEnemiesForRendering().some(enemy => enemy.id === gameState.selectedEnemy.id);
+        // Check if enemy is still in the active enemies list (regular or boss)
+        const isRegularEnemyActive = gameState.enemySystem.getEnemiesForRendering().some(enemy => enemy.id === gameState.selectedEnemy.id);
+        const isBossEnemyActive = gameState.enemyManager.bossEnemySystem.getBossEnemies().some(enemy => enemy.id === gameState.selectedEnemy.id);
+        const isEnemyStillActive = isRegularEnemyActive || isBossEnemyActive;
 
         if (!isEnemyStillActive || !gameState.selectedEnemy.isAlive || gameState.selectedEnemy.health <= 0) {
             gameState.selectedEnemy = null;
@@ -824,13 +826,20 @@ function handleInput() {
             return;
         }
 
-        // Check if there's an enemy at this position
-        const enemyAtPosition = gameState.enemySystem.getEnemyAtPosition(clickPos.x, clickPos.y);
+        // Check if there's an enemy at this position (regular enemies first)
+        let enemyAtPosition = gameState.enemySystem.getEnemyAtPosition(clickPos.x, clickPos.y);
+        
+        // If no regular enemy found, check boss enemies
+        if (!enemyAtPosition) {
+            enemyAtPosition = gameState.enemyManager.bossEnemySystem.getEnemyAtPosition(clickPos.x, clickPos.y);
+        }
+        
         if (enemyAtPosition) {
             // Enemy exists - select it for HUD display
             gameState.selectedEnemy = enemyAtPosition;
             gameState.selectedTower = null; // Clear tower selection
-            gameState.logger.info(`🎯 Enemy selected: ${enemyAtPosition.type} - Health: ${enemyAtPosition.health}`);
+            const enemyType = enemyAtPosition.isBoss ? `Boss (${enemyAtPosition.bossType})` : enemyAtPosition.type.name;
+            gameState.logger.info(`🎯 Enemy selected: ${enemyType} - Health: ${enemyAtPosition.health}`);
             // Clear any popup
             gameState.towerPlacementPopup = null;
             return;
