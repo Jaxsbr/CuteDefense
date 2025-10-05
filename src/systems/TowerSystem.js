@@ -142,8 +142,8 @@ class TowerSystem {
             this.updateTowerFiringAnimation(tower, deltaTime);
         });
 
-        // Update projectiles with damage system
-        this.updateProjectiles(deltaTime, enemySystem, resourceSystem);
+        // Update projectiles with damage system (use combined enemy list for collision detection)
+        this.updateProjectiles(deltaTime, enemies, enemySystem, resourceSystem);
 
         // Update impact effects
         this.updateImpactEffects(deltaTime);
@@ -383,7 +383,7 @@ class TowerSystem {
     }
 
     // Update all projectiles with TTL and collision detection
-    updateProjectiles(deltaTime, enemySystem, resourceSystem) {
+    updateProjectiles(deltaTime, enemies, enemySystem, resourceSystem) {
         this.projectiles = this.projectiles.filter(projectile => {
             // Update TTL
             projectile.ttl -= deltaTime;
@@ -412,8 +412,8 @@ class TowerSystem {
                 return false;
             }
 
-            // Check collision with all alive enemies
-            const aliveEnemies = enemySystem.getEnemiesForRendering();
+            // Check collision with all alive enemies (including boss enemies)
+            const aliveEnemies = enemies.filter(enemy => enemy.isAlive && !enemy.reachedGoal);
             for (const enemy of aliveEnemies) {
                 if (this.checkProjectileCollision(projectile, enemy)) {
                     // Handle bomb explosion
@@ -512,6 +512,14 @@ class TowerSystem {
 
     // Handle regular projectile hit
     handleProjectileHit(projectile, enemy, enemySystem, resourceSystem) {
+        // Check if this is a boss enemy with active shield
+        if (enemy.isBoss && enemy.abilityStates && enemy.abilityStates.shield && enemy.abilityStates.shield.active) {
+            // Shield is active - no damage taken, but create shield impact effect
+            this.createImpactEffect(projectile.x, projectile.y, 0, '#8A2BE2'); // Purple for shield
+            this.createDamageText(projectile.x, projectile.y, 'SHIELD', false);
+            return;
+        }
+
         // Play enemy hit sound
         if (this.audioManager) {
             this.audioManager.playSound('enemy_hit');

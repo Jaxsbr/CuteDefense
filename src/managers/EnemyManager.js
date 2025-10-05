@@ -148,9 +148,12 @@ class EnemyManager {
      * Update active wave phase
      */
     updateActiveWave(currentTime) {
-        const aliveEnemies = this.enemySystem.getAliveEnemies().length;
+        // Check both regular enemies and boss enemies
+        const aliveRegularEnemies = this.enemySystem.getAliveEnemies().length;
+        const aliveBossEnemies = this.bossEnemySystem.getBossEnemies().filter(boss => boss.isAlive && !boss.reachedGoal).length;
+        const totalAliveEnemies = aliveRegularEnemies + aliveBossEnemies;
 
-        if (aliveEnemies === 0) {
+        if (totalAliveEnemies === 0) {
             this.waveState = 'complete';
             this.waveAnnouncement = `Wave ${this.currentWave} Complete!`;
             this.announcementTime = currentTime;
@@ -568,10 +571,13 @@ class EnemyManager {
      * Get current wave information
      */
     getWaveInfo() {
+        const aliveRegularEnemies = this.enemySystem.getAliveEnemies().length;
+        const aliveBossEnemies = this.bossEnemySystem.getBossEnemies().filter(boss => boss.isAlive && !boss.reachedGoal).length;
+        
         return {
             currentWave: this.currentWave,
             waveState: this.waveState,
-            enemiesAlive: this.enemySystem.getAliveEnemies().length + this.bossEnemySystem.getBossEnemies().length,
+            enemiesAlive: aliveRegularEnemies + aliveBossEnemies,
             enemiesSpawned: this.enemiesSpawned,
             totalEnemies: this.totalEnemiesInWave,
             announcement: this.waveAnnouncement
