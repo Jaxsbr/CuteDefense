@@ -38,6 +38,17 @@ class BossEnemySystem extends EnemySystem {
      * Update boss enemies with special abilities
      */
     updateBossEnemies(deltaTime) {
+        // Temporarily replace the enemies array with boss enemies for parent update
+        const originalEnemies = this.enemies;
+        this.enemies = this.bossEnemies;
+        
+        // Call parent class update method for movement and animations
+        this.update(deltaTime);
+        
+        // Restore original enemies array
+        this.enemies = originalEnemies;
+        
+        // Update boss-specific abilities
         this.bossEnemies.forEach(boss => {
             if (boss.isAlive && !boss.reachedGoal) {
                 this.updateBossAbilities(boss, deltaTime);
@@ -274,5 +285,16 @@ class BossEnemySystem extends EnemySystem {
                 this.handleBossDeath(boss);
             }
         });
+    }
+
+    /**
+     * Override parent cleanup to handle boss enemies
+     */
+    cleanupDeadEnemies() {
+        // Call parent cleanup first
+        super.cleanupDeadEnemies();
+        
+        // Clean up dead boss enemies
+        this.cleanupDeadBossEnemies();
     }
 }
