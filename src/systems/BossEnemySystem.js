@@ -5,6 +5,7 @@ class BossEnemySystem extends EnemySystem {
     constructor() {
         super();
         this.bossEnemies = []; // Track boss enemies separately
+        this.bossEnemiesReachedGoalCount = 0; // Track boss enemies that reached goal
     }
 
     /**
@@ -12,7 +13,7 @@ class BossEnemySystem extends EnemySystem {
      */
     createBossEnemy(type, startX, startY, path) {
         const bossEnemy = this.createEnemy(type, startX, startY, path);
-        
+
         // Add boss-specific properties
         bossEnemy.isBoss = true;
         bossEnemy.bossType = type.bossType;
@@ -20,7 +21,7 @@ class BossEnemySystem extends EnemySystem {
         bossEnemy.bossEffects = []; // Visual effects for boss abilities
         bossEnemy.abilityCooldowns = {}; // Track ability cooldowns
         bossEnemy.abilityStates = {}; // Track active ability states
-        
+
         // Initialize ability states
         Object.keys(bossEnemy.specialAbilities).forEach(abilityName => {
             bossEnemy.abilityStates[abilityName] = {
@@ -41,18 +42,27 @@ class BossEnemySystem extends EnemySystem {
         // Temporarily replace the enemies array with boss enemies for parent update
         const originalEnemies = this.enemies;
         this.enemies = this.bossEnemies;
-        
+
         // Call parent class update method for movement and animations
         this.update(deltaTime);
-        
+
         // Restore original enemies array
         this.enemies = originalEnemies;
-        
-        // Update boss-specific abilities
+
+        // Update boss-specific abilities and track goal reaching
         this.bossEnemies.forEach(boss => {
             if (boss.isAlive && !boss.reachedGoal) {
                 this.updateBossAbilities(boss, deltaTime);
                 this.updateBossEffects(boss, deltaTime);
+            }
+            
+            // Track boss enemies that reached the goal
+            if (boss.reachedGoal && !boss.goalReachedTracked) {
+                this.bossEnemiesReachedGoalCount++;
+                boss.goalReachedTracked = true;
+                if (this.audioManager) {
+                    this.audioManager.playSound('enemy_reach_end');
+                }
             }
         });
     }
@@ -62,7 +72,7 @@ class BossEnemySystem extends EnemySystem {
      */
     updateBossAbilities(boss, deltaTime) {
         const currentTime = Date.now();
-        
+
         switch (boss.bossType) {
             case 'shield':
                 this.updateShieldAbility(boss, currentTime);
@@ -85,7 +95,7 @@ class BossEnemySystem extends EnemySystem {
     updateShieldAbility(boss, currentTime) {
         const shield = boss.specialAbilities.shield;
         const state = boss.abilityStates.shield;
-        
+
         // Check if shield should activate (random chance every few seconds)
         if (!state.active && (currentTime - shield.lastUsed) > shield.cooldown) {
             const shouldActivate = Math.random() < 0.3; // 30% chance per check
@@ -94,7 +104,7 @@ class BossEnemySystem extends EnemySystem {
                 state.startTime = currentTime;
                 state.duration = shield.duration;
                 shield.lastUsed = currentTime;
-                
+
                 // Add shield visual effect
                 boss.bossEffects.push({
                     type: 'shield',
@@ -102,17 +112,17 @@ class BossEnemySystem extends EnemySystem {
                     duration: shield.duration,
                     radius: 40
                 });
-                
+
                 if (this.logger) {
                     this.logger.info(`🛡️ Shield Boss activated shield ability`);
                 }
             }
         }
-        
+
         // Check if shield should deactivate
         if (state.active && (currentTime - state.startTime) > state.duration) {
             state.active = false;
-            
+
             if (this.logger) {
                 this.logger.info(`🛡️ Shield Boss shield expired`);
             }
@@ -125,7 +135,7 @@ class BossEnemySystem extends EnemySystem {
     updateSpeedAbility(boss, currentTime) {
         const speedBoost = boss.specialAbilities.speedBoost;
         const state = boss.abilityStates.speedBoost;
-        
+
         // Check if speed boost should activate
         if (!state.active && (currentTime - speedBoost.lastUsed) > speedBoost.cooldown) {
             const shouldActivate = Math.random() < 0.25; // 25% chance per check
@@ -134,10 +144,10 @@ class BossEnemySystem extends EnemySystem {
                 state.startTime = currentTime;
                 state.duration = speedBoost.duration;
                 speedBoost.lastUsed = currentTime;
-                
+
                 // Apply speed boost
                 boss.currentSpeed = boss.speed * speedBoost.multiplier;
-                
+
                 // Add speed boost visual effect
                 boss.bossEffects.push({
                     type: 'speedBoost',
@@ -145,18 +155,18 @@ class BossEnemySystem extends EnemySystem {
                     duration: speedBoost.duration,
                     intensity: 1.0
                 });
-                
+
                 if (this.logger) {
                     this.logger.info(`⚡ Speed Boss activated speed boost`);
                 }
             }
         }
-        
+
         // Check if speed boost should deactivate
         if (state.active && (currentTime - state.startTime) > state.duration) {
             state.active = false;
             boss.currentSpeed = boss.speed; // Reset to normal speed
-            
+
             if (this.logger) {
                 this.logger.info(`⚡ Speed Boss speed boost expired`);
             }
@@ -168,13 +178,13 @@ class BossEnemySystem extends EnemySystem {
      */
     updateRegenerationAbility(boss, currentTime) {
         const regen = boss.specialAbilities.regeneration;
-        
+
         // Heal boss periodically
         if ((currentTime - regen.lastTick) > regen.interval) {
             if (boss.health < boss.maxHealth) {
                 boss.health = Math.min(boss.maxHealth, boss.health + regen.rate);
                 regen.lastTick = currentTime;
-                
+
                 // Add healing visual effect
                 boss.bossEffects.push({
                     type: 'healing',
@@ -182,7 +192,7 @@ class BossEnemySystem extends EnemySystem {
                     duration: 500,
                     amount: regen.rate
                 });
-                
+
                 if (this.logger) {
                     this.logger.info(`💚 Regenerate Boss healed +${regen.rate} health (${boss.health}/${boss.maxHealth})`);
                 }
@@ -209,7 +219,7 @@ class BossEnemySystem extends EnemySystem {
                 this.handleSplitBossDeath(boss);
                 break;
         }
-        
+
         // Remove from boss enemies list
         const index = this.bossEnemies.indexOf(boss);
         if (index > -1) {
@@ -222,15 +232,15 @@ class BossEnemySystem extends EnemySystem {
      */
     handleSplitBossDeath(boss) {
         const split = boss.specialAbilities.split;
-        
+
         // Create split enemies at boss location
         for (let i = 0; i < split.splitCount; i++) {
             const angle = (i * Math.PI * 2) / split.splitCount;
             const offset = 30; // Distance from boss center
-            
+
             const splitX = boss.x + Math.cos(angle) * offset;
             const splitY = boss.y + Math.sin(angle) * offset;
-            
+
             // Create split enemy
             const splitEnemy = this.createEnemy(
                 window.ENEMY_TYPES[split.splitType.toUpperCase()],
@@ -238,13 +248,13 @@ class BossEnemySystem extends EnemySystem {
                 splitY,
                 boss.path
             );
-            
+
             // Modify split enemy properties
             splitEnemy.health = split.splitHealth;
             splitEnemy.maxHealth = split.splitHealth;
             splitEnemy.reward = split.splitReward;
             splitEnemy.pathIndex = boss.pathIndex; // Continue from boss position
-            
+
             if (this.logger) {
                 this.logger.info(`⭐ Split Boss created ${split.splitCount} split enemies`);
             }
@@ -270,6 +280,13 @@ class BossEnemySystem extends EnemySystem {
     }
 
     /**
+     * Get count of boss enemies that reached the goal
+     */
+    getBossEnemiesReachedGoalCount() {
+        return this.bossEnemiesReachedGoalCount;
+    }
+
+    /**
      * Get all enemies including boss enemies
      */
     getAllEnemies() {
@@ -277,7 +294,7 @@ class BossEnemySystem extends EnemySystem {
     }
 
     /**
-     * Clean up dead boss enemies
+     * Clean up dead boss enemies and bosses that reached the goal
      */
     cleanupDeadBossEnemies() {
         this.bossEnemies.forEach(boss => {
@@ -285,6 +302,11 @@ class BossEnemySystem extends EnemySystem {
                 this.handleBossDeath(boss);
             }
         });
+        
+        // Remove bosses that reached the goal (similar to regular enemy cleanup)
+        this.bossEnemies = this.bossEnemies.filter(boss => 
+            (boss.isAlive || boss.isDying) && !boss.reachedGoal
+        );
     }
 
     /**
@@ -293,7 +315,7 @@ class BossEnemySystem extends EnemySystem {
     cleanupDeadEnemies() {
         // Call parent cleanup first
         super.cleanupDeadEnemies();
-        
+
         // Clean up dead boss enemies
         this.cleanupDeadBossEnemies();
     }

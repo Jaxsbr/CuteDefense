@@ -283,8 +283,12 @@ function update() {
     gameState.enemySystem.update(deltaTime);
     gameState.enemyManager.update(deltaTime);
 
-    // Update tower systems with damage integration
-    gameState.towerManager.update(deltaTime, gameState.enemySystem.getEnemiesForRendering(), gameState.enemySystem);
+    // Update tower systems with damage integration (include both regular and boss enemies)
+    const allEnemies = [
+        ...gameState.enemySystem.getEnemiesForRendering(),
+        ...gameState.enemyManager.bossEnemySystem.getBossEnemies()
+    ];
+    gameState.towerManager.update(deltaTime, allEnemies, gameState.enemySystem);
     gameState.resourceSystem.update(deltaTime);
 
     // Update game state management

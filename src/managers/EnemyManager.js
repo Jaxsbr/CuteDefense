@@ -589,7 +589,10 @@ class EnemyManager {
      * Get enemies that reached the goal (for game over detection)
      */
     getEnemiesReachedGoal() {
-        return this.enemySystem.getEnemiesReachedGoal();
+        // Count both regular enemies and boss enemies that reached the goal
+        const regularEnemiesReached = this.enemySystem.getEnemiesReachedGoalCount();
+        const bossEnemiesReached = this.bossEnemySystem.getBossEnemiesReachedGoalCount();
+        return regularEnemiesReached + bossEnemiesReached;
     }
 
     /**

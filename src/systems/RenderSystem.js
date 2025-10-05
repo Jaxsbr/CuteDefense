@@ -3310,7 +3310,7 @@ class RenderSystem {
     drawHexagon(centerX, centerY, radius) {
         const sides = 6;
         const angleStep = (Math.PI * 2) / sides;
-        
+
         this.ctx.moveTo(centerX + radius, centerY);
         for (let i = 1; i <= sides; i++) {
             const angle = i * angleStep;
@@ -3324,7 +3324,7 @@ class RenderSystem {
     drawOctagon(centerX, centerY, radius) {
         const sides = 8;
         const angleStep = (Math.PI * 2) / sides;
-        
+
         this.ctx.moveTo(centerX + radius, centerY);
         for (let i = 1; i <= sides; i++) {
             const angle = i * angleStep;
@@ -3340,7 +3340,7 @@ class RenderSystem {
         const outerRadius = radius;
         const innerRadius = radius * 0.4;
         const angleStep = Math.PI / points;
-        
+
         this.ctx.moveTo(centerX + outerRadius, centerY);
         for (let i = 0; i < points * 2; i++) {
             const angle = i * angleStep;
