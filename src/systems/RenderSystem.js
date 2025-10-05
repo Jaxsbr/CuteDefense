@@ -873,6 +873,11 @@ class RenderSystem {
             const livesRemaining = gameStateInfo.maxEnemiesAllowed - gameStateInfo.enemiesReachedGoal;
             const totalLives = gameStateInfo.maxEnemiesAllowed;
             const lifePercentage = livesRemaining / totalLives;
+            
+            // Debug: Log lives bar values
+            if (this.logger && gameStateInfo.enemiesReachedGoal > 0) {
+                this.logger.info(`🎮 Lives Bar: ${livesRemaining}/${totalLives} (${lifePercentage.toFixed(2)}%) - Enemies reached: ${gameStateInfo.enemiesReachedGoal}`);
+            }
 
             // Enhanced life bar - doubled in size for better visibility, aligned with green border
             const barWidth = width - 4; // Full width minus 2px margin on each side to align with green border
