@@ -293,9 +293,12 @@ class BossEnemySystem extends EnemySystem {
             // Log all boss positions for debugging
             this.bossEnemies.forEach((boss, index) => {
                 if (boss.isAlive && !boss.reachedGoal) {
-                    const bossScreenPos = this.gridSystem ? this.gridSystem.gridToScreen(boss.x, boss.y) : { x: boss.x * tileSize, y: boss.y * tileSize };
-                    const bossScreenX = bossScreenPos.x + tileSize / 2;
-                    const bossScreenY = bossScreenPos.y + tileSize / 2;
+                    const gridOffsetX = 400; // HUD width (matching RenderSystem.getGridOffsetX())
+                    const gridOffsetY = 0;   // No vertical offset (matching RenderSystem.getGridOffsetY())
+                    const screenX = boss.x * tileSize + gridOffsetX;
+                    const screenY = boss.y * tileSize + gridOffsetY;
+                    const bossScreenX = screenX + tileSize / 2;
+                    const bossScreenY = screenY + tileSize / 2;
                     this.logger.info(`🎯 Boss ${index}: ${boss.bossType} at grid(${boss.x.toFixed(2)},${boss.y.toFixed(2)}) screen(${bossScreenX.toFixed(1)},${bossScreenY.toFixed(1)})`);
                 }
             });
@@ -304,10 +307,14 @@ class BossEnemySystem extends EnemySystem {
         for (let enemy of this.bossEnemies) {
             if (!enemy.isAlive || enemy.reachedGoal) continue;
 
-            // Convert enemy position to screen coordinates using grid system
-            const enemyScreenPos = this.gridSystem ? this.gridSystem.gridToScreen(enemy.x, enemy.y) : { x: enemy.x * tileSize, y: enemy.y * tileSize };
-            const enemyScreenX = enemyScreenPos.x + tileSize / 2;
-            const enemyScreenY = enemyScreenPos.y + tileSize / 2;
+            // Convert enemy position to screen coordinates using same logic as rendering
+            // Use the same coordinate calculation as RenderSystem.renderEnemy()
+            const gridOffsetX = 400; // HUD width (matching RenderSystem.getGridOffsetX())
+            const gridOffsetY = 0;   // No vertical offset (matching RenderSystem.getGridOffsetY())
+            const screenX = enemy.x * tileSize + gridOffsetX;
+            const screenY = enemy.y * tileSize + gridOffsetY;
+            const enemyScreenX = screenX + tileSize / 2;
+            const enemyScreenY = screenY + tileSize / 2;
 
             // Check if click is within enemy bounds
             const distance = Math.sqrt(
