@@ -885,7 +885,7 @@ class RenderSystem {
             const barX = x + 2; // 2px margin from left edge to align with green border
             const barY = currentY - barHeight / 2;
 
-            this.renderEnhancedLifeBar(barX, barY, barWidth, barHeight, lifePercentage);
+            this.renderEnhancedLifeBar(barX, barY, barWidth, barHeight, lifePercentage, livesRemaining, totalLives);
             currentY += barHeight / 2 + largeSpacing; // Add margin above coins
         }
 
@@ -2025,7 +2025,7 @@ class RenderSystem {
     }
 
     // Render enhanced life bar with better visual feedback and color coding
-    renderEnhancedLifeBar(x, y, width, height, lifePercentage) {
+    renderEnhancedLifeBar(x, y, width, height, lifePercentage, livesRemaining = 0, totalLives = 0) {
         this.ctx.save();
 
         // Rounded corners for modern look
@@ -2071,6 +2071,29 @@ class RenderSystem {
             // Inner highlight for 3D effect
             this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
             this.ctx.fillRect(x, y, lifeWidth, height * 0.3);
+        }
+
+        // Add white text showing lives count
+        if (totalLives > 0) {
+            this.ctx.restore(); // Restore clipping to draw text
+            this.ctx.save();
+
+            this.ctx.fillStyle = '#FFFFFF';
+            this.ctx.font = 'bold 16px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+
+            const livesText = `${livesRemaining}/${totalLives}`;
+            const textX = x + width / 2;
+            const textY = y + height / 2;
+
+            // Add text shadow for better readability
+            this.ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+            this.ctx.shadowBlur = 2;
+            this.ctx.shadowOffsetX = 1;
+            this.ctx.shadowOffsetY = 1;
+
+            this.ctx.fillText(livesText, textX, textY);
         }
 
         this.ctx.restore();

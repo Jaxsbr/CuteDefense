@@ -178,11 +178,13 @@ function initGame() {
         if (gameState.showStartMenu) {
             if (e.key === '1') {
                 gameState.grid.setDifficulty('easy');
+                gameState.gameStateManager.setDifficulty('easy');
                 gameState.resourceSystem.updateStartingCoins();
                 gameState.showStartMenu = false;
                 gameState.logger.info('🎮 Starting game with easy difficulty');
             } else if (e.key === '2') {
                 gameState.grid.setDifficulty('hard');
+                gameState.gameStateManager.setDifficulty('hard');
                 gameState.resourceSystem.updateStartingCoins();
                 gameState.showStartMenu = false;
                 gameState.logger.info('🎮 Starting game with hard difficulty');
@@ -664,8 +666,9 @@ function restartGame() {
     // Reset game state manager
     gameState.gameStateManager.reset();
 
-    // Clear all enemies
-    gameState.enemySystem.clearAllEnemies();
+    // Reset enemy system (including lives counter)
+    gameState.enemySystem.reset();
+    gameState.enemyManager.bossEnemySystem.reset();
 
     // Clear all towers
     gameState.towerManager.clearAllTowers();
@@ -693,8 +696,9 @@ function resetGameToMenu() {
     // Reset game state manager
     gameState.gameStateManager.reset();
 
-    // Clear all enemies
-    gameState.enemySystem.clearAllEnemies();
+    // Reset enemy system (including lives counter)
+    gameState.enemySystem.reset();
+    gameState.enemyManager.bossEnemySystem.reset();
 
     // Clear all towers
     gameState.towerManager.clearAllTowers();
@@ -752,6 +756,7 @@ function handleInput() {
                 gameState.logger.info(`🔊 Sound ${gameState.soundEnabled ? 'enabled' : 'disabled'}`);
             } else if (result === 'easy' || result === 'hard') {
                 gameState.grid.setDifficulty(result);
+                gameState.gameStateManager.setDifficulty(result);
                 gameState.resourceSystem.updateStartingCoins();
                 gameState.logger.info(`📋 Difficulty set to ${result}`);
             } else if (result === 'play') {

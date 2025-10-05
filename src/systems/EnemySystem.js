@@ -280,7 +280,16 @@ class EnemySystem {
     clearAllEnemies() {
         this.enemies = [];
         this.removedEnemies = [];
-        this.enemiesReachedGoalCount = 0; // Reset goal counter
+        // Keep enemiesReachedGoalCount persistent across waves - lives should not reset
+    }
+
+    /**
+     * Reset the enemy system completely (for game restart)
+     */
+    reset() {
+        this.enemies = [];
+        this.removedEnemies = [];
+        this.enemiesReachedGoalCount = 0; // Reset goal counter only on full game restart
     }
 
     /**

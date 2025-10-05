@@ -8,17 +8,43 @@ class GameStateManager {
         this.victoryCondition = null; // 'wavesCompleted', 'scoreReached', etc.
         this.maxWaves = 15; // Extended victory condition to include all boss waves
         this.enemiesReachedGoal = 0;
-        this.maxEnemiesAllowed = 5; // Game over if this many enemies reach goal
+        this.maxEnemiesAllowed = 25; // Default to easy mode (25 lives) - will be updated based on difficulty
         this.gameStartTime = Date.now();
         this.gameOverTime = null;
         this.victoryTime = null;
         this.logger = null; // Logger reference
         this.enemyManager = null; // Enemy manager reference for stopping wave system
+        this.difficulty = 'easy'; // Track current difficulty
     }
 
     // Set logger reference
     setLogger(logger) {
         this.logger = logger;
+    }
+
+    /**
+     * Set difficulty and update lives accordingly
+     */
+    setDifficulty(difficulty) {
+        this.difficulty = difficulty;
+
+        // Set lives based on difficulty
+        if (difficulty === 'hard') {
+            this.maxEnemiesAllowed = 15; // Hard mode: 15 lives
+        } else {
+            this.maxEnemiesAllowed = 25; // Easy mode: 25 lives (default)
+        }
+
+        if (this.logger) {
+            this.logger.info(`🎮 Difficulty set to ${difficulty} - Lives: ${this.maxEnemiesAllowed}`);
+        }
+    }
+
+    /**
+     * Get current difficulty
+     */
+    getDifficulty() {
+        return this.difficulty;
     }
 
     /**
@@ -133,6 +159,10 @@ class GameStateManager {
         this.gameStartTime = Date.now();
         this.gameOverTime = null;
         this.victoryTime = null;
+
+        // Reset lives based on current difficulty
+        this.setDifficulty(this.difficulty);
+
         if (this.logger) this.logger.info('🎮 Game reset to playing state');
     }
 

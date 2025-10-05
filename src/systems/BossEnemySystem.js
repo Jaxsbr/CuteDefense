@@ -329,9 +329,20 @@ class BossEnemySystem extends EnemySystem {
      */
     clearAllBossEnemies() {
         this.bossEnemies = [];
-        this.bossEnemiesReachedGoalCount = 0;
+        // Keep bossEnemiesReachedGoalCount persistent across waves - lives should not reset
         if (this.logger) {
             this.logger.info('🗑️ All boss enemies cleared');
+        }
+    }
+
+    /**
+     * Reset the boss enemy system completely (for game restart)
+     */
+    reset() {
+        this.bossEnemies = [];
+        this.bossEnemiesReachedGoalCount = 0; // Reset goal counter only on full game restart
+        if (this.logger) {
+            this.logger.info('🔄 Boss enemy system reset');
         }
     }
 
