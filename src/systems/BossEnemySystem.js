@@ -46,26 +46,24 @@ class BossEnemySystem extends EnemySystem {
         // Call parent class update method for movement and animations
         this.update(deltaTime);
 
+        // The parent update method will have incremented this.enemiesReachedGoalCount for boss enemies
+        // Transfer this count to our separate boss counter
+        const newBossGoals = this.enemiesReachedGoalCount - this.bossEnemiesReachedGoalCount;
+        if (newBossGoals > 0) {
+            this.bossEnemiesReachedGoalCount += newBossGoals;
+            if (this.logger) {
+                this.logger.info(`🎯 Boss enemy reached goal: ${newBossGoals} bosses - Total boss goals: ${this.bossEnemiesReachedGoalCount}`);
+            }
+        }
+
         // Restore original enemies array
         this.enemies = originalEnemies;
 
-        // Update boss-specific abilities and track goal reaching
+        // Update boss-specific abilities
         this.bossEnemies.forEach(boss => {
             if (boss.isAlive && !boss.reachedGoal) {
                 this.updateBossAbilities(boss, deltaTime);
                 this.updateBossEffects(boss, deltaTime);
-            }
-            
-            // Track boss enemies that reached the goal
-            if (boss.reachedGoal && !boss.goalReachedTracked) {
-                this.bossEnemiesReachedGoalCount++;
-                boss.goalReachedTracked = true;
-                if (this.logger) {
-                    this.logger.info(`🎯 Boss enemy reached goal: ${boss.bossType} - Total boss goals: ${this.bossEnemiesReachedGoalCount}`);
-                }
-                if (this.audioManager) {
-                    this.audioManager.playSound('enemy_reach_end');
-                }
             }
         });
     }
@@ -287,11 +285,20 @@ class BossEnemySystem extends EnemySystem {
      */
     getEnemyAtPosition(screenX, screenY) {
         const tileSize = 64; // Should match CONFIG.TILE_SIZE
-        const tolerance = tileSize * 0.4; // 40% of tile size for click tolerance
+        const tolerance = tileSize * 0.8; // 80% of tile size for boss click tolerance (bosses are larger)
 
         // Debug: Log boss enemy selection attempt
         if (this.logger && this.bossEnemies.length > 0) {
             this.logger.info(`🎯 Boss selection attempt: Click at (${screenX}, ${screenY}), ${this.bossEnemies.length} boss enemies active`);
+            // Log all boss positions for debugging
+            this.bossEnemies.forEach((boss, index) => {
+                if (boss.isAlive && !boss.reachedGoal) {
+                    const bossScreenPos = this.gridSystem ? this.gridSystem.gridToScreen(boss.x, boss.y) : { x: boss.x * tileSize, y: boss.y * tileSize };
+                    const bossScreenX = bossScreenPos.x + tileSize / 2;
+                    const bossScreenY = bossScreenPos.y + tileSize / 2;
+                    this.logger.info(`🎯 Boss ${index}: ${boss.bossType} at grid(${boss.x.toFixed(2)},${boss.y.toFixed(2)}) screen(${bossScreenX.toFixed(1)},${bossScreenY.toFixed(1)})`);
+                }
+            });
         }
 
         for (let enemy of this.bossEnemies) {
@@ -349,12 +356,12 @@ class BossEnemySystem extends EnemySystem {
                 boss.isAlive = false;
                 boss.isDying = true;
                 boss.deathTime = Date.now();
-                
+
                 // Play death sound
                 if (this.audioManager) {
                     this.audioManager.playSound('enemy_death');
                 }
-                
+
                 // Return coin reward
                 return boss.reward || 10; // Default reward if not set
             }
@@ -378,9 +385,9 @@ class BossEnemySystem extends EnemySystem {
                 this.handleBossDeath(boss);
             }
         });
-        
+
         // Remove bosses that reached the goal (similar to regular enemy cleanup)
-        this.bossEnemies = this.bossEnemies.filter(boss => 
+        this.bossEnemies = this.bossEnemies.filter(boss =>
             (boss.isAlive || boss.isDying) && !boss.reachedGoal
         );
     }

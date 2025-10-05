@@ -455,7 +455,7 @@ class EnemyManager {
                         spawnPoint.y,
                         path
                     );
-                    
+
                     if (this.logger) {
                         this.logger.info(`👑 Spawning ${enemyToSpawn.type.name} (Boss Wave ${this.currentWave})`);
                     }
@@ -573,7 +573,7 @@ class EnemyManager {
     getWaveInfo() {
         const aliveRegularEnemies = this.enemySystem.getAliveEnemies().length;
         const aliveBossEnemies = this.bossEnemySystem.getBossEnemies().filter(boss => boss.isAlive && !boss.reachedGoal).length;
-        
+
         return {
             currentWave: this.currentWave,
             waveState: this.waveState,
@@ -597,11 +597,11 @@ class EnemyManager {
     getEnemiesReachedGoal() {
         // Count regular enemies that reached the goal (each counts as 1 life)
         const regularEnemiesReached = this.enemySystem.getEnemiesReachedGoalCount();
-        
+
         // Count boss enemies that reached the goal (each counts as multiple lives based on wave)
         const bossEnemiesReached = this.bossEnemySystem.getBossEnemiesReachedGoalCount();
         let bossLivesLost = 0;
-        
+
         // Calculate lives lost from boss enemies based on current wave
         if (bossEnemiesReached > 0) {
             // Boss waves are every 5th wave: 5, 10, 15
@@ -613,13 +613,13 @@ class EnemyManager {
             } else if (this.currentWave >= 5) {
                 bossLivesLost = bossEnemiesReached * 3; // Wave 5+ boss = 3 lives each
             }
-            
+
             // Debug logging for boss lives calculation
             if (this.logger) {
                 this.logger.info(`🎯 Boss lives calculation: Wave ${this.currentWave}, ${bossEnemiesReached} bosses reached, ${bossLivesLost} lives lost`);
             }
         }
-        
+
         return regularEnemiesReached + bossLivesLost;
     }
 
