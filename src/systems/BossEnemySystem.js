@@ -304,6 +304,10 @@ class BossEnemySystem extends EnemySystem {
             });
         }
 
+        // Find the closest boss within tolerance (not just the first one)
+        let closestBoss = null;
+        let closestDistance = Infinity;
+
         for (let enemy of this.bossEnemies) {
             if (!enemy.isAlive || enemy.reachedGoal) continue;
 
@@ -327,13 +331,19 @@ class BossEnemySystem extends EnemySystem {
                 this.logger.info(`🎯 Boss check: ${enemy.bossType} at grid(${enemy.x},${enemy.y}) screen(${enemyScreenX.toFixed(1)},${enemyScreenY.toFixed(1)}) click(${screenX},${screenY}) distance:${distance.toFixed(1)} tolerance:${tolerance}`);
             }
 
-            // Use same hit detection logic as regular enemies for consistency
-            if (distance <= tolerance) {
-                if (this.logger) {
-                    this.logger.info(`🎯 Boss enemy selected: ${enemy.bossType} at distance ${distance.toFixed(1)} (tolerance: ${tolerance})`);
-                }
-                return enemy;
+            // Check if this boss is within tolerance and closer than current closest
+            if (distance <= tolerance && distance < closestDistance) {
+                closestBoss = enemy;
+                closestDistance = distance;
             }
+        }
+
+        // Return the closest boss if found
+        if (closestBoss) {
+            if (this.logger) {
+                this.logger.info(`🎯 Boss enemy selected: ${closestBoss.bossType} at distance ${closestDistance.toFixed(1)} (tolerance: ${tolerance})`);
+            }
+            return closestBoss;
         }
         return null;
     }
