@@ -53,8 +53,66 @@ Win/lose conditions, tower animations, enhanced placement feedback, and final ga
 
 ---
 
-## Phase 2: Alpha Testing (TBD)
+## Phase 2: Alpha Testing (2025-01-27+)
 *User testing, feedback collection, and iterative improvements*
+
+### Alpha 1.5: Critical Alpha Testing Fixes & Boss System (2025-10-04)
+**Status**: ✅ COMPLETED
+- **HUD Redesign**: Major improvement with better vertical space utilization and information hierarchy
+- **Difficulty Modes**: Easy (40 coins) and Hard (30 coins) starting amounts with UI selection
+- **Bug Fixes**: Clean game state reset with "Try Again" button, fixed coin carryover issues
+- **Wave Info Pane**: Complete redesign with enhanced visual hierarchy and animated elements
+- **Boss Enemy System**: Fully functional with 4 boss types (Shield, Speed, Regenerate, Split) every 5th round
+- **Boss Special Abilities**: Shield immunity, speed boost, health regeneration, and split mechanics
+- **Enhanced Visuals**: Boss-specific shapes, health bars, and higher coin rewards
+- **Game Balance**: All critical alpha testing blockers resolved
+
+**Key Commits**: 
+- `e742868` - Wave info pane redesign with enhanced visual hierarchy
+- `42a7941` - Fixed projectile collision detection for boss enemies
+- `442c177` - Fixed GameStateManager enemy goal tracking and boss-only rounds
+
+### Alpha 1.6: Strategic Features & Polish (TBD)
+**Status**: 🚧 PLANNED
+*Strategic tower additions, game balance analysis, and mobile optimization*
+
+#### Priority 1: Strategic Tower Features
+- [ ] **Freeze Tower**: Slows enemies in range for strategic gameplay
+- [ ] **Coin Collector Tower**: Automatically collects coins in range
+- [ ] **Tower Upgrade Paths**: Enhanced upgrade systems for new towers
+- [ ] **Strategic Depth**: Multiple viable strategies and tower combinations
+
+#### Priority 2: Game Balance Analysis
+- [ ] **Comprehensive Balance Review**: Difficulty assessment and economic rebalancing
+- [ ] **Lives Bar Visual Fix**: Fix remaining lives bar update issue (debug logs from Alpha 1.5)
+- [ ] **Boss Balance Testing**: Validate boss enemy impact on game progression
+- [ ] **Economic Rebalancing**: Tower costs vs coin rewards optimization
+
+#### Priority 3: Mobile Optimization
+- [ ] **Touch Controls**: Optimized for tablet/phone interaction
+- [ ] **Performance Optimization**: Ensure smooth gameplay on mobile devices
+- [ ] **Cross-device Compatibility**: Testing across different mobile devices
+- [ ] **Touch Responsiveness**: Improved mobile input handling
+
+#### Priority 4: User Experience Enhancements
+- [ ] **Visual Feedback**: Enhanced feedback when lives are lost
+- [ ] **Lives Warning System**: Red flash when lives are low
+- [ ] **Game Over Screen**: Improved with lives information and restart options
+- [ ] **Difficulty Persistence**: Maintain settings across game sessions
+
+#### Priority 5: Polish & Stability
+- [ ] **Memory Leak Testing**: Across multiple game sessions
+- [ ] **Audio System Stability**: Comprehensive audio testing
+- [ ] **Animation Timing**: Improved visual effects timing
+- [ ] **Code Cleanup**: Documentation and code organization
+
+**Definition of Done for Alpha 1.6**:
+- [ ] All Priority 1 strategic towers implemented and functional
+- [ ] Game balance analysis completed with adjustments made
+- [ ] Lives bar visual update issue resolved
+- [ ] Mobile optimization completed and tested
+- [ ] At least 2 Priority 4 UX improvements implemented
+- [ ] Game stable for extended play sessions across devices
 
 ---
 
