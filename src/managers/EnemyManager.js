@@ -604,6 +604,11 @@ class EnemyManager {
         const bossEnemiesReached = this.bossEnemySystem.getBossEnemiesReachedGoalCount();
         let bossLivesLost = 0;
 
+        // Debug logging for all lives calculation
+        if (this.logger) {
+            this.logger.info(`🎯 Lives calculation: Wave ${this.currentWave}, Regular: ${regularEnemiesReached}, Boss reached: ${bossEnemiesReached}, Boss enemies in system: ${this.bossEnemySystem.getBossEnemies().length}`);
+        }
+
         // Calculate lives lost from boss enemies based on current wave
         if (bossEnemiesReached > 0) {
             // Boss waves are every 5th wave: 5, 10, 15

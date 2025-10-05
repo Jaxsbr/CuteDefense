@@ -39,6 +39,11 @@ class BossEnemySystem extends EnemySystem {
      * Update boss enemies with special abilities
      */
     updateBossEnemies(deltaTime) {
+        // Only update if there are actually boss enemies
+        if (this.bossEnemies.length === 0) {
+            return;
+        }
+
         // Temporarily replace the enemies array with boss enemies for parent update
         const originalEnemies = this.enemies;
         this.enemies = this.bossEnemies;
@@ -316,6 +321,9 @@ class BossEnemySystem extends EnemySystem {
      * Get count of boss enemies that reached the goal
      */
     getBossEnemiesReachedGoalCount() {
+        if (this.logger && this.bossEnemiesReachedGoalCount > 0) {
+            this.logger.info(`🎯 getBossEnemiesReachedGoalCount called: ${this.bossEnemiesReachedGoalCount} bosses reached goal`);
+        }
         return this.bossEnemiesReachedGoalCount;
     }
 
@@ -323,10 +331,11 @@ class BossEnemySystem extends EnemySystem {
      * Clear all boss enemies (for wave transitions)
      */
     clearAllBossEnemies() {
+        const previousCount = this.bossEnemiesReachedGoalCount;
         this.bossEnemies = [];
         this.bossEnemiesReachedGoalCount = 0;
         if (this.logger) {
-            this.logger.info('🗑️ All boss enemies cleared');
+            this.logger.info(`🗑️ All boss enemies cleared (was ${previousCount} reached goal)`);
         }
     }
 
