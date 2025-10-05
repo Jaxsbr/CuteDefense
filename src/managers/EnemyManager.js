@@ -595,10 +595,27 @@ class EnemyManager {
      * Get enemies that reached the goal (for game over detection)
      */
     getEnemiesReachedGoal() {
-        // Count both regular enemies and boss enemies that reached the goal
+        // Count regular enemies that reached the goal (each counts as 1 life)
         const regularEnemiesReached = this.enemySystem.getEnemiesReachedGoalCount();
+        
+        // Count boss enemies that reached the goal (each counts as multiple lives based on wave)
         const bossEnemiesReached = this.bossEnemySystem.getBossEnemiesReachedGoalCount();
-        return regularEnemiesReached + bossEnemiesReached;
+        let bossLivesLost = 0;
+        
+        // Calculate lives lost from boss enemies based on current wave
+        if (bossEnemiesReached > 0) {
+            // Boss waves are every 5th wave: 5, 10, 15
+            // Wave 5 boss = 3 lives, Wave 10 boss = 4 lives, Wave 15 boss = 5 lives
+            if (this.currentWave >= 15) {
+                bossLivesLost = bossEnemiesReached * 5; // Wave 15+ boss = 5 lives each
+            } else if (this.currentWave >= 10) {
+                bossLivesLost = bossEnemiesReached * 4; // Wave 10+ boss = 4 lives each
+            } else if (this.currentWave >= 5) {
+                bossLivesLost = bossEnemiesReached * 3; // Wave 5+ boss = 3 lives each
+            }
+        }
+        
+        return regularEnemiesReached + bossLivesLost;
     }
 
     /**

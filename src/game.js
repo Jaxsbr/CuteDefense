@@ -138,6 +138,7 @@ function initGame() {
     gameState.towerManager.setLogger(gameState.logger);
     gameState.grid.setLogger(gameState.logger);
     gameState.renderer.setLogger(gameState.logger);
+    gameState.enemyManager.bossEnemySystem.setLogger(gameState.logger);
 
     // Set grid system references for coordinate conversion
     gameState.towerSystem.setGridSystem(gameState.grid);

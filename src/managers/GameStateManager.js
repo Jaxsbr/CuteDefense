@@ -85,7 +85,7 @@ class GameStateManager {
         // Get count of enemies that reached the goal
         const enemiesReached = enemyManager.getEnemiesReachedGoal();
         this.enemiesReachedGoal = enemiesReached; // enemiesReached is already a count, not an array
-        
+
         // Debug: Log lives tracking
         if (this.logger && enemiesReached > 0) {
             this.logger.info(`🎮 Lives: ${this.maxEnemiesAllowed - this.enemiesReachedGoal}/${this.maxEnemiesAllowed} (${enemiesReached} enemies reached goal)`);

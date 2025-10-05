@@ -286,6 +286,11 @@ class BossEnemySystem extends EnemySystem {
         const tileSize = 64; // Should match CONFIG.TILE_SIZE
         const tolerance = tileSize * 0.4; // 40% of tile size for click tolerance
 
+        // Debug: Log boss enemy selection attempt
+        if (this.logger && this.bossEnemies.length > 0) {
+            this.logger.info(`🎯 Boss selection attempt: Click at (${screenX}, ${screenY}), ${this.bossEnemies.length} boss enemies active`);
+        }
+
         for (let enemy of this.bossEnemies) {
             if (!enemy.isAlive || enemy.reachedGoal) continue;
 
@@ -303,6 +308,9 @@ class BossEnemySystem extends EnemySystem {
             // Use enemy size for hit detection
             const enemyRadius = (tileSize * enemy.size) / 2;
             if (distance <= enemyRadius + tolerance) {
+                if (this.logger) {
+                    this.logger.info(`🎯 Boss enemy selected: ${enemy.bossType} at distance ${distance.toFixed(1)} (radius: ${enemyRadius.toFixed(1)})`);
+                }
                 return enemy;
             }
         }
@@ -368,6 +376,13 @@ class BossEnemySystem extends EnemySystem {
         this.bossEnemies = this.bossEnemies.filter(boss => 
             (boss.isAlive || boss.isDying) && !boss.reachedGoal
         );
+    }
+
+    /**
+     * Set logger reference
+     */
+    setLogger(logger) {
+        this.logger = logger;
     }
 
     /**
