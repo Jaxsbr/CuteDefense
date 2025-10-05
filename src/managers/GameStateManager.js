@@ -84,7 +84,7 @@ class GameStateManager {
     updateEnemyGoalTracking(enemyManager) {
         // Get count of enemies that reached the goal
         const enemiesReached = enemyManager.getEnemiesReachedGoal();
-        this.enemiesReachedGoal = enemiesReached.length;
+        this.enemiesReachedGoal = enemiesReached; // enemiesReached is already a count, not an array
     }
 
     /**

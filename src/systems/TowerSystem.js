@@ -547,7 +547,7 @@ class TowerSystem {
             // Handle regular enemy damage
             coinsEarned = enemySystem.damageEnemy(enemy.id, finalDamage);
         }
-        
+
         if (coinsEarned > 0) {
             // Start death animation
             enemySystem.startDeathAnimation(enemy);

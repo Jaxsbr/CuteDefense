@@ -215,10 +215,9 @@ const WAVE_CONFIG = {
                 { type: 'strong', count: 2, formation: 'single' }
             ]
         },
-        // Wave 5: First Boss wave - Shield Boss
+        // Wave 5: First Boss wave - Shield Boss (boss only)
         {
             enemies: [
-                { type: 'basic', count: 6, formation: 'single' },
                 { type: 'boss_shield', count: 1, formation: 'single' }
             ],
             isBossWave: true,
@@ -256,11 +255,9 @@ const WAVE_CONFIG = {
                 { type: 'strong', count: 8, formation: 'phalanx' }
             ]
         },
-        // Wave 10: Second Boss wave - Speed Boss
+        // Wave 10: Second Boss wave - Speed Boss (boss only)
         {
             enemies: [
-                { type: 'basic', count: 8, formation: 'line' },
-                { type: 'fast', count: 4, formation: 'swarm' },
                 { type: 'boss_speed', count: 1, formation: 'single' }
             ],
             isBossWave: true,
