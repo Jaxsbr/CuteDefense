@@ -281,69 +281,29 @@ class BossEnemySystem extends EnemySystem {
     }
 
     /**
-     * Get boss enemy at specific screen position
+     * Get boss enemy at specific screen position - IDENTICAL to regular enemies
      */
     getEnemyAtPosition(screenX, screenY) {
         const tileSize = 64; // Should match CONFIG.TILE_SIZE
-        const tolerance = tileSize * 0.8; // 80% of tile size for boss click tolerance (bosses are larger)
-
-        // Debug: Log boss enemy selection attempt
-        if (this.logger && this.bossEnemies.length > 0) {
-            this.logger.info(`🎯 Boss selection attempt: Click at (${screenX}, ${screenY}), ${this.bossEnemies.length} boss enemies active`);
-            // Log all boss positions for debugging
-            this.bossEnemies.forEach((boss, index) => {
-                if (boss.isAlive && !boss.reachedGoal) {
-                    const gridOffsetX = 400; // HUD width (matching RenderSystem.getGridOffsetX())
-                    const gridOffsetY = 0;   // No vertical offset (matching RenderSystem.getGridOffsetY())
-                    const screenX = boss.x * tileSize + gridOffsetX;
-                    const screenY = boss.y * tileSize + gridOffsetY;
-                    const bossScreenX = screenX + tileSize / 2;
-                    const bossScreenY = screenY + tileSize / 2;
-                    this.logger.info(`🎯 Boss ${index}: ${boss.bossType} at grid(${boss.x.toFixed(2)},${boss.y.toFixed(2)}) screen(${bossScreenX.toFixed(1)},${bossScreenY.toFixed(1)})`);
-                }
-            });
-        }
-
-        // Find the closest boss within tolerance (not just the first one)
-        let closestBoss = null;
-        let closestDistance = Infinity;
+        const tolerance = tileSize * 0.4; // Same tolerance as regular enemies
 
         for (let enemy of this.bossEnemies) {
             if (!enemy.isAlive || enemy.reachedGoal) continue;
 
-            // Convert enemy position to screen coordinates using same logic as rendering
-            // Use the same coordinate calculation as RenderSystem.renderEnemy()
-            const gridOffsetX = 400; // HUD width (matching RenderSystem.getGridOffsetX())
-            const gridOffsetY = 0;   // No vertical offset (matching RenderSystem.getGridOffsetY())
-            const screenX = enemy.x * tileSize + gridOffsetX;
-            const screenY = enemy.y * tileSize + gridOffsetY;
-            const enemyScreenX = screenX + tileSize / 2;
-            const enemyScreenY = screenY + tileSize / 2;
+            // Convert enemy position to screen coordinates using grid system - IDENTICAL to regular enemies
+            const enemyScreenPos = this.gridSystem ? this.gridSystem.gridToScreen(enemy.x, enemy.y) : { x: enemy.x * tileSize, y: enemy.y * tileSize };
+            const enemyScreenX = enemyScreenPos.x + tileSize / 2;
+            const enemyScreenY = enemyScreenPos.y + tileSize / 2;
 
-            // Check if click is within enemy bounds
+            // Check if click is within enemy bounds - IDENTICAL to regular enemies
             const distance = Math.sqrt(
                 Math.pow(screenX - enemyScreenX, 2) +
                 Math.pow(screenY - enemyScreenY, 2)
             );
 
-            // Debug logging for each boss enemy
-            if (this.logger) {
-                this.logger.info(`🎯 Boss check: ${enemy.bossType} at grid(${enemy.x},${enemy.y}) screen(${enemyScreenX.toFixed(1)},${enemyScreenY.toFixed(1)}) click(${screenX},${screenY}) distance:${distance.toFixed(1)} tolerance:${tolerance}`);
+            if (distance <= tolerance) {
+                return enemy;
             }
-
-            // Check if this boss is within tolerance and closer than current closest
-            if (distance <= tolerance && distance < closestDistance) {
-                closestBoss = enemy;
-                closestDistance = distance;
-            }
-        }
-
-        // Return the closest boss if found
-        if (closestBoss) {
-            if (this.logger) {
-                this.logger.info(`🎯 Boss enemy selected: ${closestBoss.bossType} at distance ${closestDistance.toFixed(1)} (tolerance: ${tolerance})`);
-            }
-            return closestBoss;
         }
         return null;
     }
@@ -353,6 +313,17 @@ class BossEnemySystem extends EnemySystem {
      */
     getBossEnemiesReachedGoalCount() {
         return this.bossEnemiesReachedGoalCount;
+    }
+
+    /**
+     * Clear all boss enemies (for wave transitions)
+     */
+    clearAllBossEnemies() {
+        this.bossEnemies = [];
+        this.bossEnemiesReachedGoalCount = 0;
+        if (this.logger) {
+            this.logger.info('🗑️ All boss enemies cleared');
+        }
     }
 
     /**

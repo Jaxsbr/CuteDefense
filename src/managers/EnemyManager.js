@@ -186,8 +186,9 @@ class EnemyManager {
         this.enemiesSpawned = 0;
         this.totalEnemiesInWave = 0;
 
-        // Clear any remaining enemies
+        // Clear any remaining enemies (both regular and boss)
         this.enemySystem.clearAllEnemies();
+        this.bossEnemySystem.clearAllBossEnemies();
 
         // Prepare wave pattern
         this.prepareWavePattern();
@@ -549,8 +550,9 @@ class EnemyManager {
     skipToNextWave() {
         if (!this.isActive) return;
 
-        // Clear all current enemies
+        // Clear all current enemies (both regular and boss)
         this.enemySystem.clearAllEnemies();
+        this.bossEnemySystem.clearAllBossEnemies();
 
         // Reset wave state
         this.waveState = 'complete';
