@@ -6,8 +6,6 @@ A simple, kid-friendly tower defense game with cute graphics and simple controls
 
 **[Play CuteDefense on GitHub Pages →](https://yourusername.github.io/CuteDefense)**
 
-*Note: Replace 'yourusername' with your actual GitHub username after deployment*
-
 ## Quick Launch (Local)
 
 ### Option 1: Direct Browser (Simplest)
