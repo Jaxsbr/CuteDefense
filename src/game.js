@@ -84,11 +84,16 @@ function initGame() {
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    // Set canvas size based on responsive scaling
+    // Set canvas BACKING STORE to the fixed base resolution (same on every device).
+    // The on-screen size is handled separately by fitCanvasToViewport() via CSS.
     canvas.width = CONFIG.CANVAS_WIDTH;
     canvas.height = CONFIG.CANVAS_HEIGHT;
 
-    gameState.logger.info(`Canvas size set to: ${canvas.width}x${canvas.height}`);
+    // Fit the displayed canvas into the actual visible viewport (handles the
+    // Android Chrome URL bar / toolbar so the bottom placement row is reachable).
+    fitCanvasToViewport();
+
+    gameState.logger.info(`Canvas backing store: ${canvas.width}x${canvas.height}`);
 
     // Initialize core systems
     gameState.logger.info('Initializing core systems...');
@@ -196,45 +201,89 @@ function initGame() {
         }
     });
 
-    // Add window resize handler for responsive scaling
-    window.addEventListener('resize', () => {
-        if (gameState.responsiveScaling) {
-            gameState.logger.info('🔄 Window resized - recalculating responsive scaling');
-            gameState.responsiveScaling.handleResize();
+    // Re-fit the displayed canvas whenever the visible area changes. The backing
+    // store stays fixed at the base resolution; only the CSS display size updates.
+    // We listen on visualViewport (fires when Android Chrome shows/hides the URL
+    // bar or a toolbar) as well as the classic window events.
+    window.addEventListener('resize', fitCanvasToViewport);
+    window.addEventListener('orientationchange', fitCanvasToViewport);
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', fitCanvasToViewport);
+        window.visualViewport.addEventListener('scroll', fitCanvasToViewport);
+    }
 
-            // Update CONFIG with new scaling
-            const scalingConfig = gameState.responsiveScaling.getConfig();
-            CONFIG = {
-                CANVAS_WIDTH: scalingConfig.width,
-                CANVAS_HEIGHT: scalingConfig.height,
-                GRID_SIZE: scalingConfig.gridCols,
-                GRID_COLS: scalingConfig.gridCols,
-                GRID_ROWS: scalingConfig.gridRows,
-                TILE_SIZE: scalingConfig.tileSize,
-                HUD_WIDTH: scalingConfig.hudWidth,
-                HUD_HEIGHT: scalingConfig.hudHeight,
-                GRID_OFFSET_X: scalingConfig.gridOffsetX,
-                GRID_OFFSET_Y: scalingConfig.gridOffsetY
-            };
-
-            // Update canvas size
-            const canvas = document.getElementById('gameCanvas');
-            canvas.width = CONFIG.CANVAS_WIDTH;
-            canvas.height = CONFIG.CANVAS_HEIGHT;
-
-            // Update InputSystem's responsive scaling reference
-            if (gameState.input && gameState.input.setResponsiveScaling) {
-                gameState.input.setResponsiveScaling(gameState.responsiveScaling);
-            }
-
-            gameState.logger.info('Responsive scaling updated:', gameState.responsiveScaling.getScalingInfo());
-        }
-    });
+    // Wire up the fullscreen toggle button (and hide it once already fullscreen).
+    setupFullscreenButton();
 
     gameState.logger.info('Game initialized successfully!');
     gameState.logger.info('Game state:', gameState);
     gameState.logger.info('TowerManager:', gameState.towerManager);
     gameState.logger.info('ResourceSystem:', gameState.resourceSystem);
+}
+
+// Fit the canvas into the visible viewport.
+//
+// The canvas backing store is a fixed base resolution; here we only set its CSS
+// display size (and lock the document to the visible area) so that on Android
+// Chrome the browser chrome can never hide the bottom of the board.
+function fitCanvasToViewport() {
+    const canvas = document.getElementById('gameCanvas');
+    if (!canvas || !gameState.responsiveScaling) return;
+
+    const display = gameState.responsiveScaling.getDisplaySize();
+
+    // Lock html/body to the *visible* size (visualViewport-aware) so the centered
+    // canvas isn't pushed partly off-screen by an over-tall layout viewport.
+    document.documentElement.style.height = display.viewportHeight + 'px';
+    document.body.style.width = display.viewportWidth + 'px';
+    document.body.style.height = display.viewportHeight + 'px';
+
+    canvas.style.width = display.width + 'px';
+    canvas.style.height = display.height + 'px';
+
+    if (gameState.logger) {
+        gameState.logger.info(`📐 Fit canvas: display ${display.width}x${display.height} in viewport ${display.viewportWidth}x${display.viewportHeight}`);
+    }
+}
+
+// Toggle the browser Fullscreen API (works on Android Chrome from a user gesture
+// even though it offers no menu option for it).
+function toggleFullscreen() {
+    const el = document.documentElement;
+    const isFs = document.fullscreenElement || document.webkitFullscreenElement;
+
+    if (!isFs) {
+        const req = el.requestFullscreen || el.webkitRequestFullscreen;
+        if (req) {
+            const result = req.call(el);
+            if (result && typeof result.catch === 'function') {
+                result.catch((err) => {
+                    if (gameState.logger) gameState.logger.info(`⛶ Fullscreen request failed: ${err && err.message}`);
+                });
+            }
+        }
+    } else {
+        const exit = document.exitFullscreen || document.webkitExitFullscreen;
+        if (exit) exit.call(document);
+    }
+}
+
+// Wire the on-screen fullscreen button and keep its visibility in sync.
+function setupFullscreenButton() {
+    const btn = document.getElementById('fullscreen-btn');
+    if (!btn) return;
+
+    const sync = () => {
+        const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+        // Hide the button once we're fullscreen (and re-fit after the change settles).
+        btn.style.display = isFs ? 'none' : 'block';
+        fitCanvasToViewport();
+    };
+
+    btn.addEventListener('click', toggleFullscreen);
+    document.addEventListener('fullscreenchange', sync);
+    document.addEventListener('webkitfullscreenchange', sync);
+    sync();
 }
 
 // Main game loop
@@ -253,6 +302,10 @@ function gameLoop() {
 
 // Track last frame time for delta time calculation
 let lastFrameTime = 0;
+
+// Reusable scratch array for the combined (regular + boss) enemy list, refilled
+// every frame to avoid allocating a new array each tick.
+let _allEnemiesScratch = [];
 
 // Update game state
 function update() {
@@ -287,12 +340,14 @@ function update() {
     gameState.enemySystem.update(deltaTime);
     gameState.enemyManager.update(deltaTime);
 
-    // Update tower systems with damage integration (include both regular and boss enemies)
-    const allEnemies = [
-        ...gameState.enemySystem.getEnemiesForRendering(),
-        ...gameState.enemyManager.bossEnemySystem.getBossEnemies()
-    ];
-    gameState.towerManager.update(deltaTime, allEnemies, gameState.enemySystem, gameState.enemyManager.bossEnemySystem);
+    // Update tower systems with damage integration (include both regular and boss enemies).
+    // Reuse a scratch array instead of allocating a fresh [...spread] every frame.
+    const regularEnemies = gameState.enemySystem.getEnemiesForRendering();
+    const bossEnemies = gameState.enemyManager.bossEnemySystem.getBossEnemies();
+    _allEnemiesScratch.length = 0;
+    for (let i = 0; i < regularEnemies.length; i++) _allEnemiesScratch.push(regularEnemies[i]);
+    for (let i = 0; i < bossEnemies.length; i++) _allEnemiesScratch.push(bossEnemies[i]);
+    gameState.towerManager.update(deltaTime, _allEnemiesScratch, gameState.enemySystem, gameState.enemyManager.bossEnemySystem);
     gameState.resourceSystem.update(deltaTime);
 
     // Update game state management

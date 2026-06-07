@@ -204,8 +204,42 @@ class ResourceSystem {
 
     // Update resource system
     update(deltaTime) {
-        // Update coin animations
-        this.coinAnimations = this.coinAnimations.filter(coin => {
+        // Update coin animations (in-place compaction; preserves order, no realloc)
+        const coins = this.coinAnimations;
+        let coinWrite = 0;
+        for (let coinRead = 0; coinRead < coins.length; coinRead++) {
+            const coin = coins[coinRead];
+            const keepCoin = this.updateCoin(coin, deltaTime);
+            if (keepCoin) {
+                coins[coinWrite++] = coin;
+            }
+        }
+        coins.length = coinWrite;
+
+        // Update collection effect particles (in-place compaction)
+        const effects = this.collectionEffects;
+        let fxWrite = 0;
+        for (let fxRead = 0; fxRead < effects.length; fxRead++) {
+            const particle = effects[fxRead];
+            this.updateCollectionParticle(particle, deltaTime);
+            if (particle.life > 0) {
+                effects[fxWrite++] = particle;
+            }
+        }
+        effects.length = fxWrite;
+
+        // Update coin total pulse animation
+        if (this.coinTotalPulse.active) {
+            this.coinTotalPulse.time += deltaTime;
+            if (this.coinTotalPulse.time >= this.coinTotalPulse.duration) {
+                this.coinTotalPulse.active = false;
+            }
+        }
+    }
+
+    // Advance a single coin's animation/lifetime. Returns true to keep it.
+    updateCoin(coin, deltaTime) {
+        {
             coin.animationTime += deltaTime;
             coin.sparkleTime += deltaTime;
             coin.lifetime -= deltaTime;
@@ -260,39 +294,29 @@ class ResourceSystem {
             }
 
             return true;
-        });
+        }
+    }
 
-        // Update collection effect particles
-        this.collectionEffects = this.collectionEffects.filter(particle => {
-            particle.x += particle.vx * (deltaTime / 1000);
-            particle.y += particle.vy * (deltaTime / 1000);
-            particle.life -= deltaTime;
+    // Advance a single collection-effect particle (sparkle or floating text).
+    updateCollectionParticle(particle, deltaTime) {
+        particle.x += particle.vx * (deltaTime / 1000);
+        particle.y += particle.vy * (deltaTime / 1000);
+        particle.life -= deltaTime;
 
-            // Apply gravity to particles (only for non-text particles)
-            if (!particle.text) {
-                particle.vy += 120 * (deltaTime / 1000);
+        // Apply gravity to particles (only for non-text particles)
+        if (!particle.text) {
+            particle.vy += 120 * (deltaTime / 1000);
 
-                // Update rotation for sparkle particles
-                if (particle.rotation !== undefined) {
-                    particle.rotation += particle.rotationSpeed;
-                }
-
-                // Fade out over time
-                particle.alpha = particle.life / particle.maxLife;
-            } else {
-                // Floating text particles fade out more slowly
-                particle.alpha = particle.life / particle.maxLife;
+            // Update rotation for sparkle particles
+            if (particle.rotation !== undefined) {
+                particle.rotation += particle.rotationSpeed;
             }
 
-            return particle.life > 0;
-        });
-
-        // Update coin total pulse animation
-        if (this.coinTotalPulse.active) {
-            this.coinTotalPulse.time += deltaTime;
-            if (this.coinTotalPulse.time >= this.coinTotalPulse.duration) {
-                this.coinTotalPulse.active = false;
-            }
+            // Fade out over time
+            particle.alpha = particle.life / particle.maxLife;
+        } else {
+            // Floating text particles fade out more slowly
+            particle.alpha = particle.life / particle.maxLife;
         }
     }
 

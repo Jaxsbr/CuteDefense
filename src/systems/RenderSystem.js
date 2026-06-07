@@ -1,12 +1,32 @@
 /**
  * Render System - Handles all rendering operations
  */
+
+// Hoisted out of renderGrassTexture() — this was being re-allocated for every
+// grass tile, every frame (~230 tiles * 6 objects * 60fps). It never changes.
+const GRASS_FLOWER_VARIANTS = [
+    { color: '#FFB6C1', size: 3.5, type: 'pink' },       // Pink flowers (much larger)
+    { color: '#FFC0CB', size: 3.0, type: 'light-pink' }, // Light pink
+    { color: '#FFE4B5', size: 4.0, type: 'yellow' },     // Yellow flowers
+    { color: '#DDA0DD', size: 3.2, type: 'purple' },     // Purple flowers
+    { color: '#F0E68C', size: 3.8, type: 'gold' },       // Gold flowers
+    { color: '#FFA07A', size: 3.3, type: 'orange' }      // Orange flowers
+];
+
 class RenderSystem {
     constructor(ctx, width, height) {
         this.ctx = ctx;
         this.width = width;
         this.height = height;
         this.resourceSystem = null; // Will be set by game
+
+        // Offscreen cache for the static tile layer. Re-baking the grid (gradients +
+        // grass/flower textures for ~264 tiles) every frame was the dominant mobile
+        // cost. We bake it once and blit it; it's only re-baked when the layout or
+        // the day/night colours actually change. See renderGrid().
+        this.gridCacheCanvas = null;
+        this.gridCacheCtx = null;
+        this.gridCacheKey = null;
 
         // Color palette
         this.colors = {
@@ -2368,22 +2388,28 @@ class RenderSystem {
 
     renderGrid(gridSystem, debug) {
         const tileSize = gridSystem.tileSize;
-        const gameOffsetX = this.getGameAreaOffset(); // Offset for left-docked HUD
 
-        // Render tiles
-        for (let y = 0; y < gridSystem.rows; y++) {
-            for (let x = 0; x < gridSystem.cols; x++) {
-                const tile = gridSystem.getTile(x, y);
-                if (tile) {
-                    this.renderTile(x, y, tile, tileSize);
-                }
-            }
+        // The tile layer is static apart from (a) the day/night colour fade and
+        // (b) the occasional map change. While the colours are mid-fade we render
+        // live so it stays smooth; the rest of the time (i.e. almost always,
+        // including all of combat) we blit a pre-baked copy instead of redrawing
+        // ~264 gradient-filled, flower-textured tiles every frame.
+        const transitioning = this.dayNightSystem.transitionProgress < 1.0;
+
+        if (transitioning) {
+            // Invalidate the cache so it re-bakes with the final colours once the
+            // fade settles, and draw this frame live.
+            this.gridCacheKey = null;
+            this.renderTileLayer(gridSystem, tileSize);
+        } else {
+            const key = this.computeGridCacheKey(gridSystem, tileSize);
+            this.ensureGridCache(gridSystem, tileSize, key);
+            this.ctx.drawImage(this.gridCacheCanvas, 0, 0);
         }
 
-        // Towers are now rendered separately in the main game loop
-        // This method only handles grid rendering
+        // Towers are now rendered separately in the main game loop.
 
-        // Render debug elements (work independently)
+        // Debug elements always render live on top (never baked into the cache).
         if (debug.showGrid) {
             this.renderGridLines(gridSystem);
         }
@@ -2393,6 +2419,74 @@ class RenderSystem {
         if (debug.showCollision) {
             this.renderCollisionAreas(gridSystem);
         }
+    }
+
+    // Draw every tile to the current context (this.ctx) — used both for the live
+    // (transitioning) path and when baking into the offscreen cache.
+    renderTileLayer(gridSystem, tileSize) {
+        for (let y = 0; y < gridSystem.rows; y++) {
+            for (let x = 0; x < gridSystem.cols; x++) {
+                const tile = gridSystem.getTile(x, y);
+                if (tile) {
+                    this.renderTile(x, y, tile, tileSize);
+                }
+            }
+        }
+    }
+
+    // Cheap signature of everything that affects the baked tile layer: grid shape,
+    // tile size, backing-store size, stable day/night phase, and a rolling hash of
+    // the tile types (so a map/difficulty change invalidates the cache automatically).
+    computeGridCacheKey(gridSystem, tileSize) {
+        let h = 0;
+        for (let y = 0; y < gridSystem.rows; y++) {
+            for (let x = 0; x < gridSystem.cols; x++) {
+                const tile = gridSystem.getTile(x, y);
+                let code = 0;
+                if (tile) {
+                    const t = tile.type;
+                    if (t === 'path') code = 1;
+                    else if (t === 'start') code = 2;
+                    else if (t === 'end') code = 3;
+                }
+                h = (h * 31 + code) | 0;
+            }
+        }
+        const cw = this.ctx.canvas.width;
+        const ch = this.ctx.canvas.height;
+        return `${gridSystem.cols}x${gridSystem.rows}|${tileSize}|${cw}x${ch}|${this.dayNightSystem.currentPhase}|${h}`;
+    }
+
+    // Bake the tile layer into the offscreen cache if it isn't already valid.
+    ensureGridCache(gridSystem, tileSize, key) {
+        const cw = this.ctx.canvas.width;
+        const ch = this.ctx.canvas.height;
+
+        // (Re)create the offscreen canvas if missing or the backing store resized.
+        if (!this.gridCacheCanvas || this.gridCacheCanvas.width !== cw || this.gridCacheCanvas.height !== ch) {
+            this.gridCacheCanvas = document.createElement('canvas');
+            this.gridCacheCanvas.width = cw;
+            this.gridCacheCanvas.height = ch;
+            this.gridCacheCtx = this.gridCacheCanvas.getContext('2d');
+            this.gridCacheKey = null; // force a re-bake
+        }
+
+        if (this.gridCacheKey === key) {
+            return; // cache is still valid
+        }
+
+        // Temporarily redirect all drawing to the offscreen context, render the
+        // tiles, then restore. renderTile() (and its helpers) all draw through
+        // this.ctx, so this transparently reuses the existing tile rendering.
+        const realCtx = this.ctx;
+        this.gridCacheCtx.clearRect(0, 0, cw, ch);
+        this.ctx = this.gridCacheCtx;
+        try {
+            this.renderTileLayer(gridSystem, tileSize);
+        } finally {
+            this.ctx = realCtx;
+        }
+        this.gridCacheKey = key;
     }
 
     renderTile(gridX, gridY, tile, tileSize) {
@@ -2565,14 +2659,8 @@ class RenderSystem {
         }
 
         // Add larger, more visible flower variants for environmental detail
-        const flowerVariants = [
-            { color: '#FFB6C1', size: 3.5, type: 'pink' },    // Pink flowers (much larger)
-            { color: '#FFC0CB', size: 3.0, type: 'light-pink' }, // Light pink
-            { color: '#FFE4B5', size: 4.0, type: 'yellow' },  // Yellow flowers
-            { color: '#DDA0DD', size: 3.2, type: 'purple' },  // Purple flowers
-            { color: '#F0E68C', size: 3.8, type: 'gold' },    // Gold flowers
-            { color: '#FFA07A', size: 3.3, type: 'orange' }   // Orange flowers
-        ];
+        // (constant list hoisted to module scope as GRASS_FLOWER_VARIANTS).
+        const flowerVariants = GRASS_FLOWER_VARIANTS;
 
         // Randomly select 2-3 flowers per tile based on seed
         const numFlowers = 2 + (seed % 2); // 2 or 3 flowers

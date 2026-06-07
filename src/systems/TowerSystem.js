@@ -7,6 +7,7 @@ class TowerSystem {
     constructor() {
         this.towers = [];
         this.projectiles = [];
+        this.projectilePool = []; // Reused projectile objects to avoid per-shot allocation/GC
         this.impactEffects = []; // Store impact effect particles
         this.lastUpdateTime = 0;
         this.audioManager = null; // Audio manager reference
@@ -351,30 +352,31 @@ class TowerSystem {
         const dirX = dx / distance;
         const dirY = dy / distance;
 
-        const projectile = {
-            id: Date.now() + Math.random(),
-            x: startX,
-            y: startY,
-            // Direction-based movement instead of target-based
-            dirX: dirX,
-            dirY: dirY,
-            speed: isBomb ? tower.bombSpeed : tower.projectileSpeed,
-            damage: isBomb ? tower.bombDamage : tower.damage,
-            color: isBomb ? tower.bombColor : tower.color,
-            size: isBomb ? 18 : 12, // Larger bombs for visibility (scaled for 96px tiles)
-            // TTL (Time To Live) in milliseconds
-            ttl: 10000, // 10 seconds for all projectiles to ensure they clear the screen when missing enemies
-            maxDistance: 2000, // Large distance to ensure projectiles clear screen (was tower.range * 64 * 1.5)
-            distanceTraveled: 0,
-            // Visual effects
-            trail: [], // Trail effect for better visibility
-            maxTrailLength: 5,
-            // Bomb properties
-            isBomb: isBomb,
-            bombRadius: isBomb ? tower.bombRadius : 0,
-            targetX: finalTargetX,
-            targetY: finalTargetY
-        };
+        // Acquire from the pool (reuses a retired projectile object when available)
+        // and overwrite every field so no stale state leaks across reuses.
+        const projectile = this.acquireProjectile();
+        projectile.id = Date.now() + Math.random();
+        projectile.x = startX;
+        projectile.y = startY;
+        // Direction-based movement instead of target-based
+        projectile.dirX = dirX;
+        projectile.dirY = dirY;
+        projectile.speed = isBomb ? tower.bombSpeed : tower.projectileSpeed;
+        projectile.damage = isBomb ? tower.bombDamage : tower.damage;
+        projectile.color = isBomb ? tower.bombColor : tower.color;
+        projectile.size = isBomb ? 18 : 12; // Larger bombs for visibility (scaled for 96px tiles)
+        // TTL (Time To Live) in milliseconds
+        projectile.ttl = 10000; // 10 seconds so projectiles clear the screen when missing enemies
+        projectile.maxDistance = 2000; // Large distance to ensure projectiles clear screen
+        projectile.distanceTraveled = 0;
+        // Visual effects — reuse the trail array (and its point objects) from the pool
+        projectile.trail.length = 0;
+        projectile.maxTrailLength = 5;
+        // Bomb properties
+        projectile.isBomb = isBomb;
+        projectile.bombRadius = isBomb ? tower.bombRadius : 0;
+        projectile.targetX = finalTargetX;
+        projectile.targetY = finalTargetY;
 
         this.projectiles.push(projectile);
         tower.lastShot = this.lastUpdateTime;
@@ -382,54 +384,91 @@ class TowerSystem {
         if (this.logger) this.logger.info(`Tower ${tower.type} shoots ${isBomb ? 'bomb' : 'projectile'} with direction (${dirX.toFixed(2)}, ${dirY.toFixed(2)})`);
     }
 
-    // Update all projectiles with TTL and collision detection
+    // Get a projectile object from the pool, or a fresh one if the pool is empty.
+    // Callers in shoot() overwrite every field before use.
+    acquireProjectile() {
+        const p = this.projectilePool.pop();
+        if (p) return p;
+        return { trail: [] };
+    }
+
+    // Return a retired projectile to the pool for reuse (keeps the trail array so
+    // its point objects are reused too). Soft-capped so the pool can't grow forever.
+    releaseProjectile(projectile) {
+        projectile.target = null;
+        projectile.trail.length = 0;
+        if (this.projectilePool.length < 256) {
+            this.projectilePool.push(projectile);
+        }
+    }
+
+    // Update all projectiles with TTL and collision detection.
+    // Compacts the array in place (no per-frame array reallocation) and recycles
+    // retired projectiles through the pool to keep GC pressure low on mobile.
     updateProjectiles(deltaTime, enemies, enemySystem, resourceSystem, bossEnemySystem = null) {
-        this.projectiles = this.projectiles.filter(projectile => {
+        // Alive-enemy list, computed ONCE per frame (previously re-filtered for
+        // every projectile, allocating an array per projectile per frame).
+        const aliveEnemies = enemies.filter(enemy => enemy.isAlive && !enemy.reachedGoal);
+
+        const list = this.projectiles;
+        let write = 0;
+
+        for (let read = 0; read < list.length; read++) {
+            const projectile = list[read];
+            let keep = true;
+
             // Update TTL
             projectile.ttl -= deltaTime;
 
-            // Remove projectile if TTL expired
             if (projectile.ttl <= 0) {
-                return false;
-            }
+                keep = false;
+            } else {
+                // Move projectile in its direction (speed is already in pixels per second)
+                const moveDistance = projectile.speed * (deltaTime / 1000);
 
-            // Move projectile in its direction (speed is already in pixels per second)
-            const moveDistance = projectile.speed * (deltaTime / 1000);
+                // Add current position to trail, reusing the oldest point object
+                // instead of allocating a new {x, y} every frame.
+                if (projectile.trail.length >= projectile.maxTrailLength) {
+                    const point = projectile.trail.shift();
+                    point.x = projectile.x;
+                    point.y = projectile.y;
+                    projectile.trail.push(point);
+                } else {
+                    projectile.trail.push({ x: projectile.x, y: projectile.y });
+                }
 
-            // Add current position to trail
-            projectile.trail.push({ x: projectile.x, y: projectile.y });
-            if (projectile.trail.length > projectile.maxTrailLength) {
-                projectile.trail.shift();
-            }
+                projectile.x += projectile.dirX * moveDistance;
+                projectile.y += projectile.dirY * moveDistance;
+                projectile.distanceTraveled += moveDistance;
 
-            projectile.x += projectile.dirX * moveDistance;
-            projectile.y += projectile.dirY * moveDistance;
-            projectile.distanceTraveled += moveDistance;
-
-
-            // Remove projectile if it has traveled too far
-            if (projectile.distanceTraveled >= projectile.maxDistance) {
-                return false;
-            }
-
-            // Check collision with all alive enemies (including boss enemies)
-            const aliveEnemies = enemies.filter(enemy => enemy.isAlive && !enemy.reachedGoal);
-            for (const enemy of aliveEnemies) {
-                if (this.checkProjectileCollision(projectile, enemy)) {
-                    // Handle bomb explosion
-                    if (projectile.isBomb) {
-                        this.handleBombExplosion(projectile, aliveEnemies, enemySystem, resourceSystem);
-                    } else {
-                        // Regular projectile hit
-                        this.handleProjectileHit(projectile, enemy, enemySystem, resourceSystem, bossEnemySystem);
+                if (projectile.distanceTraveled >= projectile.maxDistance) {
+                    // Remove projectile if it has traveled too far
+                    keep = false;
+                } else {
+                    // Check collision with all alive enemies (including boss enemies)
+                    for (let i = 0; i < aliveEnemies.length; i++) {
+                        const enemy = aliveEnemies[i];
+                        if (this.checkProjectileCollision(projectile, enemy)) {
+                            if (projectile.isBomb) {
+                                this.handleBombExplosion(projectile, aliveEnemies, enemySystem, resourceSystem);
+                            } else {
+                                this.handleProjectileHit(projectile, enemy, enemySystem, resourceSystem, bossEnemySystem);
+                            }
+                            keep = false;
+                            break;
+                        }
                     }
-                    // Remove projectile after hit
-                    return false;
                 }
             }
 
-            return true;
-        });
+            if (keep) {
+                list[write++] = projectile;
+            } else {
+                this.releaseProjectile(projectile);
+            }
+        }
+
+        list.length = write;
     }
 
     // Calculate distance between tower and target (in grid units)
@@ -808,9 +847,14 @@ class TowerSystem {
         this.impactEffects.push(damageText);
     }
 
-    // Update impact effect particles
+    // Update impact effect particles (in-place compaction, no per-frame realloc)
     updateImpactEffects(deltaTime) {
-        this.impactEffects = this.impactEffects.filter(effect => {
+        const list = this.impactEffects;
+        let write = 0;
+
+        for (let read = 0; read < list.length; read++) {
+            const effect = list[read];
+
             // Only update position for effects that have velocity properties
             if (effect.vx !== undefined && effect.vy !== undefined) {
                 effect.x += effect.vx * (deltaTime / 1000);
@@ -834,8 +878,12 @@ class TowerSystem {
                 effect.alpha = effect.life / effect.maxLife;
             }
 
-            return effect.life > 0;
-        });
+            if (effect.life > 0) {
+                list[write++] = effect;
+            }
+        }
+
+        list.length = write;
     }
 
     // Remove tower

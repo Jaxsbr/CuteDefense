@@ -51,57 +51,61 @@ class ResponsiveScalingSystem {
         }
     }
 
-    // Calculate optimal scaling for current device
+    // Calculate optimal scaling for current device.
+    //
+    // IMPORTANT: the game's internal coordinate system is fixed at the base
+    // resolution (96px tiles, 400px HUD, 22x12 tilemap are hardcoded throughout
+    // RenderSystem). The renderer is reliable when the canvas BACKING STORE stays
+    // at this base resolution; we only ever scale the *displayed* size via CSS.
+    //
+    // Desktop already worked this way (fixed backing store + CSS shrink-to-fit).
+    // The old mobile path recomputed the backing-store resolution and tile size,
+    // which broke alignment against those hardcoded offsets AND fought with the
+    // CSS `max-height:100% / 100vh` sizing on Android Chrome (where 100vh is the
+    // URL-bar-hidden height, so the bottom row was pushed off-screen). We now use
+    // the same fixed-resolution path on every device and fit the display in JS.
     calculateScaling() {
-        if (!this.isMobile) {
-            // Desktop: use original size
-            this.scaleFactor = 1.0;
-            this.currentConfig = { ...this.baseConfig };
-
-            if (this.logger) {
-                this.logger.info('Desktop detected - using original canvas size');
-            }
-            return;
-        }
-
-        // Mobile: calculate responsive scaling
-        let targetWidth = this.viewportWidth;
-        let targetHeight = this.viewportHeight;
-
-        // Account for device pixel ratio to prevent 2x scaling
-        if (this.devicePixelRatio > 1.0) {
-            targetWidth = targetWidth * this.devicePixelRatio;
-            targetHeight = targetHeight * this.devicePixelRatio;
-        }
-
-        // Calculate scale factor to fit viewport while maintaining aspect ratio
-        const widthScale = targetWidth / this.baseConfig.width;
-        const heightScale = targetHeight / this.baseConfig.height;
-
-        // Use the smaller scale to ensure full fit
-        this.scaleFactor = Math.min(widthScale, heightScale);
-
-        // Apply scaling to all dimensions
-        this.currentConfig = {
-            width: Math.floor(this.baseConfig.width * this.scaleFactor),
-            height: Math.floor(this.baseConfig.height * this.scaleFactor),
-            aspectRatio: this.baseConfig.aspectRatio,
-            gridCols: this.baseConfig.gridCols,
-            gridRows: this.baseConfig.gridRows,
-            tileSize: Math.floor(this.baseConfig.tileSize * this.scaleFactor),
-            hudWidth: Math.floor(this.baseConfig.hudWidth * this.scaleFactor),
-            hudHeight: Math.floor(this.baseConfig.hudHeight * this.scaleFactor),
-            gridOffsetX: Math.floor(this.baseConfig.gridOffsetX * this.scaleFactor),
-            gridOffsetY: Math.floor(this.baseConfig.gridOffsetY * this.scaleFactor)
-        };
+        // Same backing-store config for all devices — no per-device geometry.
+        this.scaleFactor = 1.0;
+        this.currentConfig = { ...this.baseConfig };
 
         if (this.logger) {
-            this.logger.info(`Mobile Scaling Calculated:`);
-            this.logger.info(`- Scale Factor: ${this.scaleFactor.toFixed(3)}`);
-            this.logger.info(`- Canvas Size: ${this.currentConfig.width}x${this.currentConfig.height}`);
-            this.logger.info(`- Tile Size: ${this.currentConfig.tileSize}px`);
-            this.logger.info(`- HUD Size: ${this.currentConfig.hudWidth}x${this.currentConfig.hudHeight}`);
+            this.logger.info(`Scaling: fixed base backing store ${this.currentConfig.width}x${this.currentConfig.height} (mobile=${this.isMobile}, dpr=${this.devicePixelRatio})`);
         }
+    }
+
+    // The actual visible viewport in CSS pixels. visualViewport reflects the area
+    // NOT covered by the URL bar / on-screen keyboard, which is exactly what we
+    // need so the whole board (including the bottom placement row) stays on-screen.
+    getVisibleViewport() {
+        const vv = window.visualViewport;
+        if (vv && vv.width > 0 && vv.height > 0) {
+            return { width: vv.width, height: vv.height };
+        }
+        return { width: window.innerWidth, height: window.innerHeight };
+    }
+
+    // Compute the CSS display size (largest box with the base aspect ratio that
+    // fits inside the visible viewport). The canvas keeps its base backing-store
+    // resolution; only style.width/height use these values.
+    getDisplaySize() {
+        const vp = this.getVisibleViewport();
+        const aspect = this.baseConfig.aspectRatio;
+
+        let width = vp.width;
+        let height = width / aspect;
+
+        if (height > vp.height) {
+            height = vp.height;
+            width = height * aspect;
+        }
+
+        return {
+            width: Math.max(1, Math.floor(width)),
+            height: Math.max(1, Math.floor(height)),
+            viewportWidth: vp.width,
+            viewportHeight: vp.height
+        };
     }
 
     // Get current configuration
