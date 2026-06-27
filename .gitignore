@@ -1,0 +1,12 @@
+# Dev-only harness deps — NEVER committed, so never deployed to GitHub Pages.
+node_modules/
+
+# Benchmark output artifacts
+tools/bench/results/*.json
+!tools/bench/results/.gitkeep
+
+# Visual-verification screenshots (regenerable via tools/harness/visualCheck.mjs)
+v2/captures/
+
+# OS cruft
+.DS_Store

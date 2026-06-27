@@ -1,0 +1,15 @@
+{
+  "name": "cutedefense",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "CuteDefense tower-defense game. V1 (default) and V2 served from one static page; dev-only Node test+benchmark harness.",
+  "scripts": {
+    "test": "node --test tools/tests/*.test.mjs",
+    "bench": "node tools/bench/run-bench.mjs",
+    "bench:v1": "node tools/bench/run-bench.mjs --only v1",
+    "bench:v2": "node tools/bench/run-bench.mjs --only v2",
+    "serve": "node tools/harness/staticServer.mjs"
+  },
+  "comment": "Dev harness uses only Node built-ins (node:test, node:http, global WebSocket) + the system Chrome over CDP. No npm dependencies, nothing extra is served."
+}

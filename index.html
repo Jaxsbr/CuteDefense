@@ -100,23 +100,57 @@
         <div>🎵 Click anywhere to enable audio</div>
     </div>
     <canvas id="gameCanvas" width="2514" height="1154"></canvas>
-    <script src="src/systems/ResponsiveScalingSystem.js"></script>
-    <script src="src/systems/GridSystem.js"></script>
-    <script src="src/systems/InputSystem.js"></script>
-    <script src="src/systems/RenderSystem.js"></script>
-    <script src="src/data/colorPalette.js"></script>
-    <script src="src/data/enemyTypes.js"></script>
-    <script src="src/systems/EnemySystem.js"></script>
-    <script src="src/systems/BossEnemySystem.js"></script>
-    <script src="src/managers/EnemyManager.js"></script>
-    <script src="src/data/towerTypes.js"></script>
-    <script src="src/systems/TowerSystem.js"></script>
-    <script src="src/systems/ResourceSystem.js"></script>
-    <script src="src/managers/TowerManager.js"></script>
-    <script src="src/managers/GameStateManager.js"></script>
-    <script src="src/managers/AudioManager.js"></script>
-    <script src="src/systems/LoggerSystem.js"></script>
-    <script src="src/game.js?v=3"></script>
+
+    <!--
+      Version router (shared infra). Reads the `v` query parameter:
+        ?v=2            -> load V2 (ES modules)
+        (none) / ?v=1   -> load V1 (default, unchanged)
+      Optional ?bench=1 appends each version's benchmark harness.
+
+      V1 is loaded via document.write during initial parse so its scripts stay
+      parser-inserted and in the original order — V1's DOMContentLoaded init and
+      behaviour are byte-for-byte unchanged from before the router existed.
+    -->
+    <script>
+        (function () {
+            var params = new URLSearchParams(location.search);
+            var version = params.get('v') === '2' ? 2 : 1; // V1 is the default
+            var bench = params.get('bench') === '1';
+
+            if (version === 2) {
+                // V2 ships as native ES modules (no bundler), so it can be a single
+                // deferred module entry. ?bench is read inside the V2 app.
+                document.write('<script type="module" src="v2/main.js?v=2"><\/script>');
+                return;
+            }
+
+            // V1 — exact original load order, now emitted by the router.
+            var v1Scripts = [
+                'src/systems/ResponsiveScalingSystem.js',
+                'src/systems/GridSystem.js',
+                'src/systems/InputSystem.js',
+                'src/systems/RenderSystem.js',
+                'src/data/colorPalette.js',
+                'src/data/enemyTypes.js',
+                'src/systems/EnemySystem.js',
+                'src/systems/BossEnemySystem.js',
+                'src/managers/EnemyManager.js',
+                'src/data/towerTypes.js',
+                'src/systems/TowerSystem.js',
+                'src/systems/ResourceSystem.js',
+                'src/managers/TowerManager.js',
+                'src/managers/GameStateManager.js',
+                'src/managers/AudioManager.js',
+                'src/systems/LoggerSystem.js',
+                'src/game.js?v=3'
+            ];
+            // V1 benchmarking hook (new file; existing V1 files untouched).
+            if (bench) v1Scripts.push('src/systems/BenchHarness.js');
+            for (var i = 0; i < v1Scripts.length; i++) {
+                document.write('<script src="' + v1Scripts[i] + '"><\/script>');
+            }
+        })();
+    </script>
 </body>
 
 </html>

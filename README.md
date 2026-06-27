@@ -6,6 +6,39 @@ A simple, kid-friendly tower defense game with cute graphics and simple controls
 
 **[Play CuteDefense on GitHub Pages →](https://jaxsbr.github.io/CuteDefense)**
 
+## Versions (V1 & V2)
+
+Two implementations are served from the same page, selected by the **`v`** query parameter:
+
+| URL | Loads |
+|-----|-------|
+| `index.html` (no parameter) | **V1** (default) |
+| `index.html?v=1` | **V1** (explicit) |
+| `index.html?v=2` | **V2** (the rebuild — faster, reliability-hardened) |
+
+- **V1** is the original game, unchanged except for an opt-in benchmarking hook.
+- **V2** is a ground-up rebuild: a pure headless simulation core (fixed timestep,
+  seeded RNG, fresh state per game) with a sprite-cached minimal renderer. It is
+  ~77% faster at the benchmark fixture and is provably free of V1's boss-wave
+  instant-loss and open-tile pathfinding bugs. See `v2/docs/` for the full plan,
+  parity analysis, and findings.
+- Append **`&bench=1`** to either version to load its benchmark harness
+  (`window.__bench`), used by the dev tooling below.
+
+## Development harness (dev-only, never shipped)
+
+V2 ships as plain ES modules with **no build step**. The test + benchmark harness
+uses only Node built-ins (`node:test`, `node:http`, the global `WebSocket`) plus
+the system Chrome over the DevTools Protocol — **no npm dependencies**.
+
+```bash
+npm test          # headless simulation tests (game logic + regression gates)
+npm run bench     # V1 vs V2 frame-time benchmark under a 4x Chrome CPU throttle
+npm run serve     # host the site locally (http://127.0.0.1:3456)
+```
+
+The benchmark gate fails the build if V2's p95 frame time is not lower than V1's.
+
 ## Quick Launch (Local)
 
 ### Option 1: Direct Browser (Simplest)
