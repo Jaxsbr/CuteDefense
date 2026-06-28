@@ -11,36 +11,12 @@
 const INK = '#1a1a1a';
 
 // ================= ENEMY (in-game) =================
+// The in-game enemy face now uses the SAME HD "angry portrait" face as the menu
+// & catalog portraits (angled brows, big glinting eyes, frown → open snarl when
+// hit), so a cutie on the board reads exactly like its portrait. The richer body
+// shading + chunky border that complete the match are baked in SpriteCache.enemy.
 export function drawEnemyFace(ctx, cx, cy, r, frame = 'neutral') {
-  if (frame === 'ouch') return drawEnemyOuch(ctx, cx, cy, r);
-  return drawEnemyNeutral(ctx, cx, cy, r);
-}
-
-function drawEnemyNeutral(ctx, cx, cy, r) {           // == the current mean face
-  const eyeR = r * 0.13, off = r * 0.27, eyeY = cy - r * 0.08;
-  ctx.fillStyle = INK;
-  ctx.beginPath(); ctx.arc(cx - off, eyeY, eyeR, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(cx + off, eyeY, eyeR, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#ffffff';
-  ctx.beginPath(); ctx.arc(cx - off + eyeR * 0.3, eyeY - eyeR * 0.3, eyeR * 0.35, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(cx + off + eyeR * 0.3, eyeY - eyeR * 0.3, eyeR * 0.35, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = INK; ctx.lineWidth = Math.max(1.5, r * 0.07); ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(cx - off - eyeR, cy - r * 0.32); ctx.lineTo(cx - off + eyeR, cy - r * 0.20); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(cx + off + eyeR, cy - r * 0.32); ctx.lineTo(cx + off - eyeR, cy - r * 0.20); ctx.stroke();
-  ctx.beginPath(); ctx.arc(cx, cy + r * 0.45, r * 0.32, Math.PI * 1.2, Math.PI * 1.8); ctx.stroke();
-}
-
-function drawEnemyOuch(ctx, cx, cy, r) {               // V1 squint + open oval mouth (peak)
-  const off = r * 0.27, eyeY = cy - r * 0.06, sq = r * 0.05;
-  ctx.fillStyle = INK;
-  ctx.beginPath(); ctx.arc(cx - off, eyeY, sq, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(cx + off, eyeY, sq, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = INK; ctx.lineWidth = Math.max(1.5, r * 0.07); ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(cx - off - r * 0.14, cy - r * 0.34); ctx.lineTo(cx - off + r * 0.10, cy - r * 0.22); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(cx + off + r * 0.14, cy - r * 0.34); ctx.lineTo(cx + off - r * 0.10, cy - r * 0.22); ctx.stroke();
-  ctx.fillStyle = '#5a1020';
-  ctx.beginPath(); ctx.ellipse(cx, cy + r * 0.30, r * 0.15, r * 0.23, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = INK; ctx.lineWidth = Math.max(2, r * 0.07); ctx.stroke();
+  return drawAngryPortrait(ctx, cx, cy, r, { snarl: frame === 'ouch' });
 }
 
 // ================= TOWER (in-game) =================

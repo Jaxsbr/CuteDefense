@@ -52,16 +52,22 @@ export class SpriteCache {
       halo.addColorStop(1, withAlpha(def.glow, '00'));
       ctx.fillStyle = halo;
       ctx.beginPath(); ctx.arc(cx, cy, r + pad, 0, Math.PI * 2); ctx.fill();
-      // body — RADIAL centre-light shading (standardised with towers so enemies
-      // read just as round; the owner asked for this parity).
-      const grad = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.3, r * 0.2, cx, cy, r);
-      grad.addColorStop(0, lighten(def.color, 45));
-      grad.addColorStop(1, darken(def.color, 22));
+      // body — 3-stop radial for the rounded, HD "portrait" volume (matches the
+      // menu/catalog portraits: a brighter centre-light that rolls to a deeper rim).
+      const grad = ctx.createRadialGradient(cx - r * 0.35, cy - r * 0.4, r * 0.15, cx, cy, r * 1.05);
+      grad.addColorStop(0, lighten(def.color, 70));
+      grad.addColorStop(0.55, def.color);
+      grad.addColorStop(1, darken(def.color, 28));
       shapePath(ctx, def.shape, cx, cy, r);
       ctx.fillStyle = grad; ctx.fill();
-      // outlines (border color + dark contrast)
+      // glossy top sheen, clipped to the body (the "lighting" that makes it pop)
+      ctx.save(); shapePath(ctx, def.shape, cx, cy, r); ctx.clip();
+      ctx.globalAlpha = 0.30; ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath(); ctx.ellipse(cx, cy - r * 0.5, r * 0.7, r * 0.42, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.restore(); ctx.globalAlpha = 1;
+      // chunky friendly outline (matches the portrait border weight)
       shapePath(ctx, def.shape, cx, cy, r);
-      ctx.strokeStyle = def.border; ctx.lineWidth = Math.max(2, r * 0.12); ctx.stroke();
+      ctx.strokeStyle = def.border; ctx.lineWidth = Math.max(2.5, r * 0.10); ctx.stroke();
       drawEnemyFace(ctx, cx, cy, r, frame);
     });
   }
