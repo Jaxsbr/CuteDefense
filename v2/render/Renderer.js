@@ -698,26 +698,37 @@ export class Renderer {
       ctx.drawImage(cloud.canvas, -cloud.cx, -cloud.cy); ctx.restore();
     }
 
-    // HD portrait cast — arc (hero center highest), bob + out-of-sync blink
+    // HD portrait cast — layout: enemy | basic tower | BIG enemy (centre) |
+    // strong tower | enemy. Enemies are angry (mirror the in-game look) and gnash;
+    // towers stay happy. Arc puts the big centre baddie highest.
     const cast = [
-      { kind: 'enemy', type: 'fast', r: 66 },
-      { kind: 'enemy', type: 'basic', r: 74 },
-      { kind: 'tower', type: 'basic', r: 96, level: 2, hero: true },
-      { kind: 'enemy', type: 'strong', r: 74 },
-      { kind: 'coin', type: 'coin', r: 58 },
+      { kind: 'enemy', type: 'fast',       r: 70 },              // teal diamond
+      { kind: 'tower', type: 'basic',      r: 84, level: 2 },    // blue circle tower
+      { kind: 'enemy', type: 'boss_split', r: 104, hero: true }, // orange star boss — largest centre
+      { kind: 'tower', type: 'strong',     r: 84, level: 2 },    // purple square tower (not shown before)
+      { kind: 'enemy', type: 'basic',      r: 70 },              // red circle
     ];
-    const n = cast.length, span = W * 0.60, bandY = H * 0.54, x0 = W / 2 - span / 2;
+    const n = cast.length, span = W * 0.62, bandY = H * 0.54, x0 = W / 2 - span / 2;
     cast.forEach((mch, i) => {
       const fx = i / (n - 1);
       const cx = x0 + fx * span;
       const arc = -Math.cos((fx - 0.5) * Math.PI) * (H * 0.05);
       const bob = Math.sin(t / 600 + i * 0.8) * 9;
       const cy = bandY + arc + bob;
-      const blinkCycle = 3000 + i * 220;
-      const frame = ((t + i * 700) % blinkCycle) < 110 ? 1 : 0;
+      // frame: enemies cycle an angry snarl (frame 2) + occasional blink; towers just blink
+      let frame = 0, snarling = false;
+      if (mch.kind === 'enemy') {
+        const gnash = (t + i * 500) % 2200;
+        if (gnash < 360) { frame = 2; snarling = true; }
+        else if (((t + i * 700) % (3000 + i * 220)) < 110) frame = 1;
+      } else if (((t + i * 700) % (3000 + i * 220)) < 110) {
+        frame = 1;
+      }
       const sp = this.sprites.portrait(mch.kind, mch.type, { r: mch.r, level: mch.level || 1, mood: 'happy', frame });
-      const s = mch.hero ? 1 + Math.sin(t / 760) * 0.025 : 1;
-      ctx.save(); ctx.translate(cx, cy); ctx.scale(s, s); ctx.drawImage(sp.canvas, -sp.cx, -sp.cy); ctx.restore();
+      let s = mch.hero ? 1 + Math.sin(t / 760) * 0.025 : 1;
+      if (snarling) s *= 1.06;                                   // a little lunge when it snarls
+      const jit = snarling ? Math.sin(t / 38) * 3 : 0;           // tiny angry shimmy
+      ctx.save(); ctx.translate(cx + jit, cy); ctx.scale(s, s); ctx.drawImage(sp.canvas, -sp.cx, -sp.cy); ctx.restore();
     });
 
     // baked two-font title with idle bounce — tagline removed
@@ -769,9 +780,17 @@ export class Renderer {
   }
   _hill(c, baseY, amp) {
     const W = this.L.canvasW, H = this.L.canvasH;
-    c.beginPath(); c.moveTo(0, baseY);
-    for (let x = 0; x <= W; x += 40) c.lineTo(x, baseY - Math.sin(x / W * Math.PI) * amp);
-    c.lineTo(W, H); c.lineTo(0, H); c.closePath(); c.fill();
+    // Build the silhouette edge-to-edge and land exactly on baseY at BOTH ends so
+    // there's no stray diagonal to the corner (the old "drop-off"). A gentle
+    // secondary undulation makes it read as natural rolling hills.
+    c.beginPath(); c.moveTo(0, H); c.lineTo(0, baseY);
+    for (let x = 20; x <= W; x += 20) {
+      const u = x / W;
+      const edge = Math.sin(u * Math.PI);                       // 0 at both edges, 1 at centre
+      const roll = 0.85 + 0.15 * Math.sin(u * Math.PI * 3 + 0.6); // soft rolling undulation
+      c.lineTo(x, baseY - edge * amp * roll);
+    }
+    c.lineTo(W, baseY); c.lineTo(W, H); c.closePath(); c.fill();
   }
 }
 

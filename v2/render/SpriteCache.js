@@ -213,11 +213,12 @@ export class SpriteCache {
       ctx.restore();
       // chunky friendly outline
       shapePath(ctx, shape, cx, cy, r); ctx.lineWidth = Math.max(3, r * 0.10); ctx.strokeStyle = border; ctx.stroke();
-      // big expressive face
+      // big expressive face — enemies are ANGRY (mirror the in-game mean look),
+      // towers stay happy. frame 1 = blink, frame 2 = angry snarl (animated meanness).
       if (kind === 'coin') drawCoinFace(ctx, cx, cy, r, frame);
-      else drawPortraitFace(ctx, cx, cy, r, { mood: kind === 'enemy' ? 'mischief' : mood, blink: frame === 1 });
-      // sparkle (only on the open-eyes frame)
-      if (frame === 0) drawSparkle(ctx, cx + r * 0.78, cy - r * 0.82, r * 0.16);
+      else drawPortraitFace(ctx, cx, cy, r, { mood: kind === 'enemy' ? 'angry' : mood, blink: frame === 1, snarl: frame === 2 });
+      // sparkle only on friendly characters (towers); a sparkly villain undercuts the menace
+      if (frame === 0 && kind !== 'enemy') drawSparkle(ctx, cx + r * 0.78, cy - r * 0.82, r * 0.16);
     });
   }
 

@@ -128,7 +128,8 @@ function drawTowerBlush(ctx, cx, cy, r) {              // deep wide cheeks + blu
 // Bigger, rounder, cuter than the in-game faces. Enemies get a cheeky "mischief"
 // face (raised brows + smirk + a little fang) so the menu reads inviting, not
 // hostile — the "cuties" are cute even as foes.
-export function drawPortraitFace(ctx, cx, cy, r, { mood = 'happy', blink = false } = {}) {
+export function drawPortraitFace(ctx, cx, cy, r, { mood = 'happy', blink = false, snarl = false } = {}) {
+  if (mood === 'angry') return drawAngryPortrait(ctx, cx, cy, r, { blink, snarl });
   const eyeOff = r * 0.34, eyeY = cy - r * 0.06, eyeR = r * 0.20, ink = '#1F1A24';
   // big soft blush (always)
   ctx.save(); ctx.globalAlpha = 0.85; ctx.fillStyle = '#FF9DB0';
@@ -162,6 +163,48 @@ export function drawPortraitFace(ctx, cx, cy, r, { mood = 'happy', blink = false
     ctx.strokeStyle = ink; ctx.lineWidth = Math.max(2.5, r * 0.075);
     ctx.beginPath(); ctx.arc(cx, cy + r * 0.30, r * 0.30, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
     ctx.fillStyle = '#FF7E9B'; ctx.beginPath(); ctx.arc(cx, cy + r * 0.5, r * 0.12, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+// HD angry portrait — mirrors the in-game mean face (angled brows + frown) but
+// bigger, with an animated 'snarl' (lowered brows + open gnashing mouth + fangs)
+// so the menu enemies read MEAN, matching how they look in game. No blush.
+function drawAngryPortrait(ctx, cx, cy, r, { blink = false, snarl = false } = {}) {
+  const eyeOff = r * 0.32, eyeY = cy - r * 0.02, eyeR = r * 0.17, ink = '#1F1A24';
+  const drop = snarl ? r * 0.05 : 0;            // everything scrunches down on the snarl
+  // eyes
+  if (blink) {
+    ctx.strokeStyle = ink; ctx.lineWidth = Math.max(2.5, r * 0.07); ctx.lineCap = 'round';
+    for (const sx of [-1, 1]) { ctx.beginPath(); ctx.arc(cx + sx * eyeOff, eyeY + r * 0.02, eyeR * 0.9, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke(); }
+  } else {
+    ctx.fillStyle = '#fff'; for (const sx of [-1, 1]) { ctx.beginPath(); ctx.ellipse(cx + sx * eyeOff, eyeY + drop, eyeR, eyeR * 0.8, 0, 0, Math.PI * 2); ctx.fill(); }
+    ctx.fillStyle = ink;    for (const sx of [-1, 1]) { ctx.beginPath(); ctx.arc(cx + sx * eyeOff, eyeY + drop + eyeR * 0.12, eyeR * 0.52, 0, Math.PI * 2); ctx.fill(); }
+    ctx.fillStyle = '#fff'; for (const sx of [-1, 1]) { ctx.beginPath(); ctx.arc(cx + sx * eyeOff - eyeR * 0.22, eyeY + drop - eyeR * 0.22, eyeR * 0.16, 0, Math.PI * 2); ctx.fill(); }
+  }
+  // thick angry eyebrows, steeply angled down toward the centre (steeper on snarl)
+  ctx.strokeStyle = ink; ctx.lineWidth = Math.max(3, r * 0.085); ctx.lineCap = 'round';
+  const browInnerY = eyeY - r * 0.12 + drop + (snarl ? r * 0.05 : 0);
+  const browOuterY = eyeY - r * 0.30;
+  for (const sx of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(cx + sx * (eyeOff + eyeR * 1.0), browOuterY);
+    ctx.lineTo(cx + sx * (eyeOff - eyeR * 0.5), browInnerY);
+    ctx.stroke();
+  }
+  // mouth
+  if (snarl) {                                   // open gnashing maw + jagged fangs
+    ctx.fillStyle = '#7a1e2a';
+    ctx.beginPath(); ctx.ellipse(cx, cy + r * 0.40, r * 0.25, r * 0.19, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = ink; ctx.lineWidth = Math.max(2.5, r * 0.06); ctx.stroke();
+    ctx.fillStyle = '#fff'; const tw = r * 0.11;
+    for (let k = -1; k <= 1; k++) {
+      const mx = cx + k * tw * 1.5;
+      ctx.beginPath(); ctx.moveTo(mx - tw * 0.5, cy + r * 0.30); ctx.lineTo(mx + tw * 0.5, cy + r * 0.30); ctx.lineTo(mx, cy + r * 0.30 + tw); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(mx - tw * 0.5, cy + r * 0.50); ctx.lineTo(mx + tw * 0.5, cy + r * 0.50); ctx.lineTo(mx, cy + r * 0.50 - tw); ctx.closePath(); ctx.fill();
+    }
+  } else {                                       // mean frown (∩), mirror of the in-game face
+    ctx.strokeStyle = ink; ctx.lineWidth = Math.max(2.5, r * 0.08); ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(cx, cy + r * 0.52, r * 0.30, Math.PI * 1.18, Math.PI * 1.82); ctx.stroke();
   }
 }
 
