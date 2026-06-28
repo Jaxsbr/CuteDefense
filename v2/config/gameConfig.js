@@ -31,7 +31,7 @@ export const CONFIG = Object.freeze({
 
   // --- Economy ---
   economy: {
-    startingCoins: 40,
+    startingCoins: 60,        // V2 balance retune: enough to bootstrap an opening, not enough to coast (see v2/docs/BALANCE.md)
     sellRefundFraction: 0.7,
     coin: {
       lifetimeMs: 15000,
@@ -43,7 +43,7 @@ export const CONFIG = Object.freeze({
   },
 
   // --- Lives ---
-  lives: { max: 25 },
+  lives: { max: 12 },         // V2 balance retune: opening leaks now matter; a finished build keeps only a few lives (see v2/docs/BALANCE.md)
 
   // --- Waves ---
   waves: {
@@ -53,7 +53,7 @@ export const CONFIG = Object.freeze({
     countdownThudFromSec: 5,    // play countdown_thud in the last N seconds of prep
     firstPrepMs: 8000,
     scaling: {
-      hp: 1.12, speed: 1.03, count: 1.15, reward: 1.08,
+      hp: 1.12, speed: 1.03, count: 1.20, reward: 1.08,   // count 1.15->1.20: late waves demand continual reinvestment, not a one-time wall
       intervalReduction: 0.95, bossMult: 1.5, capWave: 15,
       coinReduction: 0.95,
     },
@@ -83,10 +83,13 @@ export const CONFIG = Object.freeze({
     basic:  { name: 'Basic',  shape: 'circle',  ...PALETTE.enemies.basic,  speed: 1.1, hp: 100, size: 0.8, reward: 3, livesCost: 1, animSpeed: 1.0 },
     fast:   { name: 'Fast',   shape: 'diamond', ...PALETTE.enemies.fast,   speed: 2.0, hp: 50,  size: 0.7, reward: 5, livesCost: 1, animSpeed: 1.5 },
     strong: { name: 'Strong', shape: 'square',  ...PALETTE.enemies.strong, speed: 0.7, hp: 200, size: 1.0, reward: 8, livesCost: 1, animSpeed: 0.7 },
-    boss_shield:     { name: 'Shield Boss', shape: 'hexagon', ...PALETTE.enemies.boss_shield,     speed: 0.8, hp: 500, size: 1.3, reward: 25, livesCost: 3, animSpeed: 0.8, isBoss: true, behavior: { type: 'shield', durationMs: 3000, cooldownMs: 8000 } },
-    boss_speed:      { name: 'Speed Boss',  shape: 'diamond', ...PALETTE.enemies.boss_speed,      speed: 1.8, hp: 300, size: 1.2, reward: 20, livesCost: 4, animSpeed: 2.0, isBoss: true, behavior: { type: 'speed', multiplier: 2.0, durationMs: 4000, cooldownMs: 10000 } },
-    boss_regenerate: { name: 'Regen Boss',  shape: 'octagon', ...PALETTE.enemies.boss_regenerate, speed: 0.6, hp: 600, size: 1.4, reward: 30, livesCost: 5, animSpeed: 0.6, isBoss: true, behavior: { type: 'regen', hpPerSec: 2 } },
-    boss_split:      { name: 'Split Boss',  shape: 'star',    ...PALETTE.enemies.boss_split,      speed: 0.9, hp: 400, size: 1.3, reward: 15, livesCost: 4, animSpeed: 1.2, isBoss: true, behavior: { type: 'split', count: 3, childType: 'basic', childHp: 50, childReward: 5 } },
+    // Boss retune (V2 balance): ~1.85x HP and 1.5x speed so each boss wave (5/10/15)
+    // bleeds a few lives even off a completed build — the final boss is the nail-biter
+    // that turns a perfect run into a "barely win". See v2/docs/BALANCE.md.
+    boss_shield:     { name: 'Shield Boss', shape: 'hexagon', ...PALETTE.enemies.boss_shield,     speed: 1.2, hp: 925,  size: 1.3, reward: 25, livesCost: 3, animSpeed: 0.8, isBoss: true, behavior: { type: 'shield', durationMs: 3000, cooldownMs: 8000 } },
+    boss_speed:      { name: 'Speed Boss',  shape: 'diamond', ...PALETTE.enemies.boss_speed,      speed: 2.7, hp: 555,  size: 1.2, reward: 20, livesCost: 4, animSpeed: 2.0, isBoss: true, behavior: { type: 'speed', multiplier: 2.0, durationMs: 4000, cooldownMs: 10000 } },
+    boss_regenerate: { name: 'Regen Boss',  shape: 'octagon', ...PALETTE.enemies.boss_regenerate, speed: 0.9, hp: 1110, size: 1.4, reward: 30, livesCost: 5, animSpeed: 0.6, isBoss: true, behavior: { type: 'regen', hpPerSec: 2 } },
+    boss_split:      { name: 'Split Boss',  shape: 'star',    ...PALETTE.enemies.boss_split,      speed: 1.35, hp: 740, size: 1.3, reward: 15, livesCost: 4, animSpeed: 1.2, isBoss: true, behavior: { type: 'split', count: 3, childType: 'basic', childHp: 50, childReward: 5 } },
   },
 
   // --- Towers (size + visual change per level; absolute per-level stats) ---
@@ -95,21 +98,25 @@ export const CONFIG = Object.freeze({
       name: 'Basic', shape: 'circle', color: PALETTE.towers.basic.body,
       kind: 'single',
       projectile: { speed: 800, size: 9, color: PALETTE.towers.basic.projectile },
+      // Ranges tightened (was 5/6/7) so coverage is LOCAL: one tower no longer
+      // blankets a third of the map. Full path coverage now takes many towers,
+      // which is what separates a spread/save build from an optimal one.
       levels: [
-        { damage: 8,  range: 5, fireRateMs: 1800, cost: 5,   sizeScale: 0.375 },
-        { damage: 12, range: 6, fireRateMs: 1350, cost: 50,  sizeScale: 0.45 },
-        { damage: 18, range: 7, fireRateMs: 900,  cost: 100, sizeScale: 0.6 },
+        { damage: 8,  range: 2,   fireRateMs: 1800, cost: 5,   sizeScale: 0.375 },
+        { damage: 12, range: 2.5, fireRateMs: 1350, cost: 50,  sizeScale: 0.45 },
+        { damage: 18, range: 3,   fireRateMs: 900,  cost: 100, sizeScale: 0.6 },
       ],
     },
     strong: {
       name: 'Strong', shape: 'square', color: PALETTE.towers.strong.body,
       kind: 'aoe',
       projectile: { speed: 400, size: 18, color: PALETTE.towers.strong.projectile },
-      aoe: { radius: 2.0 }, // tiles
+      aoe: { radius: 1.0 }, // tiles — was 2.0; a tighter blast stops a single AoE tower from clearing a whole swarm, so volume late-game matters
+      // Ranges tightened (was 2/3/4) to match the local-coverage model above.
       levels: [
-        { damage: 20, range: 2, fireRateMs: 3000, cost: 15,  bombDamage: 40,  sizeScale: 0.375 },
-        { damage: 35, range: 3, fireRateMs: 2000, cost: 60,  bombDamage: 80,  sizeScale: 0.45 },
-        { damage: 55, range: 4, fireRateMs: 1500, cost: 120, bombDamage: 120, sizeScale: 0.6 },
+        { damage: 20, range: 1.5, fireRateMs: 3000, cost: 15,  bombDamage: 40,  sizeScale: 0.375 },
+        { damage: 35, range: 2,   fireRateMs: 2000, cost: 60,  bombDamage: 80,  sizeScale: 0.45 },
+        { damage: 55, range: 2.5, fireRateMs: 1500, cost: 120, bombDamage: 120, sizeScale: 0.6 },
       ],
     },
   },
