@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CuteDefense — Enemy Catalog</title>
+<style>
+  :root{
+    --display:"Trebuchet MS", Verdana, system-ui, sans-serif;
+    --body:Verdana, "Trebuchet MS", system-ui, sans-serif;
+    --round:"Chalkboard SE", "Comic Sans MS", "Marker Felt", system-ui, sans-serif;
+    --card:#F6F0FF; --cardBorder:#C9B8F0; --onCard:#5A3D6B;
+    --ink:#3A2E55; --muted:#7E78A8;
+    --boss:#FF8A3D; --bossSoft:#FFE3CC;
+    --gold:#FFCB2E; --goldDeep:#C8881A;
+    --pink:#FF5C8A; --pinkDeep:#E23B5B;
+    --sky:#4FB8E8;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:var(--body); color:var(--ink);
+    background:
+      radial-gradient(120% 80% at 50% 0%, #A6C7E7 0%, #C3DEEB 42%, #FFF7F0 100%) fixed;
+    min-height:100vh;
+    /* soft rolling hills baked into the page foot, echoing the menu */
+    position:relative; overflow-x:hidden;
+  }
+  body::before{
+    content:""; position:fixed; left:0; right:0; bottom:0; height:34vh; z-index:0; pointer-events:none;
+    background:
+      radial-gradient(60% 120% at 20% 100%, #A0CAC2 0 60%, transparent 61%),
+      radial-gradient(70% 130% at 80% 100%, #C8DCBE 0 60%, transparent 61%),
+      linear-gradient(0deg,#C8DCBE, transparent);
+    opacity:.85;
+  }
+  .wrap{position:relative; z-index:1; max-width:1180px; margin:0 auto; padding:28px 20px 80px}
+
+  /* ---------- title ---------- */
+  header{text-align:center; margin:8px 0 22px}
+  .title{font-family:var(--round); font-size:clamp(34px,7vw,68px); line-height:1; margin:0;}
+  .title .c{color:#FF5C9E; text-shadow:0 3px 0 #C9387A, 0 0 0 #fff; -webkit-text-stroke:3px #fff; paint-order:stroke fill;}
+  .title .d{font-family:"Impact","Arial Black",sans-serif; color:#5B3FA0; -webkit-text-stroke:3px #fff; paint-order:stroke fill; margin-left:.12em;}
+  .subtitle{font-family:var(--display); color:#5B4CA0; font-weight:bold; letter-spacing:.5px; margin-top:8px; font-size:clamp(14px,2.4vw,20px)}
+  .credit{color:var(--muted); font-size:13px; margin-top:6px}
+
+  /* ---------- mystery banner ---------- */
+  .mystery{
+    background:linear-gradient(135deg,#FFF3E2,#FFE3CC);
+    border:3px solid var(--boss); border-radius:24px;
+    padding:20px 22px; margin:0 0 30px;
+    box-shadow:0 10px 30px #FF8A3D33; display:flex; gap:20px; align-items:center; flex-wrap:wrap;
+  }
+  .mystery .star-stage{flex:0 0 auto}
+  .mystery .mtext{flex:1 1 320px; min-width:280px}
+  .mystery h2{font-family:var(--display); margin:0 0 6px; color:var(--goldDeep); font-size:clamp(20px,3.4vw,28px)}
+  .mystery p{margin:6px 0; line-height:1.5; font-size:15px}
+  .mystery .fix{
+    margin-top:12px; background:#FFFDF7; border:2px dashed var(--goldDeep); border-radius:14px;
+    padding:12px 14px; font-size:14px; color:#6b4a1a;
+  }
+  .mystery .fix code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; background:#fff0d6; padding:2px 6px; border-radius:6px; font-size:13px}
+
+  /* ---------- section headings ---------- */
+  h2.section{font-family:var(--display); color:#5B3FA0; font-size:clamp(20px,3.6vw,30px); margin:34px 0 14px; text-align:center}
+  h2.section span{color:var(--muted); font-weight:normal; font-size:.6em; display:block; margin-top:2px}
+
+  /* ---------- grid ---------- */
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(330px,1fr)); gap:22px}
+
+  .card{
+    background:var(--card); border:3px solid var(--cardBorder); border-radius:26px;
+    padding:18px 18px 16px; position:relative; overflow:hidden;
+    box-shadow:0 12px 26px #5B507022; transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .card:hover{transform:translateY(-4px); box-shadow:0 18px 36px #5B507033}
+  .card.boss{border-color:var(--boss); background:linear-gradient(180deg,#FFF7F0, #FFEFE2)}
+  .card.never{border-color:var(--goldDeep); background:linear-gradient(180deg,#FFFBF0,#FFF1D6); box-shadow:0 0 0 4px #FFCB2E55, 0 16px 36px #FF8A3D33}
+
+  .ribbon{
+    position:absolute; top:14px; right:-38px; transform:rotate(38deg);
+    background:var(--boss); color:#fff; font-family:var(--display); font-weight:bold; font-size:12px;
+    padding:5px 44px; box-shadow:0 3px 8px #00000022; letter-spacing:.5px;
+  }
+  .card.never .ribbon{background:var(--goldDeep)}
+
+  .card .stage{
+    display:flex; gap:14px; align-items:center; margin-bottom:12px;
+  }
+  .portrait-c{flex:0 0 auto; cursor:pointer}
+  .meta{flex:1 1 auto; min-width:0}
+  .meta h3{font-family:var(--display); margin:0; font-size:24px; color:var(--onCard); display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+  .pill{font-size:11px; font-weight:bold; padding:3px 9px; border-radius:999px; color:#fff; letter-spacing:.3px}
+  .pill.boss{background:var(--boss)}
+  .pill.shape{background:#8453E8}
+  .pill.never{background:var(--goldDeep)}
+  .swatchrow{display:flex; align-items:center; gap:8px; margin-top:8px; color:var(--muted); font-size:12px}
+  .swatch{width:18px; height:18px; border-radius:6px; border:2px solid #ffffffaa; box-shadow:0 1px 3px #00000022}
+  .ingame{display:flex; align-items:center; gap:8px; margin-top:10px; color:var(--muted); font-size:12px}
+  .ingame canvas{cursor:pointer}
+
+  /* ---------- stats ---------- */
+  .stats{margin-top:6px}
+  .stat{display:grid; grid-template-columns:74px 1fr 56px; align-items:center; gap:8px; margin:7px 0}
+  .stat .lbl{font-size:12px; color:var(--onCard); font-weight:bold}
+  .stat .bar{height:11px; background:#E7DEF7; border-radius:999px; overflow:hidden}
+  .stat .bar > i{display:block; height:100%; border-radius:999px}
+  .stat .val{font-size:13px; text-align:right; font-variant-numeric:tabular-nums; color:var(--ink); font-weight:bold}
+  .bar.hp > i{background:linear-gradient(90deg,#54C98A,#2E9BD6)}
+  .bar.spd > i{background:linear-gradient(90deg,#F0C637,#F2746E)}
+  .bar.rwd > i{background:linear-gradient(90deg,#FFE899,#FFCB2E)}
+
+  .chips{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px}
+  .chip{font-size:11.5px; background:#EFE7FF; border:1.5px solid #D9CCF5; color:var(--onCard); border-radius:999px; padding:3px 9px; font-weight:bold}
+  .chip.cost{background:#FFE3E8; border-color:#FFC0CE; color:var(--pinkDeep)}
+
+  .ability{
+    margin-top:12px; background:#fff; border:2px solid #EADFF7; border-radius:14px; padding:10px 12px;
+    font-size:13px; line-height:1.45; color:#4a3a63;
+  }
+  .ability b{color:#8453E8}
+  .card.boss .ability{border-color:var(--bossSoft)}
+
+  .waves-line{margin-top:12px; font-size:12.5px; color:var(--muted)}
+  .waves-line b{color:var(--ink)}
+  .wbadge{display:inline-block; min-width:22px; text-align:center; background:#5B9DF0; color:#fff; border-radius:7px; padding:1px 6px; font-weight:bold; font-size:12px; margin:2px 3px 0 0}
+  .card.boss .wbadge{background:var(--boss)}
+  .never-note{margin-top:10px; font-weight:bold; color:var(--goldDeep); font-size:13px}
+
+  /* ---------- wave schedule table ---------- */
+  .schedule{margin-top:18px; background:var(--card); border:3px solid var(--cardBorder); border-radius:24px; padding:8px 6px; overflow-x:auto}
+  table{border-collapse:collapse; width:100%; min-width:560px; font-size:13.5px}
+  th,td{padding:9px 12px; text-align:left; border-bottom:1px solid #E7DEF7}
+  th{font-family:var(--display); color:#5B3FA0; font-size:13px; text-transform:uppercase; letter-spacing:.4px}
+  tr.bossrow{background:#FFF1E2}
+  tr.bossrow td{font-weight:bold; color:#9E4B16}
+  td .e{display:inline-block; margin-right:10px; white-space:nowrap}
+  td .dot{display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:4px; vertical-align:-1px}
+  .legend{display:flex; flex-wrap:wrap; gap:14px; justify-content:center; margin:12px 0 2px; color:var(--muted); font-size:12.5px}
+  .legend span{display:inline-flex; align-items:center; gap:6px}
+
+  /* ---------- secret wave-16 boss treatment ---------- */
+  .card.secret{border-color:var(--goldDeep); background:linear-gradient(180deg,#FFFBF0,#FFF1D6); box-shadow:0 0 0 4px #FFCB2E55, 0 16px 36px #FF8A3D33}
+  .card.secret .ribbon{background:var(--goldDeep)}
+  .ribbon.secret{background:var(--goldDeep)}
+  .pill.secret{background:linear-gradient(90deg,var(--gold),var(--goldDeep)); color:#3A2A00}
+  .wbadge.secret{background:var(--goldDeep); min-width:0; padding:2px 9px}
+  .hp-callout{
+    margin:10px 0 2px; background:#FFF4DA; border:2px solid var(--goldDeep); border-radius:12px;
+    padding:9px 12px; font-size:12.5px; line-height:1.4; color:#7a5410;
+  }
+  .hp-callout b{color:#9E4B16}
+  tr.secretrow{background:#FFF6DA}
+  tr.secretrow td{color:#9a7b14}
+
+  /* ---------- tower cards ---------- */
+  .card.tower{border-color:#9DB8F0; background:linear-gradient(180deg,#F2F6FF,#EAF2FF)}
+  .pill.tower{background:#5B9DF0}
+  .pill.kind{background:#7C5BD6}
+  .tower-table{margin-top:4px; overflow-x:auto}
+  .tower-table table{min-width:0; width:100%; font-size:12.5px; border-collapse:collapse}
+  .tower-table th,.tower-table td{padding:5px 8px; text-align:left; border-bottom:1px solid #DCE6FA; white-space:nowrap}
+  .tower-table th{font-family:var(--display); color:#3F5BA0; font-size:11px; text-transform:uppercase; letter-spacing:.3px}
+  .tower-table td{font-variant-numeric:tabular-nums; color:var(--ink)}
+  .tower-table td:first-child{font-weight:bold; color:var(--onCard)}
+  .tcap{font-size:11px; color:var(--muted); margin:6px 0 2px}
+
+  footer{text-align:center; color:var(--muted); font-size:12.5px; margin-top:36px; line-height:1.6}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1 class="title"><span class="c">Cute</span><span class="d">Defense</span></h1>
+    <div class="subtitle">The Enemy Catalog &mdash; everyone who marches down the path</div>
+    <div class="credit">7 cuties &middot; 4 of them bosses &middot; 2 towers &middot; stats & looks pulled straight from the game's V2 config</div>
+  </header>
+
+  <!-- ===================== MYSTERY BANNER ===================== -->
+  <section class="mystery">
+    <div class="star-stage"><canvas id="star-hero" width="240" height="240" aria-label="Split Boss star portrait"></canvas></div>
+    <div class="mtext">
+      <h2>⭐ The wish came true!</h2>
+      <p><b>This is the Split Boss</b> — the big orange star that snarls at you from the middle of the menu. It's the star of the show, the one the kids always begged to fight.</p>
+      <p>For the longest time it <b>only lived on the menu</b> and never marched out. <b>Not anymore!</b> The star the kids loved <b>really does appear</b> now — as a secret surprise you only reach after you've survived all 15 waves.</p>
+      <div class="fix">
+        <b>Now it's real ⭐</b> — it shows up as a hidden <b>Wave 16</b>, so your score-board flips to <code>16/15</code>! Fair warning: it's <b>so strong it can't be beaten yet</b> — give it your best shot, but you'll need future <b>boss tower upgrades</b> before you can finally pop it. 💪
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== REGULAR ENEMIES ===================== -->
+  <h2 class="section">The Regulars <span>they come in swarms, wave after wave</span></h2>
+  <div class="grid" id="grid-regular"></div>
+
+  <!-- ===================== BOSSES ===================== -->
+  <h2 class="section">The Bosses 👑 <span>one giant baddie that headlines a whole wave</span></h2>
+  <div class="grid" id="grid-boss"></div>
+
+  <!-- ===================== TOWERS ===================== -->
+  <h2 class="section">Your Defenders — Towers 🛡️ <span>the friendly cuties who fight back for you</span></h2>
+  <div class="grid" id="grid-tower"></div>
+
+  <!-- ===================== WAVE SCHEDULE ===================== -->
+  <h2 class="section">The 15-Wave Schedule (+ 1 secret 🔒) <span>exactly who you meet, and when</span></h2>
+  <div class="legend" id="legend"></div>
+  <div class="schedule"><table id="schedule"><thead><tr><th>Wave</th><th>Who shows up</th></tr></thead><tbody></tbody></table></div>
+
+  <footer>
+    Generated from <code>CuteDefense/v2</code> — stats from <code>config/gameConfig.js</code>, visuals re-baked with the game's own
+    <code>render/shapes.js</code> · <code>render/faces.js</code> · <code>render/SpriteCache.js</code>.<br>
+    Tip: hover a card's little in-game sprite to watch it go <b>“ouch!”</b> 💥
+  </footer>
+</div>
+
+<script>
+/* =====================================================================
+   1:1 RENDER CODE — copied verbatim from the game so the catalog draws
+   each enemy exactly how it appears on screen.
+   ===================================================================== */
+
+// ---- shapes.js: colour utils ----
+function clampByte(n){ return Math.max(0, Math.min(255, Math.round(n))); }
+function hexToRgb(hex){ const h=hex.replace('#',''); return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]; }
+function rgbToHex(r,g,b){ return '#'+[r,g,b].map(v=>clampByte(v).toString(16).padStart(2,'0')).join(''); }
+function lighten(hex,amt){ const [r,g,b]=hexToRgb(hex); return rgbToHex(r+amt,g+amt,b+amt); }
+function darken(hex,amt){ return lighten(hex,-amt); }
+function withAlpha(hex,a){ return hex + a; } // colours are #RRGGBB → append alpha byte
+
+// ---- shapes.js: paths ----
+function shapePath(ctx, shape, cx, cy, r){
+  ctx.beginPath();
+  switch(shape){
+    case 'circle': ctx.arc(cx,cy,r,0,Math.PI*2); break;
+    case 'square':{ const h=r*0.85; ctx.rect(cx-h,cy-h,h*2,h*2); break; }
+    case 'diamond': ctx.moveTo(cx,cy-r); ctx.lineTo(cx+r,cy); ctx.lineTo(cx,cy+r); ctx.lineTo(cx-r,cy); ctx.closePath(); break;
+    case 'hexagon': polygon(ctx,cx,cy,r,6,-Math.PI/2); break;
+    case 'octagon': polygon(ctx,cx,cy,r,8,-Math.PI/8); break;
+    case 'star': starPath(ctx,cx,cy,r,r*0.45,5,-Math.PI/2); break;
+    default: ctx.arc(cx,cy,r,0,Math.PI*2);
+  }
+}
+function polygon(ctx,cx,cy,r,sides,rot){
+  for(let i=0;i<sides;i++){ const a=rot+(i/sides)*Math.PI*2; const x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r; if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);} ctx.closePath();
+}
+function starPath(ctx,cx,cy,rO,rI,points,rot){
+  for(let i=0;i<points*2;i++){ const r=i%2===0?rO:rI; const a=rot+(i/(points*2))*Math.PI*2; const x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r; if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);} ctx.closePath();
+}
+
+// ---- faces.js: in-game enemy face ----
+const INK='#1a1a1a';
+// In-game enemies now use the SAME angry portrait face as the big portraits,
+// so this catalog chip stays truthful to the live game.
+function drawEnemyFace(ctx, cx, cy, r, frame){ return drawAngryPortrait(ctx, cx, cy, r, { snarl: frame === 'ouch' }); }
+function drawEnemyNeutral(ctx,cx,cy,r){
+  const eyeR=r*0.13, off=r*0.27, eyeY=cy-r*0.08;
+  ctx.fillStyle=INK;
+  ctx.beginPath(); ctx.arc(cx-off,eyeY,eyeR,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx+off,eyeY,eyeR,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#ffffff';
+  ctx.beginPath(); ctx.arc(cx-off+eyeR*0.3,eyeY-eyeR*0.3,eyeR*0.35,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx+off+eyeR*0.3,eyeY-eyeR*0.3,eyeR*0.35,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle=INK; ctx.lineWidth=Math.max(1.5,r*0.07); ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(cx-off-eyeR,cy-r*0.32); ctx.lineTo(cx-off+eyeR,cy-r*0.20); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx+off+eyeR,cy-r*0.32); ctx.lineTo(cx+off-eyeR,cy-r*0.20); ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx,cy+r*0.45,r*0.32,Math.PI*1.2,Math.PI*1.8); ctx.stroke();
+}
+function drawEnemyOuch(ctx,cx,cy,r){
+  const off=r*0.27, eyeY=cy-r*0.06, sq=r*0.05;
+  ctx.fillStyle=INK;
+  ctx.beginPath(); ctx.arc(cx-off,eyeY,sq,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx+off,eyeY,sq,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle=INK; ctx.lineWidth=Math.max(1.5,r*0.07); ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(cx-off-r*0.14,cy-r*0.34); ctx.lineTo(cx-off+r*0.10,cy-r*0.22); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx+off+r*0.14,cy-r*0.34); ctx.lineTo(cx+off-r*0.10,cy-r*0.22); ctx.stroke();
+  ctx.fillStyle='#5a1020';
+  ctx.beginPath(); ctx.ellipse(cx,cy+r*0.30,r*0.15,r*0.23,0,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle=INK; ctx.lineWidth=Math.max(2,r*0.07); ctx.stroke();
+}
+
+// ---- faces.js: HD menu portrait (enemies are ANGRY, can snarl/blink) ----
+function drawAngryPortrait(ctx,cx,cy,r,{blink=false,snarl=false}={}){
+  const eyeOff=r*0.32, eyeY=cy-r*0.02, eyeR=r*0.17, ink='#1F1A24';
+  const drop=snarl?r*0.05:0;
+  if(blink){
+    ctx.strokeStyle=ink; ctx.lineWidth=Math.max(2.5,r*0.07); ctx.lineCap='round';
+    for(const sx of [-1,1]){ ctx.beginPath(); ctx.arc(cx+sx*eyeOff,eyeY+r*0.02,eyeR*0.9,Math.PI*0.15,Math.PI*0.85); ctx.stroke(); }
+  } else {
+    ctx.fillStyle='#fff'; for(const sx of [-1,1]){ ctx.beginPath(); ctx.ellipse(cx+sx*eyeOff,eyeY+drop,eyeR,eyeR*0.8,0,0,Math.PI*2); ctx.fill(); }
+    ctx.fillStyle=ink;    for(const sx of [-1,1]){ ctx.beginPath(); ctx.arc(cx+sx*eyeOff,eyeY+drop+eyeR*0.12,eyeR*0.52,0,Math.PI*2); ctx.fill(); }
+    ctx.fillStyle='#fff'; for(const sx of [-1,1]){ ctx.beginPath(); ctx.arc(cx+sx*eyeOff-eyeR*0.22,eyeY+drop-eyeR*0.22,eyeR*0.16,0,Math.PI*2); ctx.fill(); }
+  }
+  ctx.strokeStyle=ink; ctx.lineWidth=Math.max(3,r*0.085); ctx.lineCap='round';
+  const browInnerY=eyeY-r*0.12+drop+(snarl?r*0.05:0);
+  const browOuterY=eyeY-r*0.30;
+  for(const sx of [-1,1]){ ctx.beginPath(); ctx.moveTo(cx+sx*(eyeOff+eyeR*1.0),browOuterY); ctx.lineTo(cx+sx*(eyeOff-eyeR*0.5),browInnerY); ctx.stroke(); }
+  if(snarl){
+    ctx.fillStyle='#7a1e2a';
+    ctx.beginPath(); ctx.ellipse(cx,cy+r*0.40,r*0.25,r*0.19,0,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle=ink; ctx.lineWidth=Math.max(2.5,r*0.06); ctx.stroke();
+    ctx.fillStyle='#fff'; const tw=r*0.11;
+    for(let k=-1;k<=1;k++){
+      const mx=cx+k*tw*1.5;
+      ctx.beginPath(); ctx.moveTo(mx-tw*0.5,cy+r*0.30); ctx.lineTo(mx+tw*0.5,cy+r*0.30); ctx.lineTo(mx,cy+r*0.30+tw); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(mx-tw*0.5,cy+r*0.50); ctx.lineTo(mx+tw*0.5,cy+r*0.50); ctx.lineTo(mx,cy+r*0.50-tw); ctx.closePath(); ctx.fill();
+    }
+  } else {
+    ctx.strokeStyle=ink; ctx.lineWidth=Math.max(2.5,r*0.08); ctx.lineCap='round';
+    ctx.beginPath(); ctx.arc(cx,cy+r*0.52,r*0.30,Math.PI*1.18,Math.PI*1.82); ctx.stroke();
+  }
+}
+
+/* =====================================================================
+   SpriteCache bake recipes — same gradients/halo/outline as the game.
+   ===================================================================== */
+function bakeInGame(ctx,cx,cy,r,def,frame){
+  const halo=ctx.createRadialGradient(cx,cy,r*0.6,cx,cy,r*1.6);
+  halo.addColorStop(0,withAlpha(def.glow,'55')); halo.addColorStop(1,withAlpha(def.glow,'00'));
+  ctx.fillStyle=halo; ctx.beginPath(); ctx.arc(cx,cy,r*1.6,0,Math.PI*2); ctx.fill();
+  const grad=ctx.createRadialGradient(cx-r*0.3,cy-r*0.3,r*0.2,cx,cy,r);
+  grad.addColorStop(0,lighten(def.color,45)); grad.addColorStop(1,darken(def.color,22));
+  shapePath(ctx,def.shape,cx,cy,r); ctx.fillStyle=grad; ctx.fill();
+  shapePath(ctx,def.shape,cx,cy,r); ctx.strokeStyle=def.border; ctx.lineWidth=Math.max(2,r*0.12); ctx.stroke();
+  drawEnemyFace(ctx,cx,cy,r,frame);
+}
+function bakePortrait(ctx,cx,cy,r,def,frame){
+  ctx.fillStyle='#0000001f';
+  ctx.beginPath(); ctx.ellipse(cx,cy+r*1.02,r*0.92,r*0.26,0,0,Math.PI*2); ctx.fill();
+  const g=ctx.createRadialGradient(cx-r*0.35,cy-r*0.4,r*0.15,cx,cy,r*1.05);
+  g.addColorStop(0,lighten(def.color,70)); g.addColorStop(0.55,def.color); g.addColorStop(1,darken(def.color,28));
+  shapePath(ctx,def.shape,cx,cy,r); ctx.fillStyle=g; ctx.fill();
+  ctx.save(); shapePath(ctx,def.shape,cx,cy,r); ctx.clip();
+  ctx.globalAlpha=0.35; ctx.fillStyle='#FFFFFF';
+  ctx.beginPath(); ctx.ellipse(cx,cy-r*0.5,r*0.7,r*0.42,0,0,Math.PI*2); ctx.fill();
+  ctx.restore(); ctx.globalAlpha=1;
+  shapePath(ctx,def.shape,cx,cy,r); ctx.lineWidth=Math.max(3,r*0.10); ctx.strokeStyle=def.border; ctx.stroke();
+  drawAngryPortrait(ctx,cx,cy,r,{blink:frame===1, snarl:frame===2});
+}
+
+// HD friendly portrait face (towers): big eyes, blush, open smile + tongue.
+function drawHappyFace(ctx, cx, cy, r, blink = false) {
+  const eyeOff = r*0.34, eyeY = cy - r*0.06, eyeR = r*0.20, ink = '#1F1A24';
+  ctx.save(); ctx.globalAlpha = 0.85; ctx.fillStyle = '#FF9DB0';
+  ctx.beginPath(); ctx.arc(cx - eyeOff*1.25, cy + r*0.24, r*0.18, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + eyeOff*1.25, cy + r*0.24, r*0.18, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+  if (blink) {
+    ctx.strokeStyle = ink; ctx.lineWidth = Math.max(2.5, r*0.07); ctx.lineCap = 'round';
+    for (const sx of [-1,1]) { ctx.beginPath(); ctx.arc(cx + sx*eyeOff, eyeY, eyeR*0.9, Math.PI*1.15, Math.PI*1.85); ctx.stroke(); }
+  } else {
+    ctx.fillStyle = '#fff'; for (const sx of [-1,1]) { ctx.beginPath(); ctx.arc(cx + sx*eyeOff, eyeY, eyeR, 0, Math.PI*2); ctx.fill(); }
+    ctx.fillStyle = ink;    for (const sx of [-1,1]) { ctx.beginPath(); ctx.arc(cx + sx*eyeOff, eyeY + eyeR*0.12, eyeR*0.6, 0, Math.PI*2); ctx.fill(); }
+    ctx.fillStyle = '#fff'; for (const sx of [-1,1]) {
+      ctx.beginPath(); ctx.arc(cx + sx*eyeOff - eyeR*0.22, eyeY - eyeR*0.22, eyeR*0.26, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx + sx*eyeOff + eyeR*0.25, eyeY + eyeR*0.20, eyeR*0.12, 0, Math.PI*2); ctx.fill();
+    }
+  }
+  ctx.lineCap = 'round';
+  ctx.fillStyle = '#7A2E3A';
+  ctx.beginPath(); ctx.arc(cx, cy + r*0.28, r*0.30, 0.15*Math.PI, 0.85*Math.PI); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = ink; ctx.lineWidth = Math.max(2.5, r*0.075);
+  ctx.beginPath(); ctx.arc(cx, cy + r*0.30, r*0.30, 0.15*Math.PI, 0.85*Math.PI); ctx.stroke();
+  ctx.fillStyle = '#FF7E9B'; ctx.beginPath(); ctx.arc(cx, cy + r*0.5, r*0.12, 0, Math.PI*2); ctx.fill();
+}
+// Bake a tower portrait (matches the enemy portrait recipe; border = darken(color,50)).
+function bakeTowerPortrait(ctx, cx, cy, r, def, frame = 0) {
+  ctx.fillStyle = '#0000001f';
+  ctx.beginPath(); ctx.ellipse(cx, cy + r*1.02, r*0.92, r*0.26, 0, 0, Math.PI*2); ctx.fill();
+  const g = ctx.createRadialGradient(cx - r*0.35, cy - r*0.4, r*0.15, cx, cy, r*1.05);
+  g.addColorStop(0, lighten(def.color, 70)); g.addColorStop(0.55, def.color); g.addColorStop(1, darken(def.color, 28));
+  shapePath(ctx, def.shape, cx, cy, r); ctx.fillStyle = g; ctx.fill();
+  ctx.save(); shapePath(ctx, def.shape, cx, cy, r); ctx.clip();
+  ctx.globalAlpha = 0.35; ctx.fillStyle = '#FFFFFF';
+  ctx.beginPath(); ctx.ellipse(cx, cy - r*0.5, r*0.7, r*0.42, 0, 0, Math.PI*2); ctx.fill();
+  ctx.restore(); ctx.globalAlpha = 1;
+  shapePath(ctx, def.shape, cx, cy, r); ctx.lineWidth = Math.max(3, r*0.10); ctx.strokeStyle = darken(def.color, 50); ctx.stroke();
+  drawHappyFace(ctx, cx, cy, r, frame === 1);
+}
+
+/* =====================================================================
+   ENEMY DATA — verbatim from CuteDefense/v2/config/gameConfig.js.
+   `waves` = every wave (1..15) this type actually spawns in.
+   ===================================================================== */
+const ENEMIES = [
+  { id:'basic',  name:'Basic',  shape:'circle',  color:'#FF5A5F', border:'#E03A4A', glow:'#FFB3B8',
+    speed:1.1, hp:100, size:0.8, reward:3, livesCost:1, animSpeed:1.0, boss:false,
+    blurb:'The bread-and-butter foe. Balanced, friendly-looking, and always first out of the gate.',
+    waves:[1,2,3,4,6,7,8,9,11,12,13,14] },
+  { id:'fast',   name:'Fast',   shape:'diamond', color:'#22C3C9', border:'#15868C', glow:'#8DEBEF',
+    speed:2.0, hp:50,  size:0.7, reward:5, livesCost:1, animSpeed:1.5, boss:false,
+    blurb:'A zippy little diamond. Half the health, double the hustle — it slips past slow towers.',
+    waves:[2,3,4,6,7,8,9,11,12,13,14] },
+  { id:'strong', name:'Strong', shape:'square',  color:'#2E9BD6', border:'#245A9E', glow:'#A9CBF2',
+    speed:0.7, hp:200, size:1.0, reward:8, livesCost:1, animSpeed:0.7, boss:false,
+    blurb:'A chunky blue block. Slow but soaks up a lot of hits — bring friends to take it down.',
+    waves:[3,4,6,7,8,9,11,12,13,14] },
+
+  { id:'boss_shield', name:'Shield Boss', shape:'hexagon', color:'#A14FD1', border:'#6B2E9E', glow:'#D9B0F0',
+    speed:1.2, hp:925, size:1.3, reward:25, livesCost:3, animSpeed:0.8, boss:true,
+    blurb:'A grape-purple hexagon that headlines the first boss wave.',
+    ability:'Shield — turns <b>invincible for 3s every 8s</b>. Your shots just bounce off; wait for the shield to drop, then hammer it.',
+    waves:[5] },
+  { id:'boss_speed', name:'Speed Boss', shape:'diamond', color:'#F0433C', border:'#C22822', glow:'#FF9E96',
+    speed:2.7, hp:555, size:1.2, reward:20, livesCost:4, animSpeed:2.0, boss:true,
+    blurb:'A crimson diamond — the fastest thing in the game when it gets going.',
+    ability:'Sprint — <b>doubles its speed for 4s every 10s</b>. It can dash from mid-map to your goal before you react.',
+    waves:[10] },
+  { id:'boss_regenerate', name:'Regen Boss', shape:'octagon', color:'#1FB562', border:'#157A42', glow:'#8FE6B5',
+    speed:0.9, hp:1110, size:1.4, reward:30, livesCost:5, animSpeed:0.6, boss:true,
+    blurb:'The biggest, beefiest baddie — an emerald octagon that closes out the game at wave 15.',
+    ability:'Regenerate — <b>heals 2 HP every second</b>. Chip damage won&rsquo;t cut it; you need enough firepower to out-damage the healing.',
+    waves:[15] },
+  { id:'boss_split', name:'Split Boss', shape:'star', color:'#FF9417', border:'#D6700A', glow:'#FFC880',
+    speed:1.35, hp:20000, size:1.4, reward:15, livesCost:99, animSpeed:1.2, boss:true, secret:true,
+    hpWave16:146600,
+    blurb:'The mean orange star from the menu — the one everyone wanted to fight. It now headlines a secret 16th wave.',
+    ability:'Split — when defeated, <b>bursts into 3 weaker boss shards (Star Shards)</b> that carry on toward the goal — so the fight isn&rsquo;t over.',
+    waves:[16] }, // ⭐ SECRET wave 16 — only reachable after surviving all 15
+];
+
+/* =====================================================================
+   Full 15-wave schedule — verbatim from waves.patterns (V2).
+   ===================================================================== */
+const SCHEDULE = [
+  { w:1,  parts:[['basic',8]] },
+  { w:2,  parts:[['basic',6],['fast',2]] },
+  { w:3,  parts:[['basic',6],['fast',3],['strong',1]] },
+  { w:4,  parts:[['basic',6],['fast',4],['strong',2]] },
+  { w:5,  boss:'boss_shield', parts:[['boss_shield',1]] },
+  { w:6,  parts:[['basic',10],['fast',8],['strong',4]] },
+  { w:7,  parts:[['basic',6],['fast',12],['strong',2]] },
+  { w:8,  parts:[['basic',12],['fast',8],['strong',6]] },
+  { w:9,  parts:[['basic',8],['fast',6],['strong',8]] },
+  { w:10, boss:'boss_speed', parts:[['boss_speed',1]] },
+  { w:11, parts:[['basic',15],['fast',12],['strong',8]] },
+  { w:12, parts:[['basic',10],['fast',18],['strong',6]] },
+  { w:13, parts:[['basic',12],['fast',10],['strong',12]] },
+  { w:14, parts:[['basic',20],['fast',15],['strong',10]] },
+  { w:15, boss:'boss_regenerate', parts:[['boss_regenerate',1]] },
+  { w:16, boss:'boss_split', secret:true, parts:[['boss_split',1]] }, // 🔒 hidden secret boss — HUD reads "16/15"
+];
+
+/* =====================================================================
+   TOWER DATA — verbatim from CuteDefense/v2/config/gameConfig.js (towers).
+   ===================================================================== */
+const TOWERS = [
+  { id:'basic', name:'Basic', shape:'circle', color:'#5B9DF0', kind:'Single-target',
+    projectile:{ speed:800, size:9, color:'#4D8FFF' },
+    blurb:'A quick periwinkle marksman — cheap and fast-firing, your bread-and-butter defender.',
+    levels:[
+      { lvl:1, damage:8,  range:2,   fireRateMs:1800, cost:5 },
+      { lvl:2, damage:12, range:2.5, fireRateMs:1350, cost:50 },
+      { lvl:3, damage:18, range:3,   fireRateMs:900,  cost:100 },
+    ] },
+  { id:'strong', name:'Strong', shape:'square', color:'#8453E8', kind:'AoE bomber', aoeRadius:1.0,
+    projectile:{ speed:400, size:18, color:'#FF5630' },
+    blurb:'A violet bomb-lobber — slow, but its blast splashes a whole cluster of cuties at once.',
+    levels:[
+      { lvl:1, damage:20, range:1.5, fireRateMs:3000, cost:15,  bombDamage:40 },
+      { lvl:2, damage:35, range:2,   fireRateMs:2000, cost:60,  bombDamage:80 },
+      { lvl:3, damage:55, range:2.5, fireRateMs:1500, cost:120, bombDamage:120 },
+    ] },
+];
+
+const BY_ID = Object.fromEntries(ENEMIES.map(e=>[e.id,e]));
+const MAX = { hp:1110, speed:2.7, reward:30 };
+const DPR = Math.min(2, window.devicePixelRatio || 1);
+
+// crisp hi-dpi canvas
+function hidpi(canvas, w, h){
+  canvas.width = w*DPR; canvas.height = h*DPR;
+  canvas.style.width = w+'px'; canvas.style.height = h+'px';
+  const ctx = canvas.getContext('2d'); ctx.setTransform(DPR,0,0,DPR,0,0);
+  return ctx;
+}
+
+// pre-bake the 3 portrait frames (neutral / blink / snarl) into offscreen canvases
+function prebakePortrait(def, r){
+  const box = Math.ceil((r*1.05 + r*0.4)*2) + 24;
+  const frames = [0,1,2].map(f=>{
+    const c=document.createElement('canvas'); const ctx=hidpi(c, box, box);
+    bakePortrait(ctx, box/2, box/2 - r*0.05, r, def, f);
+    return c;
+  });
+  return { frames, box };
+}
+
+const animated = []; // {canvas, ctx, baked, def, i, hero}
+
+function makePortraitCanvas(def, r, i, hero){
+  const baked = prebakePortrait(def, r);
+  const c=document.createElement('canvas');
+  const ctx=hidpi(c, baked.box, baked.box);
+  animated.push({ canvas:c, ctx, baked, def, i, hero });
+  return c;
+}
+
+// pre-bake the 2 tower portrait frames (happy / blink) — towers never snarl
+function prebakeTower(def, r){
+  const box = Math.ceil((r*1.05 + r*0.4)*2) + 24;
+  const frames = [0,1].map(f=>{
+    const c=document.createElement('canvas'); const ctx=hidpi(c, box, box);
+    bakeTowerPortrait(ctx, box/2, box/2 - r*0.05, r, def, f);
+    return c;
+  });
+  return { frames, box };
+}
+function makeTowerPortraitCanvas(def, r, i){
+  const baked = prebakeTower(def, r);
+  const c=document.createElement('canvas');
+  const ctx=hidpi(c, baked.box, baked.box);
+  animated.push({ canvas:c, ctx, baked, def, i, tower:true });
+  return c;
+}
+
+// little static in-game sprite (with hover → ouch)
+function makeInGameCanvas(def, r){
+  const box = Math.ceil(r*1.6*2)+10;
+  const c=document.createElement('canvas'); const ctx=hidpi(c, box, box);
+  const draw = frame => { ctx.clearRect(0,0,box,box); bakeInGame(ctx, box/2, box/2, r, def, frame); };
+  draw('neutral');
+  c.addEventListener('mouseenter', ()=>draw('ouch'));
+  c.addEventListener('mouseleave', ()=>draw('neutral'));
+  c.title = 'hover me — ouch!';
+  return c;
+}
+
+function statBar(lbl, val, max, cls, display){
+  const pct = Math.max(4, Math.round(val/max*100));
+  return `<div class="stat"><div class="lbl">${lbl}</div><div class="bar ${cls}"><i style="width:${pct}%"></i></div><div class="val">${display}</div></div>`;
+}
+
+function waveBadges(def){
+  if(def.secret) return '<div class="waves-line"><b>Shows up in:</b><br><span class="wbadge secret">🔒 Secret Wave 16</span></div>';
+  if(!def.waves.length) return '<span class="never-note">⭐ Never spawns — menu-only!</span>';
+  return '<div class="waves-line"><b>Shows up in:</b><br>'+def.waves.map(w=>`<span class="wbadge">${w}</span>`).join('')+'</div>';
+}
+
+function card(def, i){
+  const el = document.createElement('div');
+  el.className = 'card' + (def.boss?' boss':'') + (def.secret?' secret':'');
+  const ribbon = def.secret ? '<div class="ribbon secret">SECRET ⭐</div>' : (def.boss ? '<div class="ribbon">BOSS</div>' : '');
+
+  const stage = document.createElement('div'); stage.className='stage';
+  const pc = document.createElement('div'); pc.className='portrait-c';
+  const pr = def.boss ? 70 : 58;
+  pc.appendChild(makePortraitCanvas(def, pr, i, def.id==='boss_split'));
+  stage.appendChild(pc);
+
+  const meta = document.createElement('div'); meta.className='meta';
+  meta.innerHTML =
+    `<h3>${def.name}
+       ${def.boss?'<span class="pill boss">BOSS</span>':''}
+       ${def.secret?'<span class="pill secret">SECRET ⭐ WAVE 16</span>':''}
+     </h3>
+     <div class="swatchrow"><span class="swatch" style="background:${def.color}"></span>
+        <span class="pill shape">${def.shape}</span> ${def.color}</div>`;
+  stage.appendChild(meta);
+
+  // The secret boss's wave-16 HP blows out the normalized bar, so cap it at MAX
+  // and show its real number in a callout instead of a broken bar.
+  const stats = def.secret
+    ? `<div class="stat"><div class="lbl">Health</div><div class="bar hp"><i style="width:100%"></i></div><div class="val">MAX</div></div>`
+    : statBar('Health', def.hp, MAX.hp, 'hp', def.hp);
+  const moreStats =
+    statBar('Speed', def.speed, MAX.speed, 'spd', def.speed.toFixed(2)+'×') +
+    statBar('Reward', def.reward, MAX.reward, 'rwd', def.reward+' 🪙');
+
+  const hpCallout = def.secret
+    ? `<div class="hp-callout">❤️‍🔥 <b>≈${def.hpWave16.toLocaleString()} HP</b> on wave 16 — needs <b>boss tower upgrades</b> to beat</div>`
+    : '';
+
+  const chips =
+    `<span class="chip">size ${def.size}×</span>`+
+    `<span class="chip">anim ${def.animSpeed}×</span>`+
+    `<span class="chip cost">costs ${def.livesCost} ❤️ if it leaks</span>`;
+
+  const ability = def.ability ? `<div class="ability"><b>Special:</b> ${def.ability}</div>` : '';
+
+  el.innerHTML = ribbon;
+  el.appendChild(stage);
+  const body = document.createElement('div');
+  body.innerHTML =
+    `<div style="font-size:13.5px;color:#5a4a73;line-height:1.5;margin:2px 0 10px">${def.blurb}</div>`+
+    `<div class="stats">${stats}${moreStats}</div>`+
+    hpCallout+
+    `<div class="chips">${chips}</div>`+
+    ability;
+  // in-game sprite strip
+  const ig = document.createElement('div'); ig.className='ingame';
+  ig.innerHTML = '<span>In-game look:</span>';
+  ig.appendChild(makeInGameCanvas(def, def.boss?26:22));
+  body.appendChild(ig);
+  body.insertAdjacentHTML('beforeend', waveBadges(def));
+  el.appendChild(body);
+  return el;
+}
+
+function towerCard(def, i){
+  const isAoe = def.kind === 'AoE bomber';
+  const el = document.createElement('div');
+  el.className = 'card tower';
+
+  const stage = document.createElement('div'); stage.className='stage';
+  const pc = document.createElement('div'); pc.className='portrait-c';
+  pc.appendChild(makeTowerPortraitCanvas(def, 60, i));
+  stage.appendChild(pc);
+
+  const meta = document.createElement('div'); meta.className='meta';
+  meta.innerHTML =
+    `<h3>${def.name} <span class="pill tower">TOWER</span></h3>
+     <div class="swatchrow"><span class="swatch" style="background:${def.color}"></span>
+        <span class="pill shape">${def.shape}</span> ${def.color}</div>
+     <div class="swatchrow"><span class="pill kind">${def.kind}</span></div>`;
+  stage.appendChild(meta);
+
+  const headExtra = isAoe ? '<th>Bomb</th>' : '';
+  const rows = def.levels.map(l=>{
+    const fr = (l.fireRateMs/1000).toFixed(1)+'s';
+    let cells = `<td>Lv ${l.lvl}</td><td>${l.damage}</td><td>${l.range}</td><td>${fr}</td><td>${l.cost} 🪙</td>`;
+    if(isAoe) cells += `<td>${l.bombDamage}</td>`;
+    return `<tr>${cells}</tr>`;
+  }).join('');
+  const table =
+    `<div class="tower-table"><table><thead><tr>`+
+    `<th>Level</th><th>Dmg</th><th>Range</th><th>Fire</th><th>Cost</th>${headExtra}`+
+    `</tr></thead><tbody>${rows}</tbody></table></div>`+
+    `<div class="tcap">Range in tiles · fire rate in seconds${isAoe?` · bomb = splash dmg`:''}</div>`;
+
+  const chips = isAoe
+    ? `<span class="chip">AoE radius ${def.aoeRadius.toFixed(1)} tile</span><span class="chip">bomb shell ${def.projectile.size}px</span>`
+    : `<span class="chip">single-target</span><span class="chip">shot ${def.projectile.size}px</span>`;
+
+  el.appendChild(stage);
+  const body = document.createElement('div');
+  body.innerHTML =
+    `<div style="font-size:13.5px;color:#5a4a73;line-height:1.5;margin:2px 0 10px">${def.blurb}</div>`+
+    table+
+    `<div class="chips">${chips}</div>`;
+  el.appendChild(body);
+  return el;
+}
+
+// build grids
+const gReg = document.getElementById('grid-regular');
+const gBoss = document.getElementById('grid-boss');
+ENEMIES.forEach((def,i)=>{ (def.boss?gBoss:gReg).appendChild(card(def,i)); });
+
+// towers
+const gTower = document.getElementById('grid-tower');
+TOWERS.forEach((def,i)=>{ gTower.appendChild(towerCard(def, 200+i)); });
+
+// hero star in the banner
+(function(){
+  const def = BY_ID['boss_split'];
+  const c = document.getElementById('star-hero');
+  const r = 78; const box = 240;
+  const ctx = hidpi(c, box, box);
+  const baked = prebakePortrait(def, r);
+  animated.push({ canvas:c, ctx, baked, def, i:99, hero:true, fixed:true });
+})();
+
+// schedule table
+(function(){
+  const tbody = document.querySelector('#schedule tbody');
+  SCHEDULE.forEach(row=>{
+    const tr=document.createElement('tr');
+    if(row.boss) tr.className='bossrow';
+    if(row.secret) tr.className='bossrow secretrow';
+    const parts = row.parts.map(([id,n])=>{
+      const e=BY_ID[id];
+      const label = row.secret ? `${n}× ${e.name} (Secret Boss)` : `${n}× ${e.name}`;
+      return `<span class="e"><span class="dot" style="background:${e.color}"></span>${label}</span>`;
+    }).join('');
+    const waveCell = row.secret ? `🔒 <b>${row.w}</b>` : `<b>${row.w}</b>${row.boss?' 👑':''}`;
+    tr.innerHTML = `<td>${waveCell}</td><td>${parts}</td>`;
+    tbody.appendChild(tr);
+  });
+  // legend
+  const leg=document.getElementById('legend');
+  leg.innerHTML = ENEMIES.map(e=>`<span><span class="dot" style="background:${e.color};width:12px;height:12px;border-radius:50%;display:inline-block"></span>${e.name}${e.secret?' (secret wave 16)':(e.waves.length===0?' (never appears)':'')}</span>`).join('');
+})();
+
+/* ---------------- animation loop: blit baked frames + menu timing ------------- */
+function frameFor(t, i){
+  const gnash=(t + i*500) % 2200;
+  if(gnash < 360) return {f:2, snarl:true};
+  if(((t + i*700) % (3000 + i*220)) < 110) return {f:1, snarl:false};
+  return {f:0, snarl:false};
+}
+function tick(t){
+  for(const a of animated){
+    let f, snarl=false;
+    if(a.tower){
+      // towers are friendly: only an occasional blink, never a snarl
+      f = (((t + a.i*900) % (3400 + a.i*260)) < 130) ? 1 : 0;
+    } else {
+      const r = frameFor(t, a.i); f = r.f; snarl = r.snarl;
+    }
+    const ctx=a.ctx, b=a.baked;
+    const cw = a.canvas.width/DPR, ch = a.canvas.height/DPR;
+    ctx.clearRect(0,0,cw,ch);
+    let s = a.hero ? 1 + Math.sin(t/760)*0.03 : 1;
+    if(snarl) s*=1.06;
+    const jit = snarl ? Math.sin(t/38)*2 : 0;
+    ctx.save();
+    ctx.translate(cw/2 + jit, ch/2);
+    ctx.scale(s,s);
+    ctx.drawImage(b.frames[f], -b.box/2, -b.box/2, b.box, b.box);
+    ctx.restore();
+  }
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
