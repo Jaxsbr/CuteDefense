@@ -2,25 +2,34 @@
  * Renderer — reads sim state, draws minimally and fast.
  *  - static tiles baked into one offscreen layer, blitted each frame
  *  - every entity is a baked sprite drawn with drawImage (+ cheap transform/alpha)
+ *  - expression frames (enemy ouch, tower shock/blink/blush) are baked once and
+ *    SELECTED per frame from cheap per-entity state — faces never redraw per frame
  *  - ZERO per-frame shadowBlur or gradient allocation
  *  - one hit-rect registry for all interactive UI (no guessed geometry)
+ *  - every colour comes from cfg.visual (the single PALETTE source of truth)
  *
- * Animation reads state.clock (pausable, deterministic), never wall-clock.
+ * Animation reads state.clock (pausable, deterministic) or state.menuClock (menu).
  */
 import { SpriteCache, roundRect } from './SpriteCache.js';
-import { makeCanvas } from './shapes.js';
-
-const FONT = 'Arial, sans-serif';
+import { makeCanvas, darken, lighten } from './shapes.js';
+import { mix } from './colors.js';
 
 export class Renderer {
   constructor(ctx, config) {
     this.ctx = ctx;
     this.cfg = config;
     this.L = config.layout;
+    this.U = config.visual.ui;
+    this.FX = config.visual.fx;
+    this.G = config.visual.gold;
+    this.F = config.visual.font;
     this.sprites = new SpriteCache(config);
     this.tileLayer = null;
     this.tileKey = null;
-    this.hits = [];           // [{action, x, y, w, h, data}]
+    this.menuLayer = null;
+    this._warmE = new Set();   // enemy types whose frames are pre-baked
+    this._warmT = new Set();   // tower type:level whose frames are pre-baked
+    this.hits = [];            // [{action, x, y, w, h, data}]
   }
 
   toScreen(gx, gy) {
@@ -57,6 +66,22 @@ export class Renderer {
     if (state.status === 'won' || state.status === 'lost') this._overlay(state);
   }
 
+  // ---- shared range circle (placement + tower selection: minimal white dash
+  //      with a faint dark halo so it survives the new light pastel map) ----
+  _rangeCircle(x, y, radius) {
+    const ctx = this.ctx, u = this.U;
+    ctx.save();
+    ctx.setLineDash([8, 6]);
+    ctx.strokeStyle = u.rangeHalo; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = u.rangeDash; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = u.rangeFill;
+    ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
   // ---- static tile layer (baked once per map) ----
   _tiles(state) {
     if (this.tileKey !== state.mapIndex) this._bakeTiles(state);
@@ -80,38 +105,66 @@ export class Renderer {
           c.fillStyle = key === sk ? v.start : key === ek ? v.end : v.path;
           c.fillRect(px + 1, py + 1, tile - 2, tile - 2);
           // soft inset for a rounded, friendly path look (baked, not per-frame)
-          c.strokeStyle = key === sk || key === ek ? '#ffffff66' : '#00000022';
+          c.strokeStyle = key === sk || key === ek ? '#ffffff66' : '#00000018';
           c.lineWidth = 2; c.strokeRect(px + 3, py + 3, tile - 6, tile - 6);
-          if (key === sk || key === ek) {
-            c.fillStyle = '#ffffff'; c.font = `bold ${tile * 0.3}px ${FONT}`;
-            c.textAlign = 'center'; c.textBaseline = 'middle';
-            c.fillText(key === sk ? 'IN' : 'OUT', px + tile / 2, py + tile / 2);
-          }
+          if (key === sk) this._goalInIcon(c, px, py, tile);
+          else if (key === ek) this._goalOutIcon(c, px, py, tile);
         }
       }
     }
     this.tileLayer = canvas;
     this.tileKey = state.mapIndex;
   }
+  // baked picture-not-text goal markers (kills the "IN"/"OUT" slop tell)
+  _goalInIcon(c, px, py, t) {                 // a little burrow / doorway
+    const cx = px + t / 2, cy = py + t * 0.58, w = t * 0.34, h = t * 0.42, g = this.cfg.visual.goal;
+    c.fillStyle = g.inDark;
+    c.beginPath();
+    c.moveTo(cx - w, cy + h * 0.5); c.lineTo(cx - w, cy - h * 0.1);
+    c.arc(cx, cy - h * 0.1, w, Math.PI, 0); c.lineTo(cx + w, cy + h * 0.5);
+    c.closePath(); c.fill();
+    c.fillStyle = g.inLight; c.globalAlpha = 0.6;
+    c.beginPath(); c.ellipse(cx - w * 0.3, cy - h * 0.1, w * 0.28, h * 0.22, 0, 0, Math.PI * 2); c.fill();
+    c.globalAlpha = 1;
+  }
+  _goalOutIcon(c, px, py, t) {                // a little goal flag
+    const bx = px + t * 0.42, top = py + t * 0.20, bot = py + t * 0.80, g = this.cfg.visual.goal;
+    c.strokeStyle = g.outDark; c.lineWidth = Math.max(3, t * 0.05); c.lineCap = 'round';
+    c.beginPath(); c.moveTo(bx, top); c.lineTo(bx, bot); c.stroke();
+    c.fillStyle = g.outFlag;
+    c.beginPath(); c.moveTo(bx, top); c.lineTo(bx + t * 0.34, top + t * 0.12); c.lineTo(bx, top + t * 0.26); c.closePath(); c.fill();
+    c.strokeStyle = g.outDark; c.lineWidth = 2; c.stroke();
+  }
 
   // ---- entities ----
   _enemies(state) {
-    const ctx = this.ctx, tile = this.L.tile;
+    const ctx = this.ctx, tile = this.L.tile, A = this.cfg.visual.anim, fx = this.FX;
     for (const e of state.enemies) {
-      const sp = this.sprites.enemy(e.typeId);
+      if (!this._warmE.has(e.typeId)) {           // pre-bake neutral + ouch once
+        this._warmE.add(e.typeId);
+        this.sprites.enemy(e.typeId, 'neutral');
+        this.sprites.enemy(e.typeId, 'ouch');
+      }
+      const frame = (!e.dying && e.ouchMs > 0) ? 'ouch' : 'neutral';
+      const sp = this.sprites.enemy(e.typeId, frame);
       const { x, y } = this.toScreen(e.x, e.y);
       let scale = 1, alpha = 1;
       if (e.dying) { const t = Math.min(1, e.deathMs / 500); scale = 1 + t * 0.5; alpha = 1 - t; }
+      let sx = scale, sy = scale;
+      if (!e.dying && e.ouchMs > 0) {              // bonk recoil: squash wide, eases out
+        const k = e.ouchMs / A.enemyOuchMs;
+        sx = scale * (1 + 0.14 * k); sy = scale * (1 - 0.10 * k);
+      }
       ctx.save();
       ctx.globalAlpha = alpha;
       ctx.translate(x, y);
       if (e.dying) ctx.rotate(e.deathMs / 500 * 0.6);
-      ctx.scale(scale, scale);
+      ctx.scale(sx, sy);
       ctx.drawImage(sp.canvas, -sp.cx, -sp.cy);
       ctx.restore();
       // hit flash
       if (e.hitFlashMs > 0) {
-        ctx.save(); ctx.globalAlpha = 0.5 * (e.hitFlashMs / 150);
+        ctx.save(); ctx.globalAlpha = 0.4 * (e.hitFlashMs / 150);
         ctx.fillStyle = '#ffffff'; ctx.beginPath();
         ctx.arc(x, y, tile * e.size / 2, 0, Math.PI * 2); ctx.fill(); ctx.restore();
       }
@@ -132,42 +185,65 @@ export class Renderer {
         ctx.fillStyle = '#00000088'; ctx.fillRect(bx - 1, by - 1, w + 2, h + 2);
         ctx.fillStyle = '#333'; ctx.fillRect(bx, by, w, h);
         const frac = Math.max(0, e.hp / e.maxHp);
-        ctx.fillStyle = frac > 0.5 ? '#5BC85B' : frac > 0.25 ? '#E2C541' : '#E25B5B';
+        ctx.fillStyle = frac > 0.5 ? fx.hpGood : frac > 0.25 ? fx.hpMid : fx.hpLow;
         ctx.fillRect(bx, by, w * frac, h);
       }
       // selection ring
       if (state.selected.kind === 'enemy' && state.selected.id === e.id) {
-        ctx.save(); ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 3;
+        ctx.save(); ctx.strokeStyle = this.U.rangeDash; ctx.lineWidth = 3;
         ctx.beginPath(); ctx.arc(x, y, tile * e.size / 2 + 8, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
       }
     }
   }
 
   _towers(state) {
-    const ctx = this.ctx, tile = this.L.tile;
+    const ctx = this.ctx, tile = this.L.tile, A = this.cfg.visual.anim;
     for (const t of state.towers) {
-      const sp = this.sprites.tower(t.typeId, t.level);
+      const wk = `${t.typeId}:${t.level}`;
+      if (!this._warmT.has(wk)) {                  // pre-bake all 4 frames once per type/level
+        this._warmT.add(wk);
+        for (const f of ['neutral', 'shock', 'blink', 'blush']) this.sprites.tower(t.typeId, t.level, f);
+      }
+      // expression priority: shock (firing) > double-blink > blush (shy) > neutral
+      let frame = 'neutral';
+      if (t.fireAnimMs > 0) {
+        frame = 'shock';
+      } else {
+        const bc = (state.clock + t.blinkOffset) % t.blinkPeriod;
+        const bd = A.blink.durationMs, gap = A.blink.doubleGapMs;
+        if (bc < bd || (bc >= bd + gap && bc < bd * 2 + gap)) {
+          frame = 'blink';
+        } else if (t.shy) {
+          const sc = (state.clock + t.blushOffset) % t.blushPeriod;
+          if (sc < A.blush.durationMs) frame = 'blush';
+        }
+      }
+      const sp = this.sprites.tower(t.typeId, t.level, frame);
       const { x, y } = this.toScreen(t.x, t.y);
-      let scale = 1 + Math.sin(t.animTime / 1000 * 4) * 0.04; // idle pulse
-      if (t.fireAnimMs > 0) scale += Math.sin((1 - t.fireAnimMs / 180) * Math.PI) * 0.15; // firing pop
-      if (t.placeAnimMs > 0) scale *= 1 - (t.placeAnimMs / 280) * 0.6; // grow-in
-      ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale);
+      // base scale: idle breathe + place grow-in
+      let base = 1 + Math.sin(t.animTime / 1000 * 4) * 0.04;
+      if (t.placeAnimMs > 0) base *= 1 - (t.placeAnimMs / 280) * 0.6;
+      // slow cute puff on fire — squash & stretch (per-frame transform only)
+      let sx = base, sy = base;
+      if (t.fireAnimMs > 0) {
+        const p = 1 - t.fireAnimMs / A.towerFireAnimMs;        // 0..1 over the whole puff
+        const env = Math.sin(Math.pow(p, 1.4) * Math.PI);      // slow rise, gentle settle
+        const wob = Math.sin(p * Math.PI * 3) * (1 - p) * 0.035; // tiny release jiggle
+        sx = base * (1 + env * A.towerPuffX + wob);
+        sy = base * (1 + env * A.towerPuffY - wob);
+      }
+      ctx.save(); ctx.translate(x, y); ctx.scale(sx, sy);
       ctx.drawImage(sp.canvas, -sp.cx, -sp.cy); ctx.restore();
-      // selection: ring + range circle
+      // selection range circle — shared minimal white/dashed style (was harsh yellow)
       if (state.selected.kind === 'tower' && state.selected.id === t.id) {
         const range = this.cfg.towers[t.typeId].levels[t.level - 1].range;
-        ctx.save();
-        ctx.strokeStyle = '#FFD70088'; ctx.lineWidth = 2; ctx.setLineDash([8, 6]);
-        ctx.beginPath(); ctx.arc(x, y, range * tile, 0, Math.PI * 2); ctx.stroke();
-        ctx.setLineDash([]); ctx.fillStyle = '#FFD70011';
-        ctx.beginPath(); ctx.arc(x, y, range * tile, 0, Math.PI * 2); ctx.fill();
-        ctx.restore();
+        this._rangeCircle(x, y, range * tile);
       }
     }
   }
 
   _projectiles(state) {
-    const ctx = this.ctx, tile = this.L.tile;
+    const ctx = this.ctx;
     for (const p of state.projectiles) {
       // trail
       if (p.trail.length > 1) {
@@ -187,17 +263,17 @@ export class Renderer {
   }
 
   _effects(state) {
-    const ctx = this.ctx, tile = this.L.tile;
-    for (const fx of state.effects) {
-      const t = fx.age / fx.ttl;
-      const { x, y } = this.toScreen(fx.x, fx.y);
-      if (fx.kind === 'explosion') {
-        ctx.save(); ctx.globalAlpha = (1 - t) * 0.8; ctx.strokeStyle = '#FF7A1A'; ctx.lineWidth = 4;
-        ctx.beginPath(); ctx.arc(x, y, fx.radius * tile * t, 0, Math.PI * 2); ctx.stroke();
-        ctx.fillStyle = '#FFC04D'; ctx.globalAlpha = (1 - t) * 0.3;
-        ctx.beginPath(); ctx.arc(x, y, fx.radius * tile * t, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-      } else if (fx.kind === 'hit') {
-        ctx.save(); ctx.globalAlpha = 1 - t; ctx.fillStyle = fx.crit ? '#FFD700' : '#fff';
+    const ctx = this.ctx, tile = this.L.tile, fx = this.FX;
+    for (const effect of state.effects) {
+      const t = effect.age / effect.ttl;
+      const { x, y } = this.toScreen(effect.x, effect.y);
+      if (effect.kind === 'explosion') {
+        ctx.save(); ctx.globalAlpha = (1 - t) * 0.8; ctx.strokeStyle = fx.explosionStroke; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.arc(x, y, effect.radius * tile * t, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = fx.explosionFill; ctx.globalAlpha = (1 - t) * 0.3;
+        ctx.beginPath(); ctx.arc(x, y, effect.radius * tile * t, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      } else if (effect.kind === 'hit') {
+        ctx.save(); ctx.globalAlpha = 1 - t; ctx.fillStyle = effect.crit ? this.G.base : '#fff';
         ctx.beginPath(); ctx.arc(x, y, 4 + t * 8, 0, Math.PI * 2); ctx.fill(); ctx.restore();
       }
     }
@@ -205,13 +281,13 @@ export class Renderer {
 
   _coins(state) {
     const ctx = this.ctx, tile = this.L.tile;
-    ctx.font = `bold ${tile * 0.22}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = `bold ${tile * 0.22}px ${this.F.body}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     for (const coin of state.coinsList) {
       const sp = this.sprites.coin(coin.phase === 'warning' ? 'warning' : coin.phase === 'expired' ? 'expired' : 'normal');
       const base = this.toScreen(coin.x, coin.y);
       if (coin.phase === 'collected') {
         const t = coin.anim / this.cfg.economy.coin.collectAnimMs;
-        ctx.save(); ctx.globalAlpha = 1 - t; ctx.fillStyle = '#FFD700';
+        ctx.save(); ctx.globalAlpha = 1 - t; ctx.fillStyle = this.G.base;
         ctx.fillText('+' + coin.value, base.x, base.y - t * 40); ctx.restore();
         continue;
       }
@@ -227,161 +303,319 @@ export class Renderer {
     }
   }
 
+  // ---- placement popup: a contained cute "sticker" panel anchored to the tile ----
   _placement(state) {
     if (!state.placement) return;
     const ctx = this.ctx, tile = this.L.tile;
     const { gx, gy, towerType } = state.placement;
     const { x, y } = this.toScreen(gx + 0.5, gy + 0.5);
-    const range = this.cfg.towers[towerType].levels[0].range;
-    // range circle
-    ctx.save(); ctx.strokeStyle = '#ffffffaa'; ctx.lineWidth = 2; ctx.setLineDash([8, 6]);
-    ctx.beginPath(); ctx.arc(x, y, range * tile, 0, Math.PI * 2); ctx.stroke();
-    ctx.setLineDash([]); ctx.fillStyle = '#ffffff18';
-    ctx.beginPath(); ctx.arc(x, y, range * tile, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-    // ghost tower
-    const sp = this.sprites.tower(towerType, 1);
-    ctx.save(); ctx.globalAlpha = 0.5; ctx.drawImage(sp.canvas, x - sp.cx, y - sp.cy); ctx.restore();
+    const def = this.cfg.towers[towerType];
+    const range = def.levels[0].range;
 
-    // popup (3 buttons) centered on tile, clamped to canvas
-    const bw = 180, bh = 64, gap = 10;
-    let px = x - bw / 2, py = y - tile - bh * 2 - gap;
-    px = Math.max(this.L.gridOffsetX + 6, Math.min(px, this.L.canvasW - bw - 6));
-    py = Math.max(6, py);
-    const cost = this.cfg.towers[towerType].levels[0].cost;
+    // (a) range circle — shared minimal white/dashed style
+    this._rangeCircle(x, y, range * tile);
+
+    // (b) ghost tower, gently alive
+    const sp = this.sprites.tower(towerType, 1);
+    const gpulse = 1 + Math.sin(state.clock / 300) * 0.04;
+    ctx.save(); ctx.globalAlpha = 0.55; ctx.translate(x, y); ctx.scale(gpulse, gpulse);
+    ctx.drawImage(sp.canvas, -sp.cx, -sp.cy); ctx.restore();
+
+    // (c) panel geometry (contained, clamped, with a downward nub at the tile)
+    const P = 12, BH = 76, Gp = 10, SH = 56, g2 = 8;
+    const CW = 248, PW = CW + P * 2, PH = P + BH + Gp + SH + P, NUB = 18;
+    let pxL = x - PW / 2;
+    let pyT = (y - tile / 2) - NUB - PH;
+    pxL = Math.max(this.L.gridOffsetX + 8, Math.min(pxL, this.L.canvasW - PW - 8));
+    const aboveTile = pyT >= 8;
+    pyT = Math.max(8, pyT);
+    const nubX = aboveTile ? Math.max(pxL + 28, Math.min(x, pxL + PW - 28)) : null;
+    this._popupPanel(pxL, pyT, PW, PH, nubX);
+
+    // (d) buttons inside the panel content box
+    const cx0 = pxL + P, cy0 = pyT + P;
+    const cost = def.levels[0].cost;
     const afford = state.coins >= cost;
-    // place (buy) button
-    this._button(px, py, bw, bh, `${this.cfg.towers[towerType].name}  ${cost}c`, afford ? '#4CAF50' : '#777', 'place', null, afford);
-    // cycle + cancel row
-    const hw = (bw - gap) / 2;
-    this._button(px, py + bh + gap, hw, bh, '⟳ Type', '#5B8DEF', 'cycle', null, true);
-    this._button(px + hw + gap, py + bh + gap, hw, bh, '✕', '#E25B5B', 'closePopup', null, true);
+    this._towerBuyButton(cx0, cy0, CW, BH, towerType, cost, afford);
+    const by = cy0 + BH + Gp;
+    const cycleW = CW - SH - g2;
+    this._cycleButton(cx0, by, cycleW, SH, this._nextTowerType(towerType));
+    this._cancelButton(cx0 + cycleW + g2, by, SH, SH);
   }
 
-  _button(x, y, w, h, label, color, action, data, enabled = true) {
-    const ctx = this.ctx;
+  _nextTowerType(typeId) {
+    const ids = Object.keys(this.cfg.towers);
+    return ids[(ids.indexOf(typeId) + 1) % ids.length];
+  }
+
+  _popupPanel(x, y, w, h, nubX) {
+    const ctx = this.ctx, u = this.U, r = 20;
     ctx.save();
-    ctx.globalAlpha = enabled ? 1 : 0.55;
-    ctx.fillStyle = color; roundRect(ctx, x, y, w, h, 12); ctx.fill();
-    ctx.strokeStyle = '#00000033'; ctx.lineWidth = 2; ctx.stroke();
-    ctx.fillStyle = '#fff'; ctx.font = `bold ${Math.min(26, h * 0.4)}px ${FONT}`;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(label, x + w / 2, y + h / 2);
+    // fake drop-shadow (offset translucent rect; no shadowBlur)
+    ctx.fillStyle = u.popupShadow; roundRect(ctx, x + 4, y + 7, w, h, r); ctx.fill();
+    // thick candy border
+    ctx.fillStyle = u.popupEdge; roundRect(ctx, x - 4, y - 4, w + 8, h + 8, r + 4); ctx.fill();
+    if (nubX != null) {
+      const ny = y + h;
+      ctx.beginPath(); ctx.moveTo(nubX - 17, ny - 6); ctx.lineTo(nubX + 17, ny - 6); ctx.lineTo(nubX, ny + 18); ctx.closePath(); ctx.fill();
+    }
+    // cream body
+    ctx.fillStyle = u.popupPanel; roundRect(ctx, x, y, w, h, r); ctx.fill();
+    if (nubX != null) {
+      const ny = y + h;
+      ctx.beginPath(); ctx.moveTo(nubX - 11, ny - 4); ctx.lineTo(nubX + 11, ny - 4); ctx.lineTo(nubX, ny + 11); ctx.closePath(); ctx.fill();
+    }
+    // fluffy inner highlight
+    ctx.strokeStyle = u.popupHi; ctx.lineWidth = 2; roundRect(ctx, x + 3, y + 3, w - 6, h - 6, r - 3); ctx.stroke();
     ctx.restore();
-    if (enabled && action) this.addHit(action, x, y, w, h, data);
+  }
+
+  _towerBuyButton(x, y, w, h, towerType, cost, afford) {
+    const ctx = this.ctx, def = this.cfg.towers[towerType], u = this.U;
+    ctx.save();
+    ctx.fillStyle = afford ? def.color : u.btnDisabled;
+    roundRect(ctx, x, y, w, h, 14); ctx.fill();
+    ctx.strokeStyle = afford ? darken(def.color, 35) : u.btnDisabledEdge; ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = '#FFFFFF33'; roundRect(ctx, x + 3, y + 3, w - 6, h * 0.4, 11); ctx.fill();
+    // tower sprite thumbnail (left)
+    const sp = this.sprites.tower(towerType, 1);
+    const thumb = h - 18, psc = thumb / Math.max(sp.canvas.width, sp.canvas.height);
+    const tw = sp.canvas.width * psc, th = sp.canvas.height * psc;
+    ctx.drawImage(sp.canvas, x + 14, y + (h - th) / 2, tw, th);
+    // gold coin + cost (right)
+    const coinX = x + w - 86, coinY = y + h / 2;
+    ctx.fillStyle = this.G.base; ctx.beginPath(); ctx.arc(coinX, coinY, 16, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = this.G.deep; ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = '#FFFDE7'; ctx.beginPath(); ctx.arc(coinX - 5, coinY - 5, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = afford ? '#FFFFFF' : '#FFD6D6'; ctx.font = `bold 30px ${this.F.body}`;
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(String(cost), coinX + 24, coinY + 1);
+    ctx.restore();
+    if (afford) this.addHit('place', x, y, w, h, null);
+  }
+
+  _cycleButton(x, y, w, h, nextType) {
+    const ctx = this.ctx, u = this.U;
+    ctx.save();
+    ctx.fillStyle = u.btnInfo; roundRect(ctx, x, y, w, h, 12); ctx.fill();
+    ctx.strokeStyle = u.btnInfoEdge; ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = '#FFFFFF33'; roundRect(ctx, x + 3, y + 3, w - 6, h * 0.4, 9); ctx.fill();
+    // next tower mini-thumbnail (the "what you'll switch to" cue)
+    const sp = this.sprites.tower(nextType, 1);
+    const thumb = h - 18, psc = thumb / Math.max(sp.canvas.width, sp.canvas.height);
+    ctx.drawImage(sp.canvas, x + 12, y + (h - sp.canvas.height * psc) / 2, sp.canvas.width * psc, sp.canvas.height * psc);
+    // vector circular arrow on the right
+    const ax = x + w - h * 0.42, ay = y + h / 2, ar = h * 0.26;
+    ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = Math.max(3, ar * 0.45); ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(ax, ay, ar, Math.PI * 0.45, Math.PI * 1.95); ctx.stroke();
+    const ea = Math.PI * 1.95, hx = ax + Math.cos(ea) * ar, hy = ay + Math.sin(ea) * ar;
+    ctx.beginPath();
+    ctx.moveTo(hx, hy); ctx.lineTo(hx + ar * 0.55, hy - ar * 0.15);
+    ctx.moveTo(hx, hy); ctx.lineTo(hx + ar * 0.15, hy + ar * 0.55);
+    ctx.stroke();
+    ctx.restore();
+    this.addHit('cycle', x, y, w, h, null);
+  }
+
+  _cancelButton(x, y, w, h) {
+    const ctx = this.ctx, u = this.U;
+    ctx.save();
+    ctx.fillStyle = u.btnDanger; roundRect(ctx, x, y, w, h, 12); ctx.fill();
+    ctx.strokeStyle = u.btnDangerEdge; ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = '#FFFFFF33'; roundRect(ctx, x + 3, y + 3, w - 6, h * 0.4, 9); ctx.fill();
+    const cx = x + w / 2, cy = y + h / 2, m = h * 0.24;
+    ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(cx - m, cy - m); ctx.lineTo(cx + m, cy + m);
+    ctx.moveTo(cx + m, cy - m); ctx.lineTo(cx - m, cy + m);
+    ctx.stroke();
+    ctx.restore();
+    this.addHit('closePopup', x, y, w, h, null);
+  }
+
+  // Static dock chrome baked ONCE (gradient + rail + stripes + wordmark), blitted
+  // each frame — no per-frame gradient allocation (keeps the V2 perf model).
+  _bakeHudChrome() {
+    const u = this.U, W = this.L.hudWidth, H = this.L.canvasH, pad = 24;
+    const canvas = makeCanvas(W, H);
+    const c = canvas.getContext('2d');
+    const dock = c.createLinearGradient(0, 0, 0, H);
+    dock.addColorStop(0, u.dockTop); dock.addColorStop(1, u.dockBottom);
+    c.fillStyle = dock; c.fillRect(0, 0, W, H);
+    c.fillStyle = u.dockEdge; c.fillRect(W - 6, 0, 6, H);
+    c.fillStyle = u.accent; c.fillRect(0, 0, W, 7);
+    c.fillStyle = u.ribbonB; c.fillRect(0, 7, W, 3);
+    // brand wordmark — two-tone candy, NO overlapping v2 badge (bug fixed)
+    c.textAlign = 'left'; c.textBaseline = 'alphabetic';
+    c.font = `bold 38px ${this.F.display}`;
+    c.fillStyle = u.title; c.fillText('Cute', pad, 54);
+    const cw = c.measureText('Cute').width;
+    c.fillStyle = '#FFF1F6'; c.fillText('Defense', pad + cw, 54);
+    this.hudChrome = canvas;
   }
 
   // ---- HUD (left dock) ----
   _hud(state) {
-    const ctx = this.ctx;
+    const ctx = this.ctx, u = this.U;
     const W = this.L.hudWidth, H = this.L.canvasH, pad = 24;
-    // panel
-    ctx.fillStyle = '#2b2d42'; ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#1f2133'; ctx.fillRect(W - 6, 0, 6, H);
-    ctx.fillStyle = '#FFD700'; ctx.fillRect(0, 0, W, 6);
+    if (!this.hudChrome) this._bakeHudChrome();
+    ctx.drawImage(this.hudChrome, 0, 0);
 
-    // title
-    ctx.fillStyle = '#fff'; ctx.font = `bold 40px ${FONT}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-    ctx.fillText('CuteDefense', pad, 22);
-    ctx.fillStyle = '#FFD70099'; ctx.font = `bold 18px ${FONT}`; ctx.fillText('v2', pad + 232, 34);
-
-    // info card
-    let y = 84;
-    this._card(pad, y, W - pad * 2, 150);
-    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    // lives
-    ctx.fillStyle = '#fff'; ctx.font = `bold 26px ${FONT}`;
-    this._heart(pad + 22, y + 34, 12); ctx.fillStyle = '#fff';
-    ctx.fillText(`Lives  ${state.lives}`, pad + 44, y + 34);
-    // wave
-    const waveTxt = state.wave.index > 0 ? `Wave  ${state.wave.index} / ${this.cfg.waves.patterns.length}` : 'Get ready!';
-    ctx.fillText(waveTxt, pad + 22, y + 78);
-    // coins — total pulses gold when credited (kills / sell / wave bonus)
-    const coinIconX = pad + 26, coinY = y + 120;
-    const pulse = Math.max(0, Math.min(1, (state.coinPulseEnd - state.clock) / 500));
-    const coinR = 12 + pulse * 4;
-    ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(coinIconX, coinY, coinR, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#B8860B'; ctx.lineWidth = 2; ctx.stroke();
-    ctx.save();
-    ctx.translate(pad + 48, coinY); ctx.scale(1 + pulse * 0.35, 1 + pulse * 0.35);
-    ctx.fillStyle = pulse > 0 ? '#FFE680' : '#fff'; ctx.font = `bold 26px ${FONT}`;
-    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    ctx.fillText(`${state.coins}`, 0, 0);
-    ctx.restore();
-    ctx.font = `bold 26px ${FONT}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    // floating "+N bonus" rising near the coin total
-    if (state.bonusFloat && state.clock < state.bonusFloat.untilClock) {
-      const p = (state.bonusFloat.untilClock - state.clock) / 1400; // 1 -> 0
-      ctx.save(); ctx.globalAlpha = Math.min(1, p * 1.5);
-      ctx.fillStyle = '#FFD700'; ctx.font = `bold 22px ${FONT}`;
-      ctx.fillText(`+${state.bonusFloat.amount} bonus!`, pad + 120, coinY - (1 - p) * 30);
-      ctx.restore();
-    }
+    // hero LIVES card
+    this._heroLives(state, pad, 80, W - pad * 2, 100);
+    // WAVE | COINS chips
+    this._waveCoinChips(state, pad, 196);
 
     // selection card
-    y = 260;
+    const y = 286;
     const tower = state.selected.kind === 'tower' ? state.towers.find(t => t.id === state.selected.id) : null;
     const enemy = state.selected.kind === 'enemy' ? state.enemies.find(e => e.id === state.selected.id) : null;
     if (tower) this._towerCard(state, tower, pad, y, W - pad * 2);
     else if (enemy) this._enemyCard(enemy, pad, y, W - pad * 2);
-    else { this._card(pad, y, W - pad * 2, 120); ctx.fillStyle = '#ffffff66'; ctx.font = `20px ${FONT}`; ctx.textAlign = 'center'; ctx.fillText('Tap a tile to build · tap a tower to manage', W / 2, y + 60); }
+    else {
+      this._card(pad, y, W - pad * 2, 120);
+      ctx.fillStyle = u.textOnCard; ctx.font = `20px ${this.F.body}`; ctx.textAlign = 'center';
+      ctx.fillText('Tap a spot to plop a buddy', W / 2, y + 52);
+      ctx.fillStyle = '#9A86B8'; ctx.font = `17px ${this.F.body}`;
+      ctx.fillText('tap a buddy to manage', W / 2, y + 80);
+    }
 
     // control row (bottom)
     const by = H - 96, bw = (W - pad * 2 - 16) / 2;
-    this._button(pad, by, bw, 64, state.status === 'paused' ? '▶ Resume' : '⏸ Pause', '#5B8DEF', 'pause', null, true);
-    this._button(pad + bw + 16, by, bw, 64, state.soundEnabled ? '🔊 Sound' : '🔇 Muted', state.soundEnabled ? '#4CAF50' : '#777', 'sound', null, true);
+    this._button(pad, by, bw, 64, state.status === 'paused' ? 'Resume' : 'Pause', u.btnInfo, 'pause', null, true, { edge: u.btnInfoEdge });
+    this._button(pad + bw + 16, by, bw, 64, state.soundEnabled ? 'Sound' : 'Muted', state.soundEnabled ? u.btnPrimary : u.btnDisabled, 'sound', null, true, { edge: state.soundEnabled ? u.btnPrimaryEdge : u.btnDisabledEdge });
   }
 
-  _card(x, y, w, h) {
+  _heroLives(state, HX, HY, HW, HH) {
+    const ctx = this.ctx, u = this.U;
+    const lf = Math.max(0, (state.livesFlashUntil - state.clock) / 600);   // 1->0 ouch
+    const low = state.lives > 0 && state.lives <= 5;
+    const beat = low ? 0.5 + 0.5 * Math.sin(state.clock / 280) : 0;
+    const dx = lf > 0 ? Math.sin(state.clock / 28) * 7 * lf : 0;
+    // card
+    this._card(HX, HY, HW, HH, u.cardBg, u.pinkSoft);
+    ctx.save(); roundRect(ctx, HX, HY, HW, 10, this.U.radCard); ctx.clip();
+    ctx.fillStyle = u.accent; ctx.fillRect(HX, HY, HW, 10); ctx.restore();
+    // heart (baked frame + cheap transform)
+    const sp = this.sprites.heart(lf > 0.4 ? 'hurt' : 'normal');
+    const hs = 1 + lf * 0.35 + beat * 0.12;
+    ctx.save(); ctx.translate(HX + 48 + dx, HY + 52); ctx.scale(hs, hs); ctx.drawImage(sp.canvas, -sp.cx, -sp.cy); ctx.restore();
+    // label + number
+    ctx.save(); ctx.translate(dx, 0); ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillStyle = u.pink; ctx.font = `bold 15px ${this.F.display}`; ctx.fillText('LIVES', HX + 88, HY + 24);
+    ctx.fillStyle = lf > 0 ? mix('#5A3D6B', '#E23B5B', Math.min(1, lf)) : (low ? '#D23B6B' : u.textOnCard);
+    ctx.font = `bold 44px ${this.F.body}`; ctx.fillText(String(state.lives), HX + 88, HY + 38);
+    ctx.restore();
+    // candy meter
+    const mx = HX + 90, my = HY + 84, mw = HW - 116, mh = 8, frac = Math.max(0, state.lives / this.cfg.lives.max);
+    ctx.fillStyle = '#EBD9F2'; roundRect(ctx, mx, my, mw, mh, 4); ctx.fill();
+    ctx.fillStyle = lf > 0 ? u.pinkDeep : u.heart; roundRect(ctx, mx, my, mw * frac, mh, 4); ctx.fill();
+    // red wash on hit
+    if (lf > 0) { ctx.save(); ctx.globalAlpha = lf * 0.22; ctx.fillStyle = u.pinkDeep; roundRect(ctx, HX, HY, HW, HH, this.U.radCard); ctx.fill(); ctx.restore(); }
+  }
+
+  _waveCoinChips(state, X, Y) {
+    const ctx = this.ctx, u = this.U;
+    const W = this.L.hudWidth, pad = 24, gap = 14;
+    const CW = (W - pad * 2 - gap) / 2, CH = 74, r = this.U.radChip;
+    const WX = X, CX = X + CW + gap;
+
+    // wave chip
+    const wp = Math.max(0, (state.wavePopUntil - state.clock) / 700);
+    const boss = state.wave.isBossWave;
+    let cx0 = WX + CW / 2, cy0 = Y + CH / 2, sc = 1 + Math.sin(wp * Math.PI) * 0.22;
+    ctx.save(); ctx.translate(cx0, cy0); ctx.scale(sc, sc); ctx.translate(-cx0, -cy0);
+    ctx.fillStyle = boss ? u.bossSoft : u.skySoft; roundRect(ctx, WX, Y, CW, CH, r); ctx.fill();
+    ctx.strokeStyle = boss ? u.boss : u.skyDeep; ctx.lineWidth = 2; roundRect(ctx, WX, Y, CW, CH, r); ctx.stroke();
+    // pennant flag
+    ctx.strokeStyle = boss ? u.boss : u.skyDeep; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(WX + 22, Y + 18); ctx.lineTo(WX + 22, Y + 56); ctx.stroke();
+    ctx.fillStyle = boss ? u.boss : u.sky;
+    ctx.beginPath(); ctx.moveTo(WX + 22, Y + 20); ctx.lineTo(WX + 44, Y + 27); ctx.lineTo(WX + 22, Y + 34); ctx.closePath(); ctx.fill();
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillStyle = boss ? u.boss : u.skyDeep; ctx.font = `bold 13px ${this.F.display}`;
+    ctx.fillText(boss ? 'BOSS' : 'WAVE', WX + 54, Y + 16);
+    ctx.fillStyle = '#2B5A72'; ctx.font = `bold 26px ${this.F.body}`;
+    ctx.fillText(state.wave.index > 0 ? `${state.wave.index}/${this.cfg.waves.patterns.length}` : 'Soon', WX + 54, Y + 34);
+    ctx.restore();
+
+    // coins chip
+    const pulse = Math.max(0, Math.min(1, (state.coinPulseEnd - state.clock) / 500));
+    ctx.fillStyle = u.goldSoft; roundRect(ctx, CX, Y, CW, CH, r); ctx.fill();
+    ctx.strokeStyle = u.goldDeep; ctx.lineWidth = 2; roundRect(ctx, CX, Y, CW, CH, r); ctx.stroke();
+    const flip = pulse > 0 ? 0.4 + 0.6 * Math.abs(Math.sin(pulse * Math.PI * 2)) : 1;
+    ctx.save(); ctx.translate(CX + 28, Y + 37); ctx.scale(flip, 1);
+    ctx.fillStyle = this.G.base; ctx.beginPath(); ctx.arc(0, 0, 13, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = this.G.deep; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#FFF7CC'; ctx.beginPath(); ctx.arc(-4, -4, 3.5, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillStyle = u.goldDeep; ctx.font = `bold 13px ${this.F.display}`; ctx.fillText('COINS', CX + 54, Y + 16);
+    ctx.save(); ctx.translate(CX + 54, Y + 32); ctx.scale(1 + pulse * 0.3, 1 + pulse * 0.3);
+    ctx.fillStyle = pulse > 0 ? '#FFB300' : '#7A5A12'; ctx.font = `bold 26px ${this.F.body}`;
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(String(state.coins), 0, 0); ctx.restore();
+    // "+N bonus" float rising above the coins chip
+    if (state.bonusFloat && state.clock < state.bonusFloat.untilClock) {
+      const p = (state.bonusFloat.untilClock - state.clock) / 1400;
+      ctx.save(); ctx.globalAlpha = Math.min(1, p * 1.5);
+      ctx.fillStyle = this.G.base; ctx.font = `bold 20px ${this.F.display}`; ctx.textAlign = 'left';
+      ctx.fillText(`+${state.bonusFloat.amount} bonus!`, CX + 6, Y - 6 - (1 - p) * 24); ctx.restore();
+    }
+  }
+
+  _card(x, y, w, h, bg, border) {
     const ctx = this.ctx;
-    ctx.fillStyle = '#3a3d5c'; roundRect(ctx, x, y, w, h, 14); ctx.fill();
-    ctx.strokeStyle = '#ffffff22'; ctx.lineWidth = 2; ctx.stroke();
-  }
-
-  _heart(cx, cy, r) {
-    const ctx = this.ctx; ctx.fillStyle = '#E25B5B';
-    ctx.beginPath();
-    ctx.moveTo(cx, cy + r * 0.8);
-    ctx.bezierCurveTo(cx - r * 1.5, cy - r * 0.6, cx - r * 0.6, cy - r * 1.4, cx, cy - r * 0.4);
-    ctx.bezierCurveTo(cx + r * 0.6, cy - r * 1.4, cx + r * 1.5, cy - r * 0.6, cx, cy + r * 0.8);
-    ctx.fill();
+    ctx.fillStyle = bg ?? this.U.cardBg; roundRect(ctx, x, y, w, h, this.U.radCard); ctx.fill();
+    ctx.strokeStyle = border ?? this.U.cardBorder; ctx.lineWidth = 2; ctx.stroke();
   }
 
   _towerCard(state, tower, x, y, w) {
-    const ctx = this.ctx;
+    const ctx = this.ctx, u = this.U;
     this._card(x, y, w, 230);
     const def = this.cfg.towers[tower.typeId];
     const st = def.levels[tower.level - 1];
-    // portrait
     const sp = this.sprites.tower(tower.typeId, tower.level);
     const pscale = Math.min(1, 70 / Math.max(sp.canvas.width, sp.canvas.height));
     ctx.drawImage(sp.canvas, x + 20, y + 20, sp.canvas.width * pscale, sp.canvas.height * pscale);
-    // stats
-    ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.font = `bold 24px ${FONT}`;
+    ctx.fillStyle = u.textOnCard; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.font = `bold 24px ${this.F.display}`;
     ctx.fillText(`${def.name}  L${tower.level}`, x + 110, y + 22);
-    ctx.font = `18px ${FONT}`; ctx.fillStyle = '#cdd';
+    ctx.font = `18px ${this.F.body}`; ctx.fillStyle = '#7C6A95';
     ctx.fillText(`Damage ${st.bombDamage ?? st.damage}   Range ${st.range}`, x + 110, y + 56);
     ctx.fillText(`Fire ${(st.fireRateMs / 1000).toFixed(2)}s${def.kind === 'aoe' ? '   AoE' : ''}`, x + 110, y + 82);
-    // buttons
     const next = def.levels[tower.level];
     const upCost = next ? next.cost : null;
     const canUp = next && state.coins >= upCost;
-    this._button(x + 16, y + 120, w - 32, 44, next ? `⬆ Upgrade  ${upCost}c` : 'Max level', canUp ? '#4CAF50' : '#777', 'upgrade', null, !!canUp);
+    this._button(x + 16, y + 120, w - 32, 44, next ? `Upgrade  ${upCost}c` : 'Max level', canUp ? u.btnPrimary : u.btnDisabled, 'upgrade', null, !!canUp, { edge: canUp ? u.btnPrimaryEdge : u.btnDisabledEdge });
     const refund = Math.floor(tower.invested * this.cfg.economy.sellRefundFraction);
-    this._button(x + 16, y + 172, w - 32, 44, `💰 Sell  +${refund}c`, '#E2854B', 'sell', null, true);
+    this._button(x + 16, y + 172, w - 32, 44, `Sell  +${refund}c`, u.btnWarn, 'sell', null, true, { edge: u.btnWarnEdge });
   }
 
   _enemyCard(enemy, x, y, w) {
-    const ctx = this.ctx;
+    const ctx = this.ctx, u = this.U;
     this._card(x, y, w, 150);
     const def = this.cfg.enemies[enemy.typeId];
     const sp = this.sprites.enemy(enemy.typeId);
     const pscale = Math.min(1, 70 / Math.max(sp.canvas.width, sp.canvas.height));
     ctx.drawImage(sp.canvas, x + 20, y + 30, sp.canvas.width * pscale, sp.canvas.height * pscale);
-    ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.font = `bold 24px ${FONT}`;
+    ctx.fillStyle = u.textOnCard; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.font = `bold 24px ${this.F.display}`;
     ctx.fillText(def.name + (enemy.isBoss ? ' (Boss)' : ''), x + 110, y + 24);
-    ctx.font = `18px ${FONT}`; ctx.fillStyle = '#cdd';
+    ctx.font = `18px ${this.F.body}`; ctx.fillStyle = '#7C6A95';
     ctx.fillText(`HP ${Math.ceil(enemy.hp)} / ${enemy.maxHp}`, x + 110, y + 58);
     ctx.fillText(`Reward ${enemy.reward}c   Costs ${enemy.livesCost}♥`, x + 110, y + 84);
+  }
+
+  _button(x, y, w, h, label, color, action, data, enabled = true, opts = {}) {
+    const ctx = this.ctx;
+    const r = opts.radius ?? this.U.radButton;
+    ctx.save();
+    ctx.globalAlpha = enabled ? 1 : 0.55;
+    if (opts.edge) { ctx.fillStyle = opts.edge; roundRect(ctx, x, y + 4, w, h, r); ctx.fill(); }
+    ctx.fillStyle = color; roundRect(ctx, x, y, w, h, r); ctx.fill();
+    ctx.fillStyle = '#FFFFFF33'; roundRect(ctx, x + 3, y + 3, w - 6, h * 0.4, Math.max(2, r - 4)); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = `bold ${Math.min(26, h * 0.42)}px ${this.F.display}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(label, x + w / 2, y + h / 2);
+    ctx.restore();
+    if (enabled && action) this.addHit(action, x, y, w, h, data);
   }
 
   // ---- announcements ----
@@ -393,11 +627,12 @@ export class Renderer {
     const cy = 90;
     ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     let color = '#fff', size = 48;
-    if (a.kind === 'boss') { color = '#FF7A1A'; size = 56; }
-    else if (a.kind === 'countdown') { color = '#FFD700'; size = 52; }
-    else if (a.kind === 'complete') { color = '#5BC85B'; size = 50; }
-    ctx.font = `bold ${size}px ${FONT}`;
-    ctx.fillStyle = '#00000066'; ctx.fillText(a.text, cx + 3, cy + 3);
+    if (a.kind === 'boss') { color = this.FX.annBoss; size = 56; }
+    else if (a.kind === 'countdown') { color = this.U.pinkDeep; size = 52; } // urgency hue — gold stays "coins only"
+    else if (a.kind === 'complete') { color = this.FX.annComplete; size = 50; }
+    ctx.font = `bold ${size}px ${this.F.display}`;
+    // soft white halo instead of a hard +3/+3 black offset (slop tell)
+    ctx.lineWidth = 8; ctx.lineJoin = 'round'; ctx.strokeStyle = '#FFFFFFCC'; ctx.strokeText(a.text, cx, cy);
     ctx.fillStyle = color; ctx.fillText(a.text, cx, cy);
     ctx.restore();
   }
@@ -405,67 +640,138 @@ export class Renderer {
   // ---- overlays ----
   _pause(state) {
     const ctx = this.ctx;
-    ctx.fillStyle = '#00000099'; ctx.fillRect(0, 0, this.L.canvasW, this.L.canvasH);
-    ctx.fillStyle = '#FFD700'; ctx.font = `bold 80px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('PAUSED', this.L.canvasW / 2, this.L.canvasH / 2 - 40);
-    this._centerButton('▶ Resume', this.L.canvasH / 2 + 60, '#4CAF50', 'pause');
+    ctx.fillStyle = this.U.scrim + 'B0'; ctx.fillRect(0, 0, this.L.canvasW, this.L.canvasH);
+    ctx.fillStyle = this.G.base; ctx.font = `bold 80px ${this.F.display}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('Paused', this.L.canvasW / 2, this.L.canvasH / 2 - 40);
+    this._centerButton('Resume', this.L.canvasH / 2 + 60, this.U.btnPrimary, 'pause', this.U.btnPrimaryEdge);
   }
 
   _overlay(state) {
     const ctx = this.ctx, won = state.status === 'won';
-    ctx.fillStyle = '#000000b3'; ctx.fillRect(0, 0, this.L.canvasW, this.L.canvasH);
-    const cx = this.L.canvasW / 2; let cy = this.L.canvasH / 2 - 160;
+    // frosted scrim so the cuties stay visible (win = cream wash, lose = light
+    // grape veil — both keep the board lively, never mud-black)
+    ctx.fillStyle = won ? '#FFF7F0CC' : '#5B4CA0AB'; ctx.fillRect(0, 0, this.L.canvasW, this.L.canvasH);
+    const cx = this.L.canvasW / 2;
+    // report card
+    const cardW = 560, cardH = 470, cardX = cx - cardW / 2, cardY = this.L.canvasH / 2 - cardH / 2;
+    ctx.fillStyle = '#FFF9F2'; roundRect(ctx, cardX, cardY, cardW, cardH, this.U.radPanel); ctx.fill();
+    ctx.fillStyle = won ? this.U.accent : this.U.pinkDeep;
+    ctx.save(); roundRect(ctx, cardX, cardY, cardW, 14, this.U.radPanel); ctx.clip(); ctx.fillRect(cardX, cardY, cardW, 14); ctx.restore();
+    let cy = cardY + 70;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = `bold 84px ${FONT}`; ctx.fillStyle = won ? '#5BC85B' : '#E25B5B';
-    ctx.fillText(won ? 'Victory! 🎉' : 'Game Over', cx, cy);
-    // run stats
+    ctx.font = `bold 64px ${this.F.display}`; ctx.fillStyle = won ? this.FX.win : this.FX.lose;
+    ctx.fillText(won ? 'You did it!' : 'Aww, they got through', cx, cy);
+    // run stats, in voice
     const s = state.stats;
     const lines = [
-      `Waves cleared: ${s.wavesCleared} / ${this.cfg.waves.patterns.length}`,
-      `Towers built: ${s.towersBuilt}`,
-      `Enemies defeated: ${s.enemiesKilled}`,
-      `Coins earned: ${s.coinsEarned}`,
-      `Lives left: ${state.lives}`,
-      `Time: ${(s.elapsedMs / 1000).toFixed(0)}s`,
+      `Waves cleared:  ${s.wavesCleared} / ${this.cfg.waves.patterns.length}`,
+      `Buddies plopped:  ${s.towersBuilt}`,
+      `Cuties booped:  ${s.enemiesKilled}`,
+      `Coins gathered:  ${s.coinsEarned}`,
+      `Hearts kept:  ${state.lives}`,
+      `Time played:  ${(s.elapsedMs / 1000).toFixed(0)}s`,
     ];
-    cy += 80; ctx.font = `26px ${FONT}`; ctx.fillStyle = '#e8e8f0';
+    cy += 70; ctx.font = `26px ${this.F.body}`; ctx.fillStyle = this.U.textOnCard;
     for (const ln of lines) { ctx.fillText(ln, cx, cy); cy += 40; }
-    this._centerButton('▶ Play Again', cy + 30, '#4CAF50', 'playAgain');
+    this._centerButton('Play Again', cy + 30, this.U.btnPrimary, 'playAgain', this.U.btnPrimaryEdge);
   }
 
-  _centerButton(label, cy, color, action) {
+  _centerButton(label, cy, color, action, edge) {
     const w = 320, h = 72, x = this.L.canvasW / 2 - w / 2, y = cy - h / 2;
-    this._button(x, y, w, h, label, color, action, null, true);
+    this._button(x, y, w, h, label, color, action, null, true, { edge });
   }
 
   // ---- start menu ----
   _startMenu(state) {
-    const ctx = this.ctx, W = this.L.canvasW, H = this.L.canvasH;
-    // soft sky background
-    ctx.fillStyle = '#BFE9FF'; ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = this.cfg.visual.grass; ctx.fillRect(0, H * 0.72, W, H * 0.28);
-    // decorative sprites
-    const decos = [
-      this.sprites.enemy('basic'), this.sprites.enemy('fast'), this.sprites.enemy('strong'),
-      this.sprites.tower('basic', 2), this.sprites.tower('strong', 3), this.sprites.coin('normal'),
+    const ctx = this.ctx, W = this.L.canvasW, H = this.L.canvasH, u = this.U;
+    const t = state.menuClock || 0;
+
+    // baked pastel backdrop (sky gradient + hills) — one drawImage
+    if (!this.menuLayer) this._bakeMenuBg();
+    ctx.drawImage(this.menuLayer, 0, 0);
+
+    // drifting baked clouds
+    const cloud = this.sprites.cloud(), cw = cloud.canvas.width;
+    for (const [baseX, y, spd, sc] of [[W * 0.18, H * 0.16, 0.012, 1], [W * 0.62, H * 0.10, 0.008, 0.8]]) {
+      const x = ((baseX + t * spd) % (W + cw)) - cw / 2;
+      ctx.save(); ctx.globalAlpha = 0.9; ctx.translate(x, y); ctx.scale(sc, sc);
+      ctx.drawImage(cloud.canvas, -cloud.cx, -cloud.cy); ctx.restore();
+    }
+
+    // HD portrait cast — arc (hero center highest), bob + out-of-sync blink
+    const cast = [
+      { kind: 'enemy', type: 'fast', r: 66 },
+      { kind: 'enemy', type: 'basic', r: 74 },
+      { kind: 'tower', type: 'basic', r: 96, level: 2, hero: true },
+      { kind: 'enemy', type: 'strong', r: 74 },
+      { kind: 'coin', type: 'coin', r: 58 },
     ];
-    const t = state.clock || 0;
-    decos.forEach((sp, i) => {
-      const x = W * (0.18 + i * 0.13);
-      const y = H * 0.74 + Math.sin(t / 600 + i) * 10;
-      ctx.drawImage(sp.canvas, x - sp.cx, y - sp.cy);
+    const n = cast.length, span = W * 0.60, bandY = H * 0.54, x0 = W / 2 - span / 2;
+    cast.forEach((mch, i) => {
+      const fx = i / (n - 1);
+      const cx = x0 + fx * span;
+      const arc = -Math.cos((fx - 0.5) * Math.PI) * (H * 0.05);
+      const bob = Math.sin(t / 600 + i * 0.8) * 9;
+      const cy = bandY + arc + bob;
+      const blinkCycle = 3000 + i * 220;
+      const frame = ((t + i * 700) % blinkCycle) < 110 ? 1 : 0;
+      const sp = this.sprites.portrait(mch.kind, mch.type, { r: mch.r, level: mch.level || 1, mood: 'happy', frame });
+      const s = mch.hero ? 1 + Math.sin(t / 760) * 0.025 : 1;
+      ctx.save(); ctx.translate(cx, cy); ctx.scale(s, s); ctx.drawImage(sp.canvas, -sp.cx, -sp.cy); ctx.restore();
     });
-    // title
+
+    // baked two-font title with idle bounce — tagline removed
+    const title = this.sprites.menuTitle();
+    const ty = H * 0.21 + Math.sin(t / 520) * 7;
+    ctx.drawImage(title.canvas, W / 2 - title.cx, ty - title.cy);
+
+    // candy CTA buttons (primary Play, secondary Sound)
+    this._menuButton(W / 2 - 210, H * 0.76, 420, 104, 'Play', u.btnPrimary, u.btnPrimaryEdge, '#7BE0A3', 'play', true);
+    const on = state.soundEnabled;
+    this._menuButton(W / 2 - 150, H * 0.76 + 124, 300, 80,
+      on ? 'Sound: On' : 'Sound: Off',
+      on ? u.btnInfo : u.btnDisabled, on ? u.btnInfoEdge : u.btnDisabledEdge, on ? '#9FD0F5' : '#C7CDD8', 'sound', false);
+  }
+
+  _menuButton(x, y, w, h, label, face, rim, hi, action, withPlayIcon) {
+    const ctx = this.ctx, r = h / 2;
+    ctx.save();
+    ctx.fillStyle = rim; roundRect(ctx, x, y + 6, w, h, r); ctx.fill();      // 3D bottom rim
+    ctx.fillStyle = face; roundRect(ctx, x, y, w, h, r); ctx.fill();          // face
+    ctx.globalAlpha = 0.9; ctx.fillStyle = hi;
+    roundRect(ctx, x + r * 0.5, y + h * 0.16, w - r, h * 0.22, h * 0.11); ctx.fill(); // sheen
+    ctx.globalAlpha = 1; ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = `bold 120px ${FONT}`;
-    ctx.fillStyle = '#00000022'; ctx.fillText('CuteDefense', W / 2 + 5, H * 0.3 + 5);
-    ctx.fillStyle = '#FF7AA2'; ctx.fillText('CuteDefense', W / 2, H * 0.3);
-    ctx.font = `bold 34px ${FONT}`; ctx.fillStyle = '#5577aa';
-    ctx.fillText('Defend the path · pop the cuties · grab the coins', W / 2, H * 0.3 + 90);
-    // buttons
-    this._centerButton('▶ Play', H * 0.52, '#4CAF50', 'play');
-    const w = 320, h = 72, x = W / 2 - w / 2, y = H * 0.52 + 90 - h / 2;
-    this._button(x, y, w, h, state.soundEnabled ? '🔊 Sound: On' : '🔇 Sound: Off', state.soundEnabled ? '#5B8DEF' : '#777', 'sound', null, true);
+    ctx.font = `bold ${Math.round(h * 0.42)}px ${this.F.display}`;
+    const lx = withPlayIcon ? x + w / 2 + h * 0.18 : x + w / 2;
+    ctx.fillText(label, lx, y + h / 2 + 1);
+    if (withPlayIcon) {                              // baked-look vector play triangle (no emoji)
+      const tx = x + w / 2 - ctx.measureText(label).width / 2 - h * 0.30, ty = y + h / 2, s = h * 0.18;
+      ctx.beginPath(); ctx.moveTo(tx, ty - s); ctx.lineTo(tx + s * 1.1, ty); ctx.lineTo(tx, ty + s); ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+    this.addHit(action, x, y, w, h);
+  }
+
+  _bakeMenuBg() {
+    const W = this.L.canvasW, H = this.L.canvasH, u = this.U;
+    const canvas = makeCanvas(W, H);
+    const c = canvas.getContext('2d');
+    const sky = c.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, u.menuSky); sky.addColorStop(0.55, u.menuSkyMid); sky.addColorStop(1, u.menuSkyBot);
+    c.fillStyle = sky; c.fillRect(0, 0, W, H);
+    const sun = c.createRadialGradient(W / 2, H * 0.30, 30, W / 2, H * 0.30, W * 0.32);
+    sun.addColorStop(0, '#FFF7E8AA'); sun.addColorStop(1, '#FFF7E800');
+    c.fillStyle = sun; c.beginPath(); c.arc(W / 2, H * 0.30, W * 0.32, 0, Math.PI * 2); c.fill();
+    c.fillStyle = u.menuHillBack; this._hill(c, H * 0.74, H * 0.10);
+    c.fillStyle = u.menuHillFront; this._hill(c, H * 0.82, H * 0.14);
+    this.menuLayer = canvas;
+  }
+  _hill(c, baseY, amp) {
+    const W = this.L.canvasW, H = this.L.canvasH;
+    c.beginPath(); c.moveTo(0, baseY);
+    for (let x = 0; x <= W; x += 40) c.lineTo(x, baseY - Math.sin(x / W * Math.PI) * amp);
+    c.lineTo(W, H); c.lineTo(0, H); c.closePath(); c.fill();
   }
 }
 

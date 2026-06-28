@@ -27,6 +27,7 @@ export function createInitialState(config, seed = 1, mapIndex = null) {
 
     status: 'menu',          // menu | playing | paused | won | lost
     clock: 0,                // accumulated ms while playing (pausable)
+    menuClock: 0,            // deterministic cosmetic clock; advances ONLY in 'menu'
     lives: cfg.lives.max,
     coins: cfg.economy.startingCoins,
     soundEnabled: true,
@@ -47,6 +48,9 @@ export function createInitialState(config, seed = 1, mapIndex = null) {
 
     coinPulseEnd: 0,         // clock time until which the HUD coin total pulses
     bonusFloat: null,        // { amount, untilClock } floating "+N" near the coin total
+    livesFlashUntil: 0,      // clock deadline for the lives-lost "ouch" HUD reaction (display-only)
+    livesFlashAmount: 0,     // how many lives the last hit cost (1 normal, 3-5 boss)
+    wavePopUntil: 0,         // clock deadline for the WAVE chip pop on wave advance
 
     enemies: [],
     towers: [],

@@ -65,6 +65,7 @@ export class Simulation {
   tick(dt) {
     const s = this.state;
     s.frameEvents = [];
+    if (s.status === 'menu') { s.menuClock += dt; return; } // cosmetic menu time only
     if (s.status !== 'playing') return;
     s.clock += dt;
     s.stats.elapsedMs += dt;

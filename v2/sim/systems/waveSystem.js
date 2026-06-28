@@ -70,6 +70,7 @@ function beginNextWave(state, first = false) {
   w.isBossWave = isBoss;
   w.prepMs = first ? state.config.waves.firstPrepMs : state.config.waves.prepMs;
   w.announcement = { text: isBoss ? 'BOSS WAVE' : `Wave ${w.index}`, kind: isBoss ? 'boss' : 'prepare' };
+  state.wavePopUntil = state.clock + 700;   // display-only: pops the HUD WAVE chip on advance
   state.bus.emit(EV.WAVE_PREPARE, { index: w.index, isBoss });
   state.frameEvents.push({ type: EV.WAVE_PREPARE, index: w.index, isBoss });
 }

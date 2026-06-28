@@ -33,6 +33,16 @@ export function placeTower(state, gx, gy, typeId) {
     cooldownMs: 0, invested: cost, targetId: null,
     fireAnimMs: 0, placeAnimMs: 280, animTime: 0,
   };
+  // Deterministic per-tower expression schedule from an integer hash of the id —
+  // NOT state.rng (that would shift the shared RNG stream and break bench/replays).
+  // Gives each tower its own staggered blink/blush so they never sync up.
+  const A = state.config.visual.anim;
+  const h = (tower.id * 2654435761) >>> 0;
+  tower.blinkOffset = h % A.blink.periodMaxMs;
+  tower.blinkPeriod = A.blink.periodMinMs + (h >>> 8) % (A.blink.periodMaxMs - A.blink.periodMinMs);
+  tower.shy         = ((h >>> 16) & 0xff) / 255 < A.blush.shyChance;
+  tower.blushOffset = (h >>> 4) % A.blush.periodMaxMs;
+  tower.blushPeriod = A.blush.periodMinMs + (h >>> 12) % (A.blush.periodMaxMs - A.blush.periodMinMs);
   state.towers.push(tower);
   state.stats.towersBuilt += 1;
   state.bus.emit(EV.TOWER_PLACE, { id: tower.id, typeId });
@@ -111,7 +121,7 @@ export function update(state, dt) {
 
     if (target && tower.cooldownMs <= 0) {
       fire(state, tower, target, st);
-      tower.fireAnimMs = 180;
+      tower.fireAnimMs = cfg.visual.anim.towerFireAnimMs; // slow cute puff (config-driven)
       const jitter = state.rng.range(-cfg.combat.fireRateJitterMs, cfg.combat.fireRateJitterMs);
       tower.cooldownMs = Math.max(300, st.fireRateMs + jitter);
       state.bus.emit(EV.PROJECTILE_FIRE, { towerId: tower.id, typeId: tower.typeId });

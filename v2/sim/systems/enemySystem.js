@@ -36,6 +36,7 @@ export function spawnEnemy(state, item) {
     spawnClock: 0,
     animTime: 0,
     hitFlashMs: 0,
+    ouchMs: 0,             // display-only: drives the baked "ouch" face + recoil squash
     behavior: def.behavior ? { ...def.behavior } : null,
     bs: { shieldActive: false, nextShieldAt: 0, shieldEndsAt: 0, speedActive: false, nextSpeedAt: 0, speedEndsAt: 0, regenAccum: 0 },
   };
@@ -87,6 +88,7 @@ export function update(state, dt) {
     e.animTime += dt * e.animSpeed;
     e.spawnClock += dt;
     if (e.hitFlashMs > 0) e.hitFlashMs -= dt;
+    if (e.ouchMs > 0) e.ouchMs -= dt;
     updateBehavior(state, e, dt);
 
     if (e.reachedGoal) continue;
@@ -123,6 +125,8 @@ function reachGoal(state, e) {
   e.reachedGoal = true;
   e.alive = false;
   state.lives -= e.livesCost;    // single ledger, fixed cost, applied once
+  state.livesFlashUntil = state.clock + 600;   // display-only HUD "ouch" reaction
+  state.livesFlashAmount = e.livesCost;
   state.bus.emit(EV.ENEMY_REACH_END, { id: e.id, livesCost: e.livesCost });
   state.frameEvents.push({ type: EV.ENEMY_REACH_END, id: e.id, livesCost: e.livesCost });
 }
@@ -138,6 +142,7 @@ export function damageEnemy(state, e, amount, fromBomb = false) {
   }
   e.hp -= amount;
   e.hitFlashMs = 150;
+  e.ouchMs = state.config.visual.anim.enemyOuchMs;   // re-arm the cute "ouch" reaction
   state.bus.emit(EV.ENEMY_HIT, { id: e.id, amount, fromBomb });
   state.frameEvents.push({ type: EV.ENEMY_HIT, id: e.id, amount, fromBomb });
   if (e.hp <= 0) { killEnemy(state, e); return true; }

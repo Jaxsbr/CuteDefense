@@ -6,6 +6,8 @@
  * ('#FF888888' + '66' -> '#FF88888866'), which CanvasGradient rejects. withAlpha
  * normalises to a 6-digit base first, so the result is always '#RRGGBBAA'.
  */
+import { PALETTE } from './palette.js';
+
 export function withAlpha(hex, alpha2) {
   let h = String(hex).replace('#', '');
   if (h.length === 3) h = h.split('').map(c => c + c).join('');
@@ -15,11 +17,16 @@ export function withAlpha(hex, alpha2) {
 
 // Coin palette by lifecycle state — all 6-digit so withAlpha stays valid.
 export function coinColors(phase) {
-  switch (phase) {
-    case 'warning': return { body: '#FF8C42', border: '#E2571E', glow: '#FFB066' };
-    case 'expired': return { body: '#777777', border: '#FF5555', glow: '#FF8888' };
-    default:        return { body: '#FFD700', border: '#FFA500', glow: '#FFE680' };
-  }
+  return PALETTE.coin[phase] ?? PALETTE.coin.normal;
 }
 
-export default { withAlpha, coinColors };
+// Lerp two #RRGGBB hexes -> an rgb() string. Used only inside short flash windows
+// (e.g. the lives-lost colour pulse), never on an always-on path.
+export function mix(a, b, t) {
+  const p = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const [r1, g1, b1] = p(a), [r2, g2, b2] = p(b);
+  const L = (x, y) => Math.round(x + (y - x) * t);
+  return `rgb(${L(r1, r2)},${L(g1, g2)},${L(b1, b2)})`;
+}
+
+export default { withAlpha, coinColors, mix };
