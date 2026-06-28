@@ -11,6 +11,13 @@ const FORMATION_FACTOR = { single: 1.0, line: 0.5, wedge: 0.5, phalanx: 0.4, swa
 
 export function patternCount(state) { return state.config.waves.patterns.length; }
 
+// The wave count the PLAYER is told about (the HUD "/N" denominator). Secret
+// waves (e.g. the hidden wave-16 boss) are excluded, so a normal run reads
+// "15/15" right up until the surprise wave makes it "16/15".
+export function publicWaveCount(state) {
+  return state.config.waves.patterns.filter(p => !p.secret).length;
+}
+
 function computeScaling(cfg, index, isBossWave) {
   const s = cfg.waves.scaling;
   const eff = Math.min(index, s.capWave);
@@ -66,10 +73,12 @@ function beginNextWave(state, first = false) {
   w.totalCount = 0;
   w.earnings = 0;          // per-wave earnings reset; drives the end-of-wave bonus
   w.lastThudSec = null;
-  const isBoss = !!state.config.waves.patterns[Math.min(w.index - 1, patternCount(state) - 1)].boss;
+  const pat = state.config.waves.patterns[Math.min(w.index - 1, patternCount(state) - 1)];
+  const isBoss = !!pat.boss;
   w.isBossWave = isBoss;
   w.prepMs = first ? state.config.waves.firstPrepMs : state.config.waves.prepMs;
-  w.announcement = { text: isBoss ? 'BOSS WAVE' : `Wave ${w.index}`, kind: isBoss ? 'boss' : 'prepare' };
+  // Secret/boss waves may carry a custom `announce` banner; otherwise default.
+  w.announcement = { text: pat.announce || (isBoss ? 'BOSS WAVE' : `Wave ${w.index}`), kind: isBoss ? 'boss' : 'prepare' };
   state.wavePopUntil = state.clock + 700;   // display-only: pops the HUD WAVE chip on advance
   state.bus.emit(EV.WAVE_PREPARE, { index: w.index, isBoss });
   state.frameEvents.push({ type: EV.WAVE_PREPARE, index: w.index, isBoss });

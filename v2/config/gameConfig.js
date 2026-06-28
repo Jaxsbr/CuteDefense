@@ -74,6 +74,14 @@ export const CONFIG = Object.freeze({
       { enemies: [{ type: 'basic', count: 12, formation: 'wedge' }, { type: 'fast', count: 10, formation: 'line' }, { type: 'strong', count: 12, formation: 'phalanx' }] },
       { enemies: [{ type: 'basic', count: 20, formation: 'phalanx' }, { type: 'fast', count: 15, formation: 'swarm' }, { type: 'strong', count: 10, formation: 'phalanx' }] },
       { boss: 'boss_regenerate', enemies: [{ type: 'boss_regenerate', count: 1, formation: 'single' }] },
+      // --- SECRET WAVE 16 ---------------------------------------------------
+      // Hidden: `secret: true` keeps it OUT of the public wave count, so the HUD
+      // reads "16/15" only once the player has survived all 15 known waves and
+      // this surprise boss appears. Nothing reveals it beforehand. The star is
+      // unbeatable for now (see boss_split above); it is the hook for the future
+      // boss-tower-upgrade feature. Win only fires after this wave is cleared —
+      // which currently cannot happen, so the run can no longer be "won" yet.
+      { secret: true, announce: 'SECRET BOSS', boss: 'boss_split', enemies: [{ type: 'boss_split', count: 1, formation: 'single' }] },
     ],
   },
 
@@ -89,7 +97,19 @@ export const CONFIG = Object.freeze({
     boss_shield:     { name: 'Shield Boss', shape: 'hexagon', ...PALETTE.enemies.boss_shield,     speed: 1.2, hp: 925,  size: 1.3, reward: 25, livesCost: 3, animSpeed: 0.8, isBoss: true, behavior: { type: 'shield', durationMs: 3000, cooldownMs: 8000 } },
     boss_speed:      { name: 'Speed Boss',  shape: 'diamond', ...PALETTE.enemies.boss_speed,      speed: 2.7, hp: 555,  size: 1.2, reward: 20, livesCost: 4, animSpeed: 2.0, isBoss: true, behavior: { type: 'speed', multiplier: 2.0, durationMs: 4000, cooldownMs: 10000 } },
     boss_regenerate: { name: 'Regen Boss',  shape: 'octagon', ...PALETTE.enemies.boss_regenerate, speed: 0.9, hp: 1110, size: 1.4, reward: 30, livesCost: 5, animSpeed: 0.6, isBoss: true, behavior: { type: 'regen', hpPerSec: 2 } },
-    boss_split:      { name: 'Split Boss',  shape: 'star',    ...PALETTE.enemies.boss_split,      speed: 1.35, hp: 740, size: 1.3, reward: 15, livesCost: 4, animSpeed: 1.2, isBoss: true, behavior: { type: 'split', count: 3, childType: 'basic', childHp: 50, childReward: 5 } },
+    // SECRET WAVE 16 BOSS — the mean orange star from the menu. It is intentionally
+    // UNBEATABLE with today's towers: defeating it needs the (out-of-scope) "boss
+    // tower upgrades". So its HP is set far above the maximum damage any current
+    // build can land while it crosses the map (measured by tools/balance/measure-secret-boss.mjs,
+    // see v2/docs/SECRET-WAVE.md), and its livesCost is a one-shot game-ender. If a
+    // future build ever DOES kill it, it splits into 3 weaker BOSS shards
+    // (boss_splitling) that carry on to the goal — so the wave still cannot be cheesed.
+    // hp here is the BASE; wave-16 scaling multiplies it (~7.3x) on the field.
+    boss_split:      { name: 'Split Boss',  shape: 'star',    ...PALETTE.enemies.boss_split,      speed: 1.35, hp: 20000, size: 1.4, reward: 15, livesCost: 99, animSpeed: 1.2, isBoss: true, behavior: { type: 'split', count: 3, childType: 'boss_splitling', childHp: 40000, childReward: 5 } },
+    // Split child — a smaller, "weaker boss" shard of the star. Boss-flagged, shielded
+    // (immune in bursts) and tanky enough to finish the path from wherever the parent
+    // fell; a single shard reaching the goal ends the run (livesCost >= max lives).
+    boss_splitling:  { name: 'Star Shard', shape: 'star',    ...PALETTE.enemies.boss_splitling,  speed: 1.5,  hp: 40000, size: 0.85, reward: 5, livesCost: 12, animSpeed: 1.3, isBoss: true, behavior: { type: 'shield', durationMs: 1800, cooldownMs: 2600 } },
   },
 
   // --- Towers (size + visual change per level; absolute per-level stats) ---

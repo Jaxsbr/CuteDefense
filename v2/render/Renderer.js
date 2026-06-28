@@ -24,6 +24,9 @@ export class Renderer {
     this.G = config.visual.gold;
     this.F = config.visual.font;
     this.sprites = new SpriteCache(config);
+    // Denominator the player sees ("/N"): public waves only. Secret waves (the
+    // hidden wave-16 boss) are excluded, so the HUD reads "16/15" when it appears.
+    this.publicWaves = config.waves.patterns.filter(p => !p.secret).length;
     this.tileLayer = null;
     this.tileKey = null;
     this.menuLayer = null;
@@ -539,7 +542,7 @@ export class Renderer {
     ctx.fillStyle = boss ? u.boss : u.skyDeep; ctx.font = `bold 13px ${this.F.display}`;
     ctx.fillText(boss ? 'BOSS' : 'WAVE', WX + 54, Y + 16);
     ctx.fillStyle = '#2B5A72'; ctx.font = `bold 26px ${this.F.body}`;
-    ctx.fillText(state.wave.index > 0 ? `${state.wave.index}/${this.cfg.waves.patterns.length}` : 'Soon', WX + 54, Y + 34);
+    ctx.fillText(state.wave.index > 0 ? `${state.wave.index}/${this.publicWaves}` : 'Soon', WX + 54, Y + 34);
     ctx.restore();
 
     // coins chip
@@ -667,7 +670,7 @@ export class Renderer {
     // run stats, in voice
     const s = state.stats;
     const lines = [
-      `Waves cleared:  ${s.wavesCleared} / ${this.cfg.waves.patterns.length}`,
+      `Waves cleared:  ${s.wavesCleared} / ${this.publicWaves}`,
       `Buddies plopped:  ${s.towersBuilt}`,
       `Cuties booped:  ${s.enemiesKilled}`,
       `Coins gathered:  ${s.coinsEarned}`,

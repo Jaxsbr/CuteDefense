@@ -71,15 +71,19 @@ test('ladder #3 — SAVE-AND-UPGRADE reaches the final waves but loses (close, n
 });
 
 // ---------------------------------------------------------------------------
-test('ladder #4 — OPTIMAL barely wins all 15 waves with only a few lives left', () => {
+test('ladder #4 — OPTIMAL masters all 15 known waves (barely), then the SECRET boss ends the run', () => {
   for (const r of ladder(() => POLICIES.optimal())) {
     const where = `${MAP_NAME[r.mapIndex]} seed${r.seed}`;
-    assert.equal(r.status, 'won', `${where}: optimal must WIN, got ${tag(r)}`);
-    assert.equal(r.wavesCleared, 15, `${where}: optimal must clear all 15 waves`);
-    assert.ok(r.lives > 0, `${where}: a win keeps at least one life`);
-    // "Barely" — the run COST lives (not an untouched cakewalk) and ends low.
-    assert.ok(r.lives < CONFIG.lives.max, `${where}: optimal should lose some lives, not coast untouched (lives ${r.lives}/${CONFIG.lives.max})`);
-    assert.ok(r.lives <= 10, `${where}: optimal should win with only a few lives left, had ${r.lives}`);
+    // Optimal still masters the 15-wave balance curve...
+    assert.equal(r.wavesCleared, 15, `${where}: optimal must clear all 15 known waves, got ${tag(r)}`);
+    const livesAt15 = r.perWaveLives[15];
+    assert.ok(livesAt15 > 0, `${where}: optimal survives the 15 known waves (had ${livesAt15} lives at wave 15)`);
+    // "Barely" — it cost lives and ended low (not an untouched cakewalk).
+    assert.ok(livesAt15 < CONFIG.lives.max, `${where}: optimal should lose some lives over the 15 waves (had ${livesAt15}/${CONFIG.lives.max})`);
+    assert.ok(livesAt15 <= 10, `${where}: optimal should reach wave 15 with only a few lives, had ${livesAt15}`);
+    // ...but the hidden wave-16 split boss is unbeatable today, so the run ends there.
+    assert.equal(r.status, 'lost', `${where}: the secret boss ends the run (no win yet), got ${tag(r)}`);
+    assert.equal(r.finalWave, 16, `${where}: defeated at the secret wave 16, got ${tag(r)}`);
   }
 });
 
@@ -87,8 +91,10 @@ test('ladder #4 — OPTIMAL barely wins all 15 waves with only a few lives left'
 // The ladder must be MONOTONE and the upgrade-vs-spread tradeoff must be LIVE:
 // pure Spread underperforms Save-and-upgrade, which underperforms Optimal.
 test('ladder #5 — monotone separation: unfocused < spread < save < optimal (per seed & map)', () => {
-  // "depth reached" score: how far a run got. A win outranks any loss.
-  const depth = (r) => r.status === 'won' ? 100 + r.lives : r.finalWave;
+  // "depth reached" score: how far a run got. Waves cleared dominates (only
+  // optimal clears all 15 and reaches the secret wave 16), with finalWave as a
+  // tiebreak. A win, if one were ever possible, still outranks any loss.
+  const depth = (r) => (r.status === 'won' ? 100000 : 0) + r.wavesCleared * 100 + r.finalWave;
   for (const mapIndex of MAPS) {
     for (const seed of [SEEDS[0], SEEDS[SEEDS.length - 1]]) {  // two seeds per map keeps this cross-product check affordable
       const u = runGame(CONFIG, { seed, mapIndex, makePolicy: () => POLICIES.unfocused() });

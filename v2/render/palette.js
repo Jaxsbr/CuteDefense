@@ -51,6 +51,7 @@ export const PALETTE = {
     boss_speed:      { color: '#F0433C', border: '#C22822', glow: '#FF9E96' }, // crimson    hsl(2,86,59)
     boss_regenerate: { color: '#1FB562', border: '#157A42', glow: '#8FE6B5' }, // emerald    hsl(147,71,42)
     boss_split:      { color: '#FF9417', border: '#D6700A', glow: '#FFC880' }, // tangerine  hsl(32,100,55)
+    boss_splitling:  { color: '#FFB23E', border: '#D6820A', glow: '#FFD98A' }, // amber shard — a paler splinter of the star (secret-wave split child)
   },
 
   // -- TOWERS: saturated bodies; SpriteCache bakes radial centre-light grad ------
