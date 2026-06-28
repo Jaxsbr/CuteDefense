@@ -73,6 +73,7 @@ test('DoD#2: a full game can be played start→LOSE (enemy flood, no towers)', (
 
 test('waves advance sequentially 1→2→3 with a countdown gap (never concurrent)', () => {
   const cfg = fastConfig();
+  cfg.lives.max = 100; // this test observes wave SEQUENCING undefended; give it enough lives to survive to wave 3 under the V2 balance (lives.max=12)
   const sim = new Simulation(cfg, { seed: 5, mapIndex: 0 });
   sim.startGame();
   const seen = [];
