@@ -10,3 +10,6 @@ v2/captures/
 
 # OS cruft
 .DS_Store
+
+# agent worktrees (isolated checkouts, never tracked)
+.claude/worktrees/

@@ -395,17 +395,20 @@ export class Renderer {
   }
 
   _cycleButton(x, y, w, h, nextType) {
-    const ctx = this.ctx, u = this.U;
+    const ctx = this.ctx;
+    // The button wears the COLOUR of the tower it cycles TO (matches that tower's
+    // body), so a non-reader sees what they're switching into — colour + thumbnail.
+    const nextColor = this.cfg.towers[nextType].color;
     ctx.save();
-    ctx.fillStyle = u.btnInfo; roundRect(ctx, x, y, w, h, 12); ctx.fill();
-    ctx.strokeStyle = u.btnInfoEdge; ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = nextColor; roundRect(ctx, x, y, w, h, 12); ctx.fill();
+    ctx.strokeStyle = darken(nextColor, 35); ctx.lineWidth = 3; ctx.stroke();
     ctx.fillStyle = '#FFFFFF33'; roundRect(ctx, x + 3, y + 3, w - 6, h * 0.4, 9); ctx.fill();
     // next tower mini-thumbnail (the "what you'll switch to" cue)
     const sp = this.sprites.tower(nextType, 1);
     const thumb = h - 18, psc = thumb / Math.max(sp.canvas.width, sp.canvas.height);
     ctx.drawImage(sp.canvas, x + 12, y + (h - sp.canvas.height * psc) / 2, sp.canvas.width * psc, sp.canvas.height * psc);
-    // vector circular arrow on the right
-    const ax = x + w - h * 0.42, ay = y + h / 2, ar = h * 0.26;
+    // vector circular arrow — inset off the right edge (was jammed against it)
+    const ax = x + w - h * 0.58, ay = y + h / 2, ar = h * 0.24;
     ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = Math.max(3, ar * 0.45); ctx.lineCap = 'round';
     ctx.beginPath(); ctx.arc(ax, ay, ar, Math.PI * 0.45, Math.PI * 1.95); ctx.stroke();
     const ea = Math.PI * 1.95, hx = ax + Math.cos(ea) * ar, hy = ay + Math.sin(ea) * ar;
