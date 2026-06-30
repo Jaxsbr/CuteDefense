@@ -26,6 +26,10 @@ export function createInitialState(config, seed = 1, mapIndex = null) {
     map,
 
     status: 'menu',          // menu | playing | paused | won | lost
+    publicWinBanked: false,  // P5: set once when the public wave-15 win fires; never cleared mid-run
+    summitMode: false,       // P5: true after continueToSummit(); allows advancing into the secret wave(s)
+    summitWon: false,        // W11: set once when the secret wave 16 is CLEARED (the true SUMMIT_WON ending)
+    stars: 0,                // P5: 1-3 quality stars, set at the public win
     clock: 0,                // accumulated ms while playing (pausable)
     menuClock: 0,            // deterministic cosmetic clock; advances ONLY in 'menu'
     lives: cfg.lives.max,
@@ -57,9 +61,19 @@ export function createInitialState(config, seed = 1, mapIndex = null) {
     projectiles: [],
     coinsList: [],
     effects: [],
+    beams: [],               // V2.2 — active single-target boss BEAMs (DoT), drawn by the renderer
+    ultimateAiming: false,   // V2.2 — aim-confirm: true while the crosshair is armed for the boss beam
+
+    // P3 — field Freeze ability (the single shared slow field; P4 Froster reuses it).
+    // First cast becomes available after a fraction of the cooldown (clock starts at 0).
+    freeze: {
+      readyAt: cfg.freeze.cooldownMs * cfg.freeze.initialReadyFraction,
+      activeUntil: 0,
+    },
 
     selected: { kind: null, id: null },   // 'tower' | 'enemy'
     placement: null,                       // { gx, gy, towerType }
+    trayType: null,                        // tap-once build tray: selected tower type id, or null
 
     nextId: 1,
     frameEvents: [],

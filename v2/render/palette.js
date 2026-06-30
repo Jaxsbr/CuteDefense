@@ -58,6 +58,21 @@ export const PALETTE = {
   towers: {
     basic:  { body: '#5B9DF0', projectile: '#4D8FFF' }, // periwinkle / bright bolt
     strong: { body: '#8453E8', projectile: '#FF5630' }, // violet / hot bomb
+    // BOSS (W8 / reworked V2.2): the late-game CHAMPION tower — the player's KEY to
+    // the secret summit. V2.1 made it an off-palette obsidian/crimson villain; V2.2
+    // brings it back INTO the soft candy palette as a friendly-but-MIGHTY crowned
+    // monarch. It reads "boss" through SIZE (the 2x2 bake), a chunky royal BORDER, a
+    // gold CROWN, and a big confident FACE — never through darkness. Hue: orchid-
+    // magenta, a free lane distinct from the periwinkle (basic) and blue-violet
+    // (strong) towers. L2 brightens the crown gem + aura and bolds the face.
+    boss: {
+      body:       '#D26FC8', // orchid-magenta royal keep (hsl ~307,52%,63% — SOFT, not dark)
+      projectile: '#F08CD0', // soft magenta-pink bolt (was crimson; now in-palette)
+      crown:      '#FFD86B', // soft gold crown — the BOSS-rank tell (hue ~44)
+      gem:        '#7FE3FF', // sky crown gem (L1 calm cyan; L2 brightens)
+      border:     '#A23F9C', // deep orchid chunky rim (boss-weight outline)
+      glow:       '#F6BCEE', // pale orchid aura halo
+    },
   },
 
   // -- COIN: the eye-catching grab target, vivid gold lifecycle -----------------
@@ -117,6 +132,27 @@ export const PALETTE = {
     btnWarn: '#F2944A', btnWarnEdge: '#C86B22',
     btnDanger: '#FF6B8A', btnDangerEdge: '#D63B63',
     btnDisabled: '#9A93A8', btnDisabledEdge: '#6F6880',
+
+    // W4 — ability ramp: field-freeze ICE identity, deliberately distinct from the
+    // admin btn* candy ramp so the freeze reads as YOUR power, not another toggle.
+    // (These were hardcoded at Renderer._freezeButton; named + promoted here to
+    //  satisfy the no-magic-colors rule. The READY/COOLDOWN pair preserves the
+    //  original P3 look; ACTIVE/LOCKED are the new states.)
+    freezeReady: '#5BC8F0', freezeReadyEdge: '#2E7FB8',
+    freezeActive: '#7FE3FF', freezeActiveEdge: '#3FA8D6',
+    freezeCooldown: '#8FA3B3', freezeCooldownEdge: '#5A6B7A',
+    freezeLocked: '#A9B4C2', freezeLockedEdge: '#7A8694',
+    freezeSweep: '#EAFBFF', abilityLabel: '#CFE8FF',
+
+    // V2.2 — ULTIMATE ("Boss Beam") ability ramp: a hot crimson/ember identity (the
+    // boss tower's aimed beam) distinct from the ICE freeze ramp, so the two powers never
+    // read as the same control. READY = bright ember, ACTIVE = white-hot flash,
+    // COOLDOWN/LOCKED = dim ash. Mirrors the freeze 4-state look.
+    ultReady: '#FF5630', ultReadyEdge: '#C2280F',
+    ultActive: '#FFB37A', ultActiveEdge: '#E8771E',
+    ultCooldown: '#A8857A', ultCooldownEdge: '#6F564E',
+    ultLocked: '#B6A9A2', ultLockedEdge: '#84736B',
+    ultSweep: '#FFE3CC',
 
     // map popup (cream "sticker" that sits ON the light map)
     popupPanel: '#FFF7F0', popupEdge: '#FF8FB1', popupShadow: '#5B507033', popupHi: '#FFFFFFCC',

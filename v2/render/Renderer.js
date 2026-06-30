@@ -10,9 +10,13 @@
  *
  * Animation reads state.clock (pausable, deterministic) or state.menuClock (menu).
  */
-import { SpriteCache, roundRect } from './SpriteCache.js';
+import { SpriteCache, roundRect, flagMask, drawFlagGlyph, drawForkIcon } from './SpriteCache.js';
 import { makeCanvas, darken, lighten } from './shapes.js';
 import { mix } from './colors.js';
+import { effectiveStats, forkArmsFor, forkLabel, towerTypeIds, towerCardLines } from '../sim/systems/towerSystem.js';
+import { fmtStat, fitFontPx } from './format.js';
+import { trayCostLayout, buyCostLayout } from './trayLayout.js';
+import { freezeSlotRect, freezeUiState, ultimateSlotRect, ultimateUiState, hasBossTower } from './abilityHud.js';
 
 export class Renderer {
   constructor(ctx, config) {
@@ -30,9 +34,12 @@ export class Renderer {
     this.tileLayer = null;
     this.tileKey = null;
     this.menuLayer = null;
-    this._warmE = new Set();   // enemy types whose frames are pre-baked
+    this._warmE = new Set();   // enemy (typeId:flagmask) variants whose frames are pre-baked
     this._warmT = new Set();   // tower type:level whose frames are pre-baked
+    // P2: bit of the sole live-animated flag (evasive shimmer) in the stable order.
+    this._evasiveBit = 1 << (config.enemyFlags?.order?.indexOf('evasive') ?? -1);
     this.hits = [];            // [{action, x, y, w, h, data}]
+    this._restartArmed = false; // W7 — two-tap arm for the in-game RESTART button
   }
 
   toScreen(gx, gy) {
@@ -57,15 +64,19 @@ export class Renderer {
     ctx.fillRect(0, 0, this.L.canvasW, this.L.canvasH);
 
     this._tiles(state);
+    this._napBeams(state);
     this._enemies(state);
     this._towers(state);
     this._projectiles(state);
+    this._beams(state);
     this._effects(state);
     this._coins(state);
+    this._freezeField(state);
+    this._crosshair(state);
     this._placement(state);
     this._hud(state);
     this._announcement(state);
-    if (state.status === 'paused') this._pause(state);
+    if (state.status === 'paused') this._pauseFrame(state);
     if (state.status === 'won' || state.status === 'lost') this._overlay(state);
   }
 
@@ -143,16 +154,24 @@ export class Renderer {
   _enemies(state) {
     const ctx = this.ctx, tile = this.L.tile, A = this.cfg.visual.anim, fx = this.FX;
     for (const e of state.enemies) {
-      if (!this._warmE.has(e.typeId)) {           // pre-bake neutral + ouch once
-        this._warmE.add(e.typeId);
-        this.sprites.enemy(e.typeId, 'neutral');
-        this.sprites.enemy(e.typeId, 'ouch');
+      // P2: variant key is (typeId, flagmask). flagmask is static per enemy, so
+      // cache it once on the entity (render-only field; sim never reads it).
+      if (e._flagmask === undefined) e._flagmask = flagMask(this.cfg, e.flags);
+      const mask = e._flagmask;
+      const wk = `${e.typeId}:${mask}`;
+      if (!this._warmE.has(wk)) {                  // pre-bake neutral + ouch once per variant
+        this._warmE.add(wk);
+        this.sprites.enemy(e.typeId, 'neutral', mask);
+        this.sprites.enemy(e.typeId, 'ouch', mask);
       }
       const frame = (!e.dying && e.ouchMs > 0) ? 'ouch' : 'neutral';
-      const sp = this.sprites.enemy(e.typeId, frame);
+      const sp = this.sprites.enemy(e.typeId, frame, mask);
       const { x, y } = this.toScreen(e.x, e.y);
       let scale = 1, alpha = 1;
       if (e.dying) { const t = Math.min(1, e.deathMs / 500); scale = 1 + t * 0.5; alpha = 1 - t; }
+      // P2: the ONE live-animated flag — evasive shimmer is a cheap alpha pulse
+      // (single Math.sin per evasive enemy/frame; the only non-blit per-frame cost).
+      if (!e.dying && (mask & this._evasiveBit)) alpha *= 0.78 + 0.22 * (0.5 + 0.5 * Math.sin(e.animTime * 0.012));
       let sx = scale, sy = scale;
       if (!e.dying && e.ouchMs > 0) {              // bonk recoil: squash wide, eases out
         const k = e.ouchMs / A.enemyOuchMs;
@@ -202,10 +221,10 @@ export class Renderer {
   _towers(state) {
     const ctx = this.ctx, tile = this.L.tile, A = this.cfg.visual.anim;
     for (const t of state.towers) {
-      const wk = `${t.typeId}:${t.level}`;
-      if (!this._warmT.has(wk)) {                  // pre-bake all 4 frames once per type/level
+      const wk = `${t.typeId}:${t.level}:${t.fork || '-'}`;
+      if (!this._warmT.has(wk)) {                  // pre-bake all 4 frames once per type/level/fork
         this._warmT.add(wk);
-        for (const f of ['neutral', 'shock', 'blink', 'blush']) this.sprites.tower(t.typeId, t.level, f);
+        for (const f of ['neutral', 'shock', 'blink', 'blush']) this.sprites.tower(t.typeId, t.level, f, t.fork);
       }
       // expression priority: shock (firing) > double-blink > blush (shy) > neutral
       let frame = 'neutral';
@@ -221,7 +240,7 @@ export class Renderer {
           if (sc < A.blush.durationMs) frame = 'blush';
         }
       }
-      const sp = this.sprites.tower(t.typeId, t.level, frame);
+      const sp = this.sprites.tower(t.typeId, t.level, frame, t.fork);
       const { x, y } = this.toScreen(t.x, t.y);
       // base scale: idle breathe + place grow-in
       let base = 1 + Math.sin(t.animTime / 1000 * 4) * 0.04;
@@ -237,9 +256,26 @@ export class Renderer {
       }
       ctx.save(); ctx.translate(x, y); ctx.scale(sx, sy);
       ctx.drawImage(sp.canvas, -sp.cx, -sp.cy); ctx.restore();
-      // selection range circle — shared minimal white/dashed style (was harsh yellow)
-      if (state.selected.kind === 'tower' && state.selected.id === t.id) {
-        const range = this.cfg.towers[t.typeId].levels[t.level - 1].range;
+      // P3 nap: a "zzz" sleepy bubble + integer wake countdown so the recovery is
+      // dead-obvious (the tower is napping, not broken). Cheap text/arc, no blur.
+      if (t.stunnedUntil > state.clock) {
+        const sec = Math.ceil((t.stunnedUntil - state.clock) / 1000);
+        ctx.save();
+        ctx.globalAlpha = 0.92;
+        ctx.fillStyle = '#EAF4FF'; ctx.strokeStyle = '#7FB4E6'; ctx.lineWidth = 2;
+        roundRect(ctx, x + 8, y - tile * 0.55, 52, 34, 14); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#5B86B8'; ctx.font = `bold 20px ${this.F.display}`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('z', x + 26, y - tile * 0.55 + 14);
+        ctx.fillStyle = '#3E6FA0'; ctx.font = `bold 22px ${this.F.body}`;
+        ctx.fillText(sec, x + 46, y - tile * 0.55 + 14);
+        ctx.restore();
+      }
+      // selection range circle — shared minimal white/dashed style (was harsh yellow).
+      // W8: a fullMap tower (the boss) sees the WHOLE board, so a finite ring would be
+      // noise — skip it; the selection card carries the affordance instead.
+      if (state.selected.kind === 'tower' && state.selected.id === t.id && !this.cfg.towers[t.typeId].fullMap) {
+        const range = effectiveStats(state, t).range;   // P4: Sniper fork extends the ring
         this._rangeCircle(x, y, range * tile);
       }
     }
@@ -276,10 +312,71 @@ export class Renderer {
         ctx.fillStyle = fx.explosionFill; ctx.globalAlpha = (1 - t) * 0.3;
         ctx.beginPath(); ctx.arc(x, y, effect.radius * tile * t, 0, Math.PI * 2); ctx.fill(); ctx.restore();
       } else if (effect.kind === 'hit') {
-        ctx.save(); ctx.globalAlpha = 1 - t; ctx.fillStyle = effect.crit ? this.G.base : '#fff';
-        ctx.beginPath(); ctx.arc(x, y, 4 + t * 8, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+        // P2 affinity tell (non-numeric): right tool -> a big bright SPLAT; wrong
+        // tool -> a small dim TINK + sad blue puff (it "bounced"); neutral -> normal.
+        ctx.save(); ctx.globalAlpha = 1 - t;
+        if (effect.affinity === 'strong') {
+          ctx.fillStyle = effect.crit ? this.G.base : '#FFE89A';
+          ctx.beginPath(); ctx.arc(x, y, 6 + t * 14, 0, Math.PI * 2); ctx.fill();
+        } else if (effect.affinity === 'weak') {
+          ctx.strokeStyle = '#9FB4D8'; ctx.lineWidth = 2; ctx.globalAlpha = (1 - t) * 0.7;
+          ctx.beginPath(); ctx.arc(x, y, 3 + t * 5, 0, Math.PI * 2); ctx.stroke();   // tink ring (bounce)
+        } else {
+          ctx.fillStyle = effect.crit ? this.G.base : '#fff';
+          ctx.beginPath(); ctx.arc(x, y, 4 + t * 8, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.restore();
       }
     }
+  }
+
+  // V2.2 — the streaming boss BEAM: a thick ember line from each casting tower to its
+  // live target with a little per-frame jitter + a small impact glow. Cheap (a couple
+  // of strokes + one arc per beam, no blur/gradient). DoT lifetime is owned by the sim.
+  _beams(state) {
+    if (!state.beams || state.beams.length === 0) return;
+    const ctx = this.ctx, U = this.U;
+    for (const beam of state.beams) {
+      const a = this.toScreen(beam.x, beam.y);
+      const b = this.toScreen(beam.tx, beam.ty);
+      const jit = Math.sin(state.clock / 40 + beam.id) * 2;   // subtle shimmer
+      ctx.save();
+      ctx.lineCap = 'round';
+      // outer ember glow
+      ctx.globalAlpha = 0.35; ctx.strokeStyle = beam.color || U.ultActive; ctx.lineWidth = (beam.widthPx || 12) + 6;
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x + jit, b.y - jit); ctx.stroke();
+      // hot core
+      ctx.globalAlpha = 0.95; ctx.strokeStyle = '#FFF1E0'; ctx.lineWidth = Math.max(2, (beam.widthPx || 12) * 0.45);
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x + jit, b.y - jit); ctx.stroke();
+      // impact glow on the target
+      ctx.globalAlpha = 0.6; ctx.fillStyle = beam.color || U.ultReady;
+      ctx.beginPath(); ctx.arc(b.x, b.y, (beam.widthPx || 12) * 0.9, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // V2.2 — aim-confirm crosshair while the boss beam is armed. Mobile-legible: a
+  // contrasting crosshair is drawn over EVERY tappable enemy (the "tap one" affordance),
+  // plus one at the pointer on desktop. No hover/tooltip text (kid + mobile friendly).
+  _crosshair(state) {
+    if (!state.ultimateAiming) return;
+    const ctx = this.ctx, U = this.U;
+    const draw = (sx, sy, r) => {
+      ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(sx - r * 1.5, sy); ctx.lineTo(sx + r * 1.5, sy);
+      ctx.moveTo(sx, sy - r * 1.5); ctx.lineTo(sx, sy + r * 1.5);
+      ctx.stroke();
+    };
+    ctx.save();
+    ctx.strokeStyle = U.ultReady; ctx.lineWidth = 3;
+    for (const e of state.enemies) {
+      if (!e.alive || e.reachedGoal) continue;
+      const { x, y } = this.toScreen(e.x, e.y);
+      draw(x, y, this.L.tile * 0.42);
+    }
+    if (this.pointer) { ctx.globalAlpha = 0.9; ctx.strokeStyle = '#FFF1E0'; draw(this.pointer.x, this.pointer.y, this.L.tile * 0.3); }
+    ctx.restore();
   }
 
   _coins(state) {
@@ -347,7 +444,7 @@ export class Renderer {
   }
 
   _nextTowerType(typeId) {
-    const ids = Object.keys(this.cfg.towers);
+    const ids = towerTypeIds(this.cfg);
     return ids[(ids.indexOf(typeId) + 1) % ids.length];
   }
 
@@ -385,14 +482,19 @@ export class Renderer {
     const thumb = h - 18, psc = thumb / Math.max(sp.canvas.width, sp.canvas.height);
     const tw = sp.canvas.width * psc, th = sp.canvas.height * psc;
     ctx.drawImage(sp.canvas, x + 14, y + (h - th) / 2, tw, th);
-    // gold coin + cost (right)
-    const coinX = x + w - 86, coinY = y + h / 2;
-    ctx.fillStyle = this.G.base; ctx.beginPath(); ctx.arc(coinX, coinY, 16, 0, Math.PI * 2); ctx.fill();
+    // gold coin + cost — measured right-anchored group so any digit count clears the edge.
+    const costFontPx = this.cfg.visual.buyButton?.costFontPx ?? 30;
+    const costTxt = fmtStat(cost, 0);
+    ctx.font = `bold ${costFontPx}px ${this.F.body}`;
+    const cw = ctx.measureText(costTxt).width;
+    const L = buyCostLayout(this.cfg, w, cw);
+    const coinX = x + L.coinX, coinY = y + h / 2;
+    ctx.fillStyle = this.G.base; ctx.beginPath(); ctx.arc(coinX, coinY, L.coinR, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = this.G.deep; ctx.lineWidth = 3; ctx.stroke();
     ctx.fillStyle = '#FFFDE7'; ctx.beginPath(); ctx.arc(coinX - 5, coinY - 5, 5, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = afford ? '#FFFFFF' : '#FFD6D6'; ctx.font = `bold 30px ${this.F.body}`;
-    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    ctx.fillText(String(cost), coinX + 24, coinY + 1);
+    ctx.fillStyle = afford ? '#FFFFFF' : '#FFD6D6';
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.fillText(costTxt, x + L.costRight, coinY + 1);
     ctx.restore();
     if (afford) this.addHit('place', x, y, w, h, null);
   }
@@ -486,10 +588,53 @@ export class Renderer {
       ctx.fillText('tap a buddy to manage', W / 2, y + 80);
     }
 
-    // control row (bottom)
-    const by = H - 96, bw = (W - pad * 2 - 16) / 2;
-    this._button(pad, by, bw, 64, state.status === 'paused' ? 'Resume' : 'Pause', u.btnInfo, 'pause', null, true, { edge: u.btnInfoEdge });
-    this._button(pad + bw + 16, by, bw, 64, state.soundEnabled ? 'Sound' : 'Muted', state.soundEnabled ? u.btnPrimary : u.btnDisabled, 'sound', null, true, { edge: state.soundEnabled ? u.btnPrimaryEdge : u.btnDisabledEdge });
+    // W4 — ABILITY slot (always drawn so the dock never jumps): the field-freeze
+    // power, parked in the dock gutter OFF the play grid. Eyebrow label groups it
+    // as a power, distinct from the admin Pause/Sound row at the very bottom.
+    const ab = freezeSlotRect(this.L, this.cfg);
+    ctx.fillStyle = u.abilityLabel; ctx.font = `bold 14px ${this.F.display}`;
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    ctx.fillText('ABILITY', ab.x + 2, ab.y - this.cfg.visual.ability.labelGap + 14);
+    this._freezeAbility(state, ab.x, ab.y, ab.w, ab.h);
+
+    // W8 — the SECOND ability (the boss-tower ULTIMATE), stacked above Freeze in the
+    // same dock gutter. Drawn ONLY once a boss tower exists, so the dock never carries
+    // a dead control before the late game.
+    if (hasBossTower(state)) {
+      const ub = ultimateSlotRect(this.L, this.cfg);
+      ctx.fillStyle = u.abilityLabel; ctx.font = `bold 14px ${this.F.display}`;
+      ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+      ctx.fillText('ULTIMATE', ub.x + 2, ub.y - this.cfg.visual.ability.labelGap + 14);
+      this._ultimateAbility(state, ub.x, ub.y, ub.w, ub.h);
+    }
+
+    // tap-once build tray (above the control row)
+    this._tray(state);
+
+    // control row (bottom) — three equal cells: Pause/Play | Sound/Muted | Restart.
+    // W7 added the restart cell; the 2->3 split leaves the same gutter (16px) so a
+    // later item (W8 ultimate) can re-flow this row. The restart cell is in-game
+    // only (playing/paused) — won/lost/menu route restart through their own flows.
+    const by = H - 96, gap = 16, bw = (W - pad * 2 - gap * 2) / 3;
+    this._button(pad, by, bw, 64, state.status === 'paused' ? 'Play' : 'Pause', u.btnInfo, 'pause', null, true, { edge: u.btnInfoEdge });
+    this._button(pad + bw + gap, by, bw, 64, state.soundEnabled ? 'Sound' : 'Muted', state.soundEnabled ? u.btnPrimary : u.btnDisabled, 'sound', null, true, { edge: state.soundEnabled ? u.btnPrimaryEdge : u.btnDisabledEdge });
+    if (state.status === 'playing' || state.status === 'paused') {
+      const armed = this._restartArmed;
+      this._button(pad + (bw + gap) * 2, by, bw, 64, armed ? 'Sure?' : '↻',
+        armed ? u.btnDanger : u.btnWarn, 'restart', null, true,
+        { edge: armed ? u.btnDangerEdge : u.btnWarnEdge });
+    } else {
+      this._restartArmed = false; // leaving play disarms a stray pending confirm
+    }
+  }
+
+  // W7 — two-tap arm for the in-game RESTART (guards the 5-10yo audience from an
+  // accidental run loss). First call arms (button repaints 'Sure?'); second call
+  // fires and disarms. Renderer-local, mirroring the old ready-valve idiom.
+  confirmRestart() {
+    if (this._restartArmed) { this._restartArmed = false; return true; }
+    this._restartArmed = true;
+    return false;
   }
 
   _heroLives(state, HX, HY, HW, HH) {
@@ -574,25 +719,118 @@ export class Renderer {
     ctx.strokeStyle = border ?? this.U.cardBorder; ctx.lineWidth = 2; ctx.stroke();
   }
 
+  // W6 — draw one card stat line, shrinking the font (down to statMinFontPx) only
+  // if it would overflow the card's text budget. Keeps kid-legibility: shrink
+  // triggers solely on genuine overflow. `display` picks the bold display face
+  // (the gold Power line) over the body face.
+  _statLine(text, x, y, maxW, basePx, display = false) {
+    const ctx = this.ctx, face = display ? this.F.display : this.F.body;
+    const weight = display ? 'bold ' : '';
+    const px = fitFontPx(
+      (p) => { ctx.font = `${weight}${p}px ${face}`; return ctx.measureText(text).width; },
+      basePx, this.cfg.visual.statMinFontPx, maxW);
+    ctx.font = `${weight}${px}px ${face}`;
+    ctx.fillText(text, x, y);
+  }
+
   _towerCard(state, tower, x, y, w) {
     const ctx = this.ctx, u = this.U;
-    this._card(x, y, w, 230);
+    // W3: taller card so the L3 fork buttons can carry icon + name + plain-words.
+    this._card(x, y, w, 270);
     const def = this.cfg.towers[tower.typeId];
-    const st = def.levels[tower.level - 1];
-    const sp = this.sprites.tower(tower.typeId, tower.level);
+    const sp = this.sprites.tower(tower.typeId, tower.level, 'neutral', tower.fork);
     const pscale = Math.min(1, 70 / Math.max(sp.canvas.width, sp.canvas.height));
     ctx.drawImage(sp.canvas, x + 20, y + 20, sp.canvas.width * pscale, sp.canvas.height * pscale);
-    ctx.fillStyle = u.textOnCard; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.font = `bold 24px ${this.F.display}`;
-    ctx.fillText(`${def.name}  L${tower.level}`, x + 110, y + 22);
-    ctx.font = `18px ${this.F.body}`; ctx.fillStyle = '#7C6A95';
-    ctx.fillText(`Damage ${st.bombDamage ?? st.damage}   Range ${st.range}`, x + 110, y + 56);
-    ctx.fillText(`Fire ${(st.fireRateMs / 1000).toFixed(2)}s${def.kind === 'aoe' ? '   AoE' : ''}`, x + 110, y + 82);
+    const forkDef = tower.fork ? def.forks[tower.fork] : null;
+    ctx.fillStyle = u.textOnCard; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.font = `bold 23px ${this.F.display}`;
+    ctx.fillText(`${forkDef ? forkDef.name : def.name}  L${tower.level}`, x + 110, y + 20);
+
+    // W6: route every displayed number through fmtStat (kills the forked-L3 float
+    // spill) via the pure towerCardLines composition; auto-shrink any line that
+    // would still exceed the card.
+    const F = (n) => fmtStat(n, this.cfg.visual.statDecimals);
+    const { statLines, power } = towerCardLines(state, tower, F);
+    const maxW = w - 110 - 16;
+    ctx.fillStyle = '#7C6A95';
+    this._statLine(statLines[0], x + 110, y + 50, maxW, 17);
+    this._statLine(statLines[1], x + 110, y + 74, maxW, 17);
+    // the single rising "POWER" number (gold, watch-it-grow)
+    ctx.fillStyle = this.G.deep;
+    this._statLine(power, x + 110, y + 100, maxW, 18, true);
+
     const next = def.levels[tower.level];
-    const upCost = next ? next.cost : null;
-    const canUp = next && state.coins >= upCost;
-    this._button(x + 16, y + 120, w - 32, 44, next ? `Upgrade  ${upCost}c` : 'Max level', canUp ? u.btnPrimary : u.btnDisabled, 'upgrade', null, !!canUp, { edge: canUp ? u.btnPrimaryEdge : u.btnDisabledEdge });
+    if (next) {
+      // not yet max — the legible Upgrade button (delta already shown above)
+      const canUp = state.coins >= next.cost;
+      const upLabel = (def.ultimate && next.ultimate) ? `Unlock Ultimate  ${next.cost}c` : `Upgrade  ${next.cost}c`;
+      this._button(x + 16, y + 130, w - 32, 44, upLabel, canUp ? u.btnPrimary : u.btnDisabled, 'upgrade', null, canUp, { edge: canUp ? u.btnPrimaryEdge : u.btnDisabledEdge });
+    } else if (def.ultimate) {
+      // W8 — a maxed BOSS (no next level, no fork arms): an ULTIMATE status pill that
+      // reads ready / charging, so the card explains the dock button. Cast happens via
+      // the dock ability button, not here (no aim on this card).
+      const ready = state.clock >= (tower.ultReadyAt || 0);
+      ctx.fillStyle = ready ? u.ultReady : u.ultCooldown;
+      roundRect(ctx, x + 16, y + 130, w - 32, 44, this.U.radButton); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.font = `bold 20px ${this.F.display}`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(ready ? `${def.ultimate.name} READY` : `${def.ultimate.name} charging…`, x + w / 2, y + 152);
+    } else {
+      // MAX level — the identity FORK choice. W3: icon + name + kid plain-words so
+      // a child knows what each arm DOES before tapping (no hover on mobile).
+      this._forkRow(state, tower, x + 16, y + 130, w - 32, 58);
+    }
     const refund = Math.floor(tower.invested * this.cfg.economy.sellRefundFraction);
-    this._button(x + 16, y + 172, w - 32, 44, `Sell  +${refund}c`, u.btnWarn, 'sell', null, true, { edge: u.btnWarnEdge });
+    this._button(x + 16, y + 212, w - 32, 44, `Sell  +${refund}c`, u.btnWarn, 'sell', null, true, { edge: u.btnWarnEdge });
+  }
+
+  // W3 — two legible fork buttons at L3. Each button is icon (left) + the arm NAME
+  // (bold) over a short kid plain-words blurb, so a child knows what the fork DOES
+  // before tapping (no hover on mobile). The +{reForkCost}c / ✓ affordance moves to
+  // a small top-right corner badge so it no longer occupies the word column. The
+  // two-rect hit contract from captureP4.mjs (b) is preserved.
+  _forkRow(state, tower, x, y, w, h) {
+    const ctx = this.ctx, u = this.U;
+    const arms = forkArmsFor(this.cfg, tower.typeId);
+    const gap = 12, bw = (w - gap) / 2;
+    arms.forEach((arm, i) => {
+      const bx = x + i * (bw + gap);
+      const chosen = tower.fork === arm;
+      const reCost = this.cfg.economy.reForkCost;
+      const isReFork = tower.fork != null && !chosen;
+      const cost = tower.fork == null ? this.cfg.economy.firstForkCost : (chosen ? 0 : reCost);
+      const afford = chosen || state.coins >= cost;
+      const lab = forkLabel(this.cfg, tower.typeId, arm) || { name: arm, blurb: '' };
+      ctx.save();
+      ctx.globalAlpha = afford ? 1 : 0.5;
+      ctx.fillStyle = chosen ? u.btnPrimary : u.btnInfo;
+      roundRect(ctx, bx, y, bw, h, this.U.radButton); ctx.fill();
+      ctx.strokeStyle = chosen ? u.btnPrimaryEdge : u.btnInfoEdge; ctx.lineWidth = chosen ? 4 : 2;
+      roundRect(ctx, bx, y, bw, h, this.U.radButton); ctx.stroke();
+      // icon on the left
+      const iconCx = bx + h * 0.42;
+      drawForkIcon(ctx, arm, iconCx, y + h / 2, h * 0.30);
+      // name (bold display) over blurb (small muted body) to the right of the icon
+      const tx = bx + h * 0.8;
+      const txMax = bx + bw - tx - 6;
+      ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = '#fff';
+      this._statLine(lab.name, tx, y + h * 0.42, txMax, 15, true);
+      ctx.fillStyle = chosen ? '#EBE3FF' : '#5A4A78';
+      this._statLine(lab.blurb, tx, y + h * 0.78, txMax, 12);
+      // re-fork / chosen affordance — small badge in the top-right corner
+      if (isReFork && cost > 0) {
+        ctx.fillStyle = '#fff'; ctx.font = `bold 13px ${this.F.display}`;
+        ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+        ctx.fillText(`+${cost}c`, bx + bw - 7, y + 5);
+      } else if (chosen) {
+        ctx.fillStyle = '#fff'; ctx.font = `bold 15px ${this.F.display}`;
+        ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+        ctx.fillText('✓', bx + bw - 7, y + 4);
+      }
+      ctx.restore();
+      // a fork is legal on the chosen arm too (no-op), but only register when it would change
+      if (afford && !chosen) this.addHit('fork', bx, y, bw, h, arm);
+    });
   }
 
   _enemyCard(enemy, x, y, w) {
@@ -635,38 +873,300 @@ export class Renderer {
     let color = '#fff', size = 48;
     if (a.kind === 'boss') { color = this.FX.annBoss; size = 56; }
     else if (a.kind === 'countdown') { color = this.U.pinkDeep; size = 52; } // urgency hue — gold stays "coins only"
+    else if (a.kind === 'bossdown') { color = this.G.deep; size = 56; } // P5 — distinct gold "Boss down!" celebration
     else if (a.kind === 'complete') { color = this.FX.annComplete; size = 50; }
     ctx.font = `bold ${size}px ${this.F.display}`;
     // soft white halo instead of a hard +3/+3 black offset (slop tell)
     ctx.lineWidth = 8; ctx.lineJoin = 'round'; ctx.strokeStyle = '#FFFFFFCC'; ctx.strokeText(a.text, cx, cy);
     ctx.fillStyle = color; ctx.fillText(a.text, cx, cy);
     ctx.restore();
+    // P2 Tactical Recon: a threat glyph + entry arrow under the banner (clear of the
+    // ready-valve chip), so a kid sees WHICH tool and WHERE before the wave (picture,
+    // never a number).
+    if ((a.threats && a.threats.length) || a.threat || a.entry === 'end') this._reconBanner(a, cx, this.L.gridOffsetY + 360);
   }
 
-  // ---- overlays ----
-  _pause(state) {
+  // W2 — pre-wave flag LEGEND: one row per incoming flag (glyph disc + 1-word
+  // label + plain-words effect), then an entry row when the wave comes from
+  // behind. Pictures-first words, no hover. Layout + copy come from
+  // cfg.enemyFlags.recon / .defs — no magic numbers or hardcoded strings here.
+  _reconBanner(a, cx, cy) {
     const ctx = this.ctx;
-    ctx.fillStyle = this.U.scrim + 'B0'; ctx.fillRect(0, 0, this.L.canvasW, this.L.canvasH);
-    ctx.fillStyle = this.G.base; ctx.font = `bold 80px ${this.F.display}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('Paused', this.L.canvasW / 2, this.L.canvasH / 2 - 40);
-    this._centerButton('Resume', this.L.canvasH / 2 + 60, this.U.btnPrimary, 'pause', this.U.btnPrimaryEdge);
+    const rc = this.cfg.enemyFlags.recon;
+    const defs = this.cfg.enemyFlags.defs;
+    const flags = (a.threats && a.threats.length) ? a.threats : (a.threat ? [a.threat] : []);
+    const rows = [];
+    for (const f of flags) { const d = defs[f]; if (d) rows.push({ glyph: d.glyph, label: d.label, legend: d.legend }); }
+    if (a.entry === 'end') rows.push({ entry: true, label: rc.entryLabel });
+    if (!rows.length) return;
+
+    const gr = rc.glyphR, pad = rc.padY;
+    ctx.save(); ctx.textBaseline = 'middle';
+    let y = cy;
+    for (const row of rows) {
+      // measure so each row centers on cx (no fixed block width / magic numbers)
+      ctx.font = `bold ${rc.labelSize}px ${this.F.display}`;
+      const labelW = ctx.measureText(row.label).width;
+      ctx.font = `${rc.legendSize}px ${this.F.body}`;
+      const legendW = row.legend ? ctx.measureText(row.legend).width : 0;
+      const rowW = gr * 2 + pad + labelW + (row.legend ? pad + legendW : 0);
+      let x = cx - rowW / 2;
+      const gcx = x + gr;
+      if (row.entry) {
+        // reverse-entry arrow: enemies come from the far (right) end heading left
+        ctx.strokeStyle = '#5B3FA0'; ctx.fillStyle = '#8B6FE0'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(gcx + gr, y); ctx.lineTo(gcx - gr * 0.4, y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(gcx - gr, y); ctx.lineTo(gcx - gr * 0.2, y - gr * 0.6); ctx.lineTo(gcx - gr * 0.2, y + gr * 0.6); ctx.closePath(); ctx.fill();
+      } else if (row.glyph) {
+        drawFlagGlyph(ctx, row.glyph, gcx, y, gr);
+      }
+      x += gr * 2 + pad;
+      // label (bold) + legend (lighter), each with a soft white halo for legibility
+      ctx.textAlign = 'left'; ctx.lineJoin = 'round'; ctx.lineWidth = 5; ctx.strokeStyle = '#FFFFFFD9';
+      ctx.font = `bold ${rc.labelSize}px ${this.F.display}`;
+      ctx.strokeText(row.label, x, y); ctx.fillStyle = this.U.pinkDeep; ctx.fillText(row.label, x, y);
+      if (row.legend) {
+        x += labelW + pad;
+        ctx.font = `${rc.legendSize}px ${this.F.body}`;
+        ctx.strokeText(row.legend, x, y); ctx.fillStyle = '#5B3FA0'; ctx.fillText(row.legend, x, y);
+      }
+      y += rc.rowGap;
+    }
+    ctx.restore();
+  }
+
+  // ---- pause frame (non-occluding: thin candy border, NO scrim) ----
+  // The board, enemies and towers stay fully visible behind the frame so a kid
+  // can inspect; building is blocked in the sim, so the frame shows no build
+  // affordance. A small label + big Play button make resuming obvious.
+  _pauseFrame(state) {
+    const ctx = this.ctx, u = this.U;
+    const x = this.L.gridOffsetX, y = this.L.gridOffsetY;
+    const w = this.L.canvasW - x, h = this.L.canvasH - y;
+    ctx.save();
+    ctx.strokeStyle = u.accent; ctx.lineWidth = 10; ctx.strokeRect(x + 5, y + 5, w - 10, h - 10);
+    ctx.strokeStyle = '#FFFFFFAA'; ctx.lineWidth = 3; ctx.strokeRect(x + 11, y + 11, w - 22, h - 22);
+    // label pill, top-centre of the board
+    const lx = x + w / 2, ly = y + 44;
+    ctx.fillStyle = u.popupPanel; roundRect(ctx, lx - 170, ly - 24, 340, 48, 24); ctx.fill();
+    ctx.strokeStyle = u.accent; ctx.lineWidth = 3; roundRect(ctx, lx - 170, ly - 24, 340, 48, 24); ctx.stroke();
+    ctx.fillStyle = u.textOnCard; ctx.font = `bold 24px ${this.F.display}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('Paused — tap Play to resume', lx, ly);
+    ctx.restore();
+    // big Play button, bottom-centre of the board
+    const bw = 280, bh = 76, bx = x + w / 2 - bw / 2, by = this.L.canvasH - bh - 28;
+    this._button(bx, by, bw, bh, 'Play', u.btnPrimary, 'pause', null, true, { edge: u.btnPrimaryEdge });
+  }
+
+  // ---- tap-once build tray (N icons in the HUD dock; selected type highlighted) ----
+  // W8: the tray grows to N columns so a new tower type (the boss) auto-appears —
+  // towerTypeIds() already discovers it; the cell width divides evenly across N.
+  _tray(state) {
+    const ctx = this.ctx, u = this.U;
+    const W = this.L.hudWidth, H = this.L.canvasH, pad = 24, gap = 16;
+    const ids = towerTypeIds(this.cfg);
+    const n = Math.max(1, ids.length);
+    const ty = H - 180;
+    ids.forEach((id, i) => {
+      const sp = this.sprites.tower(id, 1);
+      const L = trayCostLayout(this.cfg, n, sp.canvas.width, sp.canvas.height);
+      const bw = L.bw, th = L.th;
+      const x = pad + i * (bw + gap), def = this.cfg.towers[id];
+      const sel = state.trayType === id, cost = def.levels[0].cost, afford = state.coins >= cost;
+      ctx.save();
+      ctx.globalAlpha = afford ? 1 : 0.55;
+      ctx.fillStyle = sel ? def.color : u.cardBg; roundRect(ctx, x, ty, bw, th, 14); ctx.fill();
+      ctx.strokeStyle = sel ? darken(def.color, 35) : u.cardBorder; ctx.lineWidth = sel ? 4 : 2;
+      roundRect(ctx, x, ty, bw, th, 14); ctx.stroke();
+      ctx.drawImage(sp.canvas, x + 12, ty + (th - sp.canvas.height * L.psc) / 2, sp.canvas.width * L.psc, sp.canvas.height * L.psc);
+      const costTxt = `${fmtStat(cost, 0)}c`;
+      ctx.fillStyle = sel ? '#fff' : u.textOnCard;
+      const px = fitFontPx(
+        (p) => { ctx.font = `bold ${p}px ${this.F.body}`; return ctx.measureText(costTxt).width; },
+        L.baseFontPx, L.minFontPx, L.budget);
+      ctx.font = `bold ${px}px ${this.F.body}`;
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      ctx.fillText(costTxt, x + L.costRight, ty + th / 2);
+      ctx.restore();
+      this.addHit('tray', x, ty, bw, th, id);
+    });
+  }
+
+  // P3 — the disabler's sleepy-beam telegraph: a dashed line from the disabler to
+  // the targeted tower that "charges" over the wind-up so the player can read it
+  // (and learn "boop the Sleepy first" — discoverable, never required).
+  _napBeams(state) {
+    const ctx = this.ctx, tile = this.L.tile;
+    for (const e of state.enemies) {
+      if (!e.alive || !e.bs || e.bs.beamTowerId == null) continue;
+      const t = state.towers.find(tw => tw.id === e.bs.beamTowerId);
+      if (!t) continue;
+      const a = this.toScreen(e.x, e.y), b = this.toScreen(t.x, t.y);
+      const total = this.cfg.nap.telegraphMs;
+      const charge = total > 0 ? Math.max(0, Math.min(1, 1 - (e.bs.beamFireAt - state.clock) / total)) : 1;
+      ctx.save();
+      ctx.globalAlpha = 0.35 + charge * 0.45;
+      ctx.strokeStyle = '#9AD0FF'; ctx.lineWidth = 3 + charge * 4; ctx.lineCap = 'round';
+      ctx.setLineDash([10, 8]); ctx.lineDashOffset = -(state.clock / 40);
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#CDEBFF'; ctx.globalAlpha = charge * 0.8;
+      ctx.beginPath(); ctx.arc(b.x, b.y, tile * 0.18 * charge, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // P3 — frost field while a freeze is active: a soft icy scrim over the board so
+  // the slowed enemies read as "iced". One flat rect, no blur/gradient.
+  _freezeField(state) {
+    if (state.clock >= state.freeze.activeUntil) return;
+    const ctx = this.ctx, x = this.L.gridOffsetX;
+    const remain = state.freeze.activeUntil - state.clock;
+    const a = 0.10 + 0.10 * Math.min(1, remain / this.cfg.freeze.durationMs);
+    ctx.save();
+    ctx.fillStyle = '#BFE6FF'; ctx.globalAlpha = a;
+    ctx.fillRect(x, 0, this.L.canvasW - x, this.L.canvasH);
+    ctx.restore();
+  }
+
+  // W4 — the field-freeze ABILITY in its HUD slot. Four distinct looks
+  // (READY / ACTIVELY-FREEZING / COOLDOWN / LOCKED) so the power reads at a glance,
+  // and the 'freeze' tap is registered ONLY when castFreeze is legal (state==='ready').
+  // Geometry comes from freezeSlotRect; state from freezeUiState (both pure, tested).
+  _freezeAbility(state, x, y, w, h) {
+    const ctx = this.ctx, u = this.U, r = this.U.radButton;
+    const a = this.cfg.visual.ability;
+    const ui = freezeUiState(state, this.cfg);
+    const fill = { ready: u.freezeReady, active: u.freezeActive, cooldown: u.freezeCooldown, locked: u.freezeLocked }[ui];
+    const edge = { ready: u.freezeReadyEdge, active: u.freezeActiveEdge, cooldown: u.freezeCooldownEdge, locked: u.freezeLockedEdge }[ui];
+    // base panel: edge rim + face + top gloss (no per-frame blur/gradient)
+    ctx.save();
+    ctx.fillStyle = edge; roundRect(ctx, x, y + 4, w, h, r); ctx.fill();
+    ctx.fillStyle = fill; roundRect(ctx, x, y, w, h, r); ctx.fill();
+    ctx.fillStyle = '#FFFFFF33'; roundRect(ctx, x + 3, y + 3, w - 6, h * 0.4, Math.max(2, r - 4)); ctx.fill();
+    ctx.restore();
+
+    // COOLDOWN: left->right charge sweep = fraction recharged since last cast (kept from P3).
+    // ACTIVELY-FREEZING: depleting bar = remaining/durationMs (the genuinely new feedback).
+    if (ui === 'cooldown' || ui === 'active') {
+      const frac = ui === 'cooldown'
+        ? Math.max(0, Math.min(1, 1 - (state.freeze.readyAt - state.clock) / this.cfg.freeze.cooldownMs))
+        : Math.max(0, Math.min(1, (state.freeze.activeUntil - state.clock) / this.cfg.freeze.durationMs));
+      ctx.save();
+      ctx.globalAlpha = ui === 'cooldown' ? a.sweepAlpha : a.ringAlpha;
+      ctx.fillStyle = u.freezeSweep;
+      roundRect(ctx, x, y, w, h, r); ctx.clip();
+      ctx.fillRect(x, y, w * frac, h);
+      ctx.restore();
+    }
+
+    // snowflake glyph + label, per state
+    const t = state.clock ?? 0, cyg = y + h / 2;
+    ctx.save();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    let gScale = 1, gAlpha = 1, label = '', labelColor = '#fff';
+    if (ui === 'ready') { gScale = 1 + 0.06 * Math.sin(t / 260); label = 'Freeze!'; }
+    else if (ui === 'active') { gScale = 1 + 0.14 * Math.abs(Math.sin(t / 150)); label = 'Brrr!'; }
+    else if (ui === 'cooldown') { gAlpha = 0.55; }
+    else { gAlpha = 0.5; label = 'zzz'; labelColor = '#FFFFFFCC'; }
+    ctx.globalAlpha = gAlpha; ctx.fillStyle = '#fff';
+    ctx.font = `${Math.round(h * 0.46 * gScale)}px ${this.F.display}`;
+    ctx.fillText('❄', x + h * 0.5, cyg + 1);
+    if (label) {
+      ctx.globalAlpha = 1; ctx.fillStyle = labelColor;
+      ctx.font = `bold ${Math.min(26, h * 0.30)}px ${this.F.display}`;
+      ctx.fillText(label, x + h + (w - h) / 2, cyg);
+    }
+    ctx.restore();
+
+    // affordance <=> legality: register the tap ONLY when castFreeze is legal.
+    if (ui === 'ready') this.addHit('freeze', x, y, w, h, null);
+  }
+
+  // W8 — the boss-tower ULTIMATE button. Copies the freeze 4-state look but on the
+  // hot ember ramp (its own identity), with a per-tower-cooldown sweep. Registers the
+  // 'ultimate' hit-rect ONLY when castable (affordance <=> castUltimate legality).
+  _ultimateAbility(state, x, y, w, h) {
+    const ctx = this.ctx, u = this.U, r = this.U.radButton;
+    const a = this.cfg.visual.ability;
+    const cfg = this.cfg;
+    const ui = ultimateUiState(state);
+    const fill = { ready: u.ultReady, active: u.ultActive, cooldown: u.ultCooldown, locked: u.ultLocked }[ui];
+    const edge = { ready: u.ultReadyEdge, active: u.ultActiveEdge, cooldown: u.ultCooldownEdge, locked: u.ultLockedEdge }[ui];
+    // base panel: edge rim + face + top gloss (no per-frame blur/gradient)
+    ctx.save();
+    ctx.fillStyle = edge; roundRect(ctx, x, y + 4, w, h, r); ctx.fill();
+    ctx.fillStyle = fill; roundRect(ctx, x, y, w, h, r); ctx.fill();
+    ctx.fillStyle = '#FFFFFF33'; roundRect(ctx, x + 3, y + 3, w - 6, h * 0.4, Math.max(2, r - 4)); ctx.fill();
+    ctx.restore();
+
+    // COOLDOWN: left->right charge sweep = recharge fraction of the MOST-READY boss
+    // tower (the one the button would cast). Cheap clip-fill, no allocation.
+    if (ui === 'cooldown') {
+      const bosses = state.towers.filter(t => cfg.towers[t.typeId]?.kind === 'boss' && cfg.towers[t.typeId].levels[t.level - 1]?.ultimate);
+      const ult = cfg.towers.boss.ultimate;
+      const readyAt = Math.min(...bosses.map(t => t.ultReadyAt || 0));
+      const frac = Math.max(0, Math.min(1, 1 - (readyAt - state.clock) / ult.cooldownMs));
+      ctx.save();
+      ctx.globalAlpha = a.sweepAlpha; ctx.fillStyle = u.ultSweep;
+      roundRect(ctx, x, y, w, h, r); ctx.clip();
+      ctx.fillRect(x, y, w * frac, h);
+      ctx.restore();
+    }
+
+    // glyph (a hot burst) + label, per state
+    const t = state.clock ?? 0, cyg = y + h / 2;
+    ctx.save();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    let gScale = 1, gAlpha = 1, label = '', labelColor = '#fff';
+    if (ui === 'ready') { gScale = 1 + 0.07 * Math.sin(t / 240); label = 'Beam!'; }
+    else if (ui === 'active') { gScale = 1 + 0.16 * Math.abs(Math.sin(t / 130)); label = 'PEW!'; }
+    else if (ui === 'cooldown') { gAlpha = 0.55; }
+    else { gAlpha = 0.5; label = 'L2?'; labelColor = '#FFFFFFCC'; }   // locked: hint that the upgrade unlocks it
+    ctx.globalAlpha = gAlpha; ctx.fillStyle = '#fff';
+    ctx.font = `${Math.round(h * 0.46 * gScale)}px ${this.F.display}`;
+    ctx.fillText('☄', x + h * 0.5, cyg + 1);
+    if (label) {
+      ctx.globalAlpha = 1; ctx.fillStyle = labelColor;
+      ctx.font = `bold ${Math.min(26, h * 0.30)}px ${this.F.display}`;
+      ctx.fillText(label, x + h + (w - h) / 2, cyg);
+    }
+    ctx.restore();
+
+    // affordance <=> legality: register the tap ONLY when castUltimate is legal.
+    if (ui === 'ready') this.addHit('ultimate', x, y, w, h, null);
   }
 
   _overlay(state) {
     const ctx = this.ctx, won = state.status === 'won';
+    // P5 — a failed SUMMIT never reads as a loss: if the public win was banked, the
+    // run is celebrated as a win even when status==='lost' (the summit was just a dare).
+    const banked = state.publicWinBanked;
+    const celebrate = won || banked;
+    const summitOffer = banked && state.config.waves.summit?.enabled && !state.summitMode && won;
+    // card grows to fit the star row (celebrate) and the optional dare button.
+    const cardW = 560, cardH = 470 + (celebrate ? 56 : 0) + (summitOffer ? 64 : 0);
+    const cx = this.L.canvasW / 2;
     // frosted scrim so the cuties stay visible (win = cream wash, lose = light
     // grape veil — both keep the board lively, never mud-black)
-    ctx.fillStyle = won ? '#FFF7F0CC' : '#5B4CA0AB'; ctx.fillRect(0, 0, this.L.canvasW, this.L.canvasH);
-    const cx = this.L.canvasW / 2;
-    // report card
-    const cardW = 560, cardH = 470, cardX = cx - cardW / 2, cardY = this.L.canvasH / 2 - cardH / 2;
+    ctx.fillStyle = celebrate ? '#FFF7F0CC' : '#5B4CA0AB'; ctx.fillRect(0, 0, this.L.canvasW, this.L.canvasH);
+    const cardX = cx - cardW / 2, cardY = this.L.canvasH / 2 - cardH / 2;
     ctx.fillStyle = '#FFF9F2'; roundRect(ctx, cardX, cardY, cardW, cardH, this.U.radPanel); ctx.fill();
-    ctx.fillStyle = won ? this.U.accent : this.U.pinkDeep;
+    ctx.fillStyle = celebrate ? this.U.accent : this.U.pinkDeep;
     ctx.save(); roundRect(ctx, cardX, cardY, cardW, 14, this.U.radPanel); ctx.clip(); ctx.fillRect(cardX, cardY, cardW, 14); ctx.restore();
     let cy = cardY + 70;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = `bold 64px ${this.F.display}`; ctx.fillStyle = won ? this.FX.win : this.FX.lose;
-    ctx.fillText(won ? 'You did it!' : 'Aww, they got through', cx, cy);
+    ctx.font = `bold 64px ${this.F.display}`; ctx.fillStyle = celebrate ? this.FX.win : this.FX.lose;
+    // P5 — softened copy: a banked win that then lost the summit still says "You did it!"
+    const title = won ? 'You did it!' : (banked ? 'You did it!' : 'Aww, they got through');
+    ctx.fillText(title, cx, cy);
+    if (banked && !won) {
+      cy += 44; ctx.font = `24px ${this.F.body}`; ctx.fillStyle = this.U.textOnCard;
+      ctx.fillText('…and gave the SUPER boss a great try!', cx, cy);
+    }
+    // P5 — quality stars (1-3) just under the title on a celebrated run.
+    if (celebrate) { cy += 60; this._drawStars(cx, cy, state.stars || 1); }
     // run stats, in voice
     const s = state.stats;
     const lines = [
@@ -677,9 +1177,39 @@ export class Renderer {
       `Hearts kept:  ${state.lives}`,
       `Time played:  ${(s.elapsedMs / 1000).toFixed(0)}s`,
     ];
-    cy += 70; ctx.font = `26px ${this.F.body}`; ctx.fillStyle = this.U.textOnCard;
+    cy += 64; ctx.font = `26px ${this.F.body}`; ctx.fillStyle = this.U.textOnCard;
     for (const ln of lines) { ctx.fillText(ln, cx, cy); cy += 40; }
     this._centerButton('Play Again', cy + 30, this.U.btnPrimary, 'playAgain', this.U.btnPrimaryEdge);
+    // P5 — the opt-in SUMMIT dare, below Play Again, only on a freshly banked win.
+    if (summitOffer) this._centerButton(state.config.waves.summit.dareText, cy + 30 + 64, this.U.btnInfo, 'continueSummit', this.U.btnInfoEdge);
+  }
+
+  // P5 — a small gold star row: `filled` of 3 stars filled (gold), the rest pale.
+  _drawStars(cx, cy, filled) {
+    const ctx = this.ctx, R = 22, gap = 18, n = 3;
+    const totalW = n * (R * 2) + (n - 1) * gap;
+    let x = cx - totalW / 2 + R;
+    for (let i = 0; i < n; i++) {
+      const on = i < filled;
+      this._starPath(x, cy, R);
+      ctx.fillStyle = on ? this.G.base : '#E7E0EC';
+      ctx.fill();
+      this._starPath(x, cy, R);
+      ctx.lineWidth = 3; ctx.strokeStyle = on ? this.G.deep : '#C7BFD2'; ctx.stroke();
+      x += R * 2 + gap;
+    }
+  }
+
+  _starPath(cx, cy, r) {
+    const ctx = this.ctx;
+    ctx.beginPath();
+    for (let k = 0; k < 10; k++) {
+      const ang = -Math.PI / 2 + k * Math.PI / 5;
+      const rad = k % 2 === 0 ? r : r * 0.45;
+      const px = cx + Math.cos(ang) * rad, py = cy + Math.sin(ang) * rad;
+      if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
   }
 
   _centerButton(label, cy, color, action, edge) {

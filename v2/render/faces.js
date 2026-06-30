@@ -100,6 +100,47 @@ function drawTowerBlush(ctx, cx, cy, r) {              // deep wide cheeks + blu
   ctx.beginPath(); ctx.arc(cx, cy + r * 0.08, r * 0.26, Math.PI * 0.25, Math.PI * 0.75); ctx.stroke();
 }
 
+// ================= BOSS TOWER (in-game, V2.2) =================
+// The crowned-monarch boss face: big confident eyes with white glints, rosy
+// orchid cheeks, and a bold determined smile — friendly-but-MIGHTY, never a
+// scowl. Uses a deep-GRAPE ink (kept above lightness 0.30 so the boss stays IN
+// the soft palette — no near-black). L2 (ultimate unlocked) steps up: bigger
+// eyes, an extra sparkle glint, a wider grin, and confident brows.
+const BOSS_INK = '#5A3D6B';                 // deep grape (l ~0.33 — dark but in-palette)
+export function drawBossFace(ctx, cx, cy, r, { level = 1 } = {}) {
+  const bold = level >= 2;
+  const eyeR = r * (bold ? 0.20 : 0.17), off = r * 0.30, eyeY = cy + r * 0.02;
+  // white sclera
+  ctx.fillStyle = '#ffffff';
+  for (const sx of [-1, 1]) { ctx.beginPath(); ctx.arc(cx + sx * off, eyeY, eyeR, 0, Math.PI * 2); ctx.fill(); }
+  // grape pupils
+  ctx.fillStyle = BOSS_INK;
+  for (const sx of [-1, 1]) { ctx.beginPath(); ctx.arc(cx + sx * off, eyeY + eyeR * 0.10, eyeR * 0.58, 0, Math.PI * 2); ctx.fill(); }
+  // white glints (L2 adds a second sparkle glint per eye)
+  ctx.fillStyle = '#ffffff';
+  for (const sx of [-1, 1]) {
+    ctx.beginPath(); ctx.arc(cx + sx * off - eyeR * 0.25, eyeY - eyeR * 0.25, eyeR * 0.28, 0, Math.PI * 2); ctx.fill();
+    if (bold) { ctx.beginPath(); ctx.arc(cx + sx * off + eyeR * 0.28, eyeY + eyeR * 0.22, eyeR * 0.14, 0, Math.PI * 2); ctx.fill(); }
+  }
+  // rosy orchid cheeks (in-palette, not red-dominant)
+  ctx.save(); ctx.globalAlpha = 0.85; ctx.fillStyle = '#F6A8D8';
+  for (const sx of [-1, 1]) { ctx.beginPath(); ctx.arc(cx + sx * r * 0.42, cy + r * 0.22, r * 0.13, 0, Math.PI * 2); ctx.fill(); }
+  ctx.restore();
+  // bold determined smile
+  ctx.strokeStyle = BOSS_INK; ctx.lineWidth = Math.max(2, r * (bold ? 0.09 : 0.07)); ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.arc(cx, cy + r * 0.18, r * (bold ? 0.30 : 0.26), Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
+  // L2: confident brows (the bolder upgrade frame)
+  if (bold) {
+    ctx.strokeStyle = BOSS_INK; ctx.lineWidth = Math.max(2, r * 0.06);
+    for (const sx of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(cx + sx * off - eyeR, eyeY - eyeR * 1.6);
+      ctx.lineTo(cx + sx * off + eyeR, eyeY - eyeR * 1.85);
+      ctx.stroke();
+    }
+  }
+}
+
 // ================= MENU PORTRAITS (HD, baked once) =================
 // Bigger, rounder, cuter than the in-game faces. Enemies get a cheeky "mischief"
 // face (raised brows + smirk + a little fang) so the menu reads inviting, not

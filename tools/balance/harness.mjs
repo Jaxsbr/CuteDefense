@@ -13,6 +13,7 @@
  * chokepoints without re-implementing geometry.
  */
 import { Simulation } from '../../v2/sim/Simulation.js';
+import { canPlace as towerCanPlace, footprintOf } from '../../v2/sim/systems/towerSystem.js';
 
 // ---- geometry / coverage --------------------------------------------------
 
@@ -103,6 +104,10 @@ export class Bot {
   }
 
   // ---- faithful command-API actions ----
+  // Bots place while playing only (never pause). gridClick opens the popup
+  // (status stays 'playing'), then placementCycle/placementPlace resolve it. The
+  // bots leave trayType null, so they keep exercising the original popup INVARIANT
+  // path, not the tray fast path.
   place(gx, gy, type) {
     const sim = this.sim;
     sim.gridClick(gx + 0.5, gy + 0.5);
@@ -116,6 +121,27 @@ export class Bot {
     return sim.placementPlace();
   }
 
+  // P2: the affinity-relevant TRAITS present in the current + next wave (peeking
+  // base-body traits AND authored group.flags), so an affinity-aware policy can
+  // pick the right tool BEFORE the wave arrives. Read-only; no command issued.
+  upcomingWaveFlags() {
+    const cfg = this.sim.config;
+    const patterns = cfg.waves.patterns;
+    const w = this.s.wave;
+    const traits = new Set();
+    for (const idx of [w.index, w.index + 1]) {
+      if (idx < 1) continue;
+      const pat = patterns[Math.min(idx - 1, patterns.length - 1)];
+      if (!pat) continue;
+      for (const g of pat.enemies) {
+        const def = cfg.enemies[g.type];
+        for (const t of (def.traits || [])) traits.add(t);
+        for (const f of (g.flags || [])) { const ft = cfg.enemyFlags?.defs?.[f]?.trait; if (ft) traits.add(ft); }
+      }
+    }
+    return traits;
+  }
+
   selectTower(t) { this.sim.gridClick(t.gx + 0.5, t.gy + 0.5); }
 
   upgrade(t) {
@@ -127,6 +153,36 @@ export class Bot {
     this.selectTower(t);
     return this.sim.sellSelected();
   }
+
+  // P4 — fork (or re-fork) a tower into one of its type's L3 arms, via the public API.
+  fork(t, arm) {
+    this.selectTower(t);
+    return this.sim.forkSelected(arm);
+  }
+
+  // P3 — freeze ability, driven only through the public command API.
+  freeze() { return this.sim.castFreeze(); }
+  freezeReady() { return this.sim.state.clock >= this.sim.state.freeze.readyAt; }
+  freezeActive() { return this.sim.state.clock < this.sim.state.freeze.activeUntil; }
+  aliveEnemies() { return this.sim.state.enemies.filter(e => e.alive && !e.reachedGoal); }
+
+  // W8 — the BOSS tower (2x2). placeBoss scans for a free 2x2 footprint and builds
+  // it through the same faithful popup path as place() (gridClick -> cycle -> place);
+  // placeTower re-validates the full footprint. Returns the anchor {gx,gy} or null.
+  // Mirrors freeze: castUltimate / ultimateReady route through the public command API.
+  bossTowers() { return this.sim.state.towers.filter(t => this.sim.config.towers[t.typeId]?.kind === 'boss'); }
+  placeBoss() {
+    const fp = footprintOf(this.sim.config, 'boss');
+    for (let y = 0; y <= this.map.rows - fp; y++) {
+      for (let x = 0; x <= this.map.cols - fp; x++) {
+        if (!towerCanPlace(this.sim.state, x, y, 'boss')) continue;
+        if (this.place(x, y, 'boss')) return { gx: x, gy: y };
+      }
+    }
+    return null;
+  }
+  castUltimate(target) { return this.sim.castUltimate(target); }   // V2.2: aimed beam needs a target (id or enemy)
+  ultimateReady() { return this.sim.ultimateReady(); }
 }
 
 // ---- runner ---------------------------------------------------------------
@@ -137,7 +193,7 @@ export class Bot {
  * repeated-replay reset test (which drives the same instance across restart()).
  * @returns {object} result summary including a per-wave lives trace.
  */
-export function drive(sim, makePolicy, { decisionIntervalMs = 500, maxMs = 30 * 60 * 1000 } = {}) {
+export function drive(sim, makePolicy, { decisionIntervalMs = 500, maxMs = 30 * 60 * 1000, continueToSummit = false } = {}) {
   const bot = new Bot(sim);
   const policy = makePolicy(bot);
   const dt = sim.config.timestepMs;
@@ -145,6 +201,8 @@ export function drive(sim, makePolicy, { decisionIntervalMs = 500, maxMs = 30 * 
   const perWaveLives = {};   // wave index -> lives at that wave's completion
 
   let terminated = false;
+  let summitReached = false; // P5: did we accept the wave-16 dare?
+  let winBanked = false;     // P5: did the public win fire (even if a later summit lost)?
   for (let t = 0; t < maxMs; t += dt) {
     sim.tick(dt);
     acc += dt;
@@ -153,6 +211,12 @@ export function drive(sim, makePolicy, { decisionIntervalMs = 500, maxMs = 30 * 
       if (sim.state.status === 'playing' && policy.onDecision) policy.onDecision(bot);
     }
     if (sim.state.wave.phase === 'complete') perWaveLives[sim.state.wave.index] = sim.state.lives;
+    if (sim.state.publicWinBanked) winBanked = true;
+    // P5 — opt-in summit: when the public win fires and the caller asked to take the
+    // dare, continue into the secret wave 16 (once) instead of terminating on the win.
+    if (continueToSummit && sim.state.status === 'won' && !summitReached) {
+      if (sim.continueToSummit()) { summitReached = true; continue; }
+    }
     if (sim.state.status === 'won' || sim.state.status === 'lost') { terminated = true; break; }
   }
 
@@ -165,19 +229,24 @@ export function drive(sim, makePolicy, { decisionIntervalMs = 500, maxMs = 30 * 
     coins: sim.state.coins,
     towersBuilt: sim.state.stats.towersBuilt,
     towersStanding: sim.state.towers.length,
+    forkedTowers: sim.state.towers.filter(t => t.fork).length,   // P4: how many ended forked
+
     enemiesKilled: sim.state.stats.enemiesKilled,
     perWaveLives,
     mapIndex: sim.state.mapIndex,
+    publicWinBanked: winBanked,   // P5: the banked public victory (never revoked by a summit loss)
+    summitReached,                // P5: whether the wave-16 dare was taken
+    stars: sim.state.stars,       // P5: quality stars at the win (0 if never won)
   };
 }
 
 /**
  * Play one full game on a FRESH Simulation instance.
  */
-export function runGame(config, { seed = 1, mapIndex = 0, makePolicy, decisionIntervalMs = 500, maxMs = 30 * 60 * 1000 } = {}) {
+export function runGame(config, { seed = 1, mapIndex = 0, makePolicy, decisionIntervalMs = 500, maxMs = 30 * 60 * 1000, continueToSummit = false } = {}) {
   const sim = new Simulation(config, { seed, mapIndex });
   sim.startGame();
-  const r = drive(sim, makePolicy, { decisionIntervalMs, maxMs });
+  const r = drive(sim, makePolicy, { decisionIntervalMs, maxMs, continueToSummit });
   r.seed = seed;
   return r;
 }

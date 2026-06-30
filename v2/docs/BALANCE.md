@@ -214,3 +214,31 @@ eyeballing:
    apples-to-apples (tuning entity *stats* is fine).
 6. **Update this doc** (the values table, the results, and any new lever notes) so
    the next person starts from the current reality.
+
+## P3 — recoverable tower nap + field Freeze (depth-pass)
+
+Two new levers landed (see `v2/docs/depth-pass/specs/SPEC-P3.md`):
+
+- **Disabler ("Sleepy")** authored once into waves **7** and **12** (count is NOT
+  wave-scaled — exactly one each). It fires a telegraphed sleepy-beam at its
+  NEAREST eligible tower; the tower naps (`stunnedUntil`, skips firing) for
+  `nap.durationMs`, then wakes and is immune for `nap.immunityMs` (the
+  anti-stun-lock governor). A disabler past `nap.maxPathFraction` never beams
+  ("never near a leak").
+- **Field FREEZE** — one active, no-aim ability (`Simulation.castFreeze`, legal
+  only while `playing`). It slows ALL alive enemies via the single shared term in
+  `enemySystem.effectiveSpeed(state,e)` for `freeze.durationMs` on a precious
+  cooldown (first cast after `cooldownMs * initialReadyFraction`). **P4's Froster
+  reuses this exact field.** Deals no damage → it DENTS, never DELETES, bosses.
+
+**Ladder still holds** with the disabler in and `POLICIES.optimal` now
+freeze-aware (`policies.mjs:maybeFreeze`): unfocused ≤W4, spread <W15,
+saveUpgrade ≥W10, optimal clears 15 (barely) then loses to the secret boss @16.
+`unfocused/spread/saveUpgrade` stay freeze-free so the monotone separation is
+preserved. Bench fixture extended (`disablers:2` + scripted freeze) — V2 p95
+≈19.8ms < V1 75ms.
+
+**Secret-boss re-measure (freeze-aware optimal, `measure-secret-boss.mjs`):** peak
+damage ≈14.9k vs on-field HP ≈146.6k → **margin ≈9.9x (≥5x)**. Freeze raises the
+damage landed (the boss lingers in the kill-zone) but cannot kill it — it stays
+unbeatable on the P3 build; P5 owns the summit win.

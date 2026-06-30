@@ -3,8 +3,11 @@ import assert from 'node:assert/strict';
 import { CONFIG } from '../../v2/config/gameConfig.js';
 import { Simulation } from '../../v2/sim/Simulation.js';
 import { spawnEnemy, killEnemy } from '../../v2/sim/systems/enemySystem.js';
+import { upgradePreview } from '../../v2/sim/systems/towerSystem.js';
 import * as waves from '../../v2/sim/systems/waveSystem.js';
 import { EV } from '../../v2/sim/events.js';
+import { Bot } from '../balance/harness.mjs';
+import { POLICIES } from '../balance/policies.mjs';
 
 const SHORT_MAP = {
   name: 'TestLine',
@@ -78,6 +81,63 @@ test('wave earnings reset between waves (bonus is per-wave, not cumulative)', ()
   sim.startGame();
   // After starting, earnings should be a clean 0 for wave 1.
   assert.equal(sim.state.wave.earnings, 0, 'earnings start at 0 for the wave');
+});
+
+// ---- (2b) P4 upgrade LEGIBILITY: before->after delta + a single rising Power scalar ----
+test('upgradePreview exposes a before->after delta and a rising Power scalar', () => {
+  const c = cfg();
+  c.economy.startingCoins = 1e9;
+  const sim = new Simulation(c, { seed: 1, mapIndex: 0 });
+  sim.startGame();
+  // place a basic tower at L1
+  sim.state.placement = { gx: 3, gy: 4, towerType: 'basic' };
+  assert.ok(sim.placementPlace());
+  const t = sim.towerAt(3, 4);
+  sim.state.selected = { kind: 'tower', id: t.id };
+
+  const pv = upgradePreview(sim.state, t);
+  assert.ok(pv.from && pv.to, 'preview has from/to');
+  assert.ok(pv.to.damage > pv.from.damage, 'damage rises L1 -> L2');
+  assert.ok(pv.to.fireRateMs < pv.from.fireRateMs, 'fire interval shrinks L1 -> L2');
+  assert.ok(pv.to.range >= pv.from.range, 'range is non-decreasing');
+  assert.ok(pv.powerTo > pv.powerFrom, 'one rising Power number a child can watch grow');
+
+  // at L3 (no next level) the preview offers the picture fork choice instead
+  assert.ok(sim.upgradeSelected()); assert.ok(sim.upgradeSelected());   // -> L3
+  const pv3 = upgradePreview(sim.state, sim.towerAt(3, 4));
+  assert.deepEqual(pv3.arms, ['sniper', 'gunner'], 'L3 preview surfaces the fork arms (picture choice)');
+});
+
+// ---- (V3) affordability invariant — the raised boss cost is FUNDED by the income lift ----
+// The boss is now ~1250 to L2 (~2.3x the old 550). The paired late-weighted income lift
+// (waves.scaling.lateSurge.reward) must let a reserving summitConqueror actually reach a
+// FULLY-UPGRADED (L2) boss tower before the run resolves — otherwise the cost hike is
+// non-shippable (the reserving bot peaked ~857 < 1250 before the lift).
+test('V3 — summitConqueror funds a FULLY-UPGRADED (L2) boss despite the ~1250 cost', () => {
+  let anyL2 = false;
+  for (const mapIndex of [0, 1]) {
+    for (const seed of [1, 7]) {
+      const sim = new Simulation(CONFIG, { seed, mapIndex });
+      sim.startGame();
+      const bot = new Bot(sim);
+      const policy = POLICIES.summitConqueror();
+      const dt = sim.config.timestepMs;
+      const maxLevel = CONFIG.towers.boss.levels.length;   // 2
+      let acc = 0, summited = false, reachedL2 = false;
+      for (let t = 0; t < 40 * 60 * 1000; t += dt) {
+        sim.tick(dt);
+        if (sim.state.towers.some(tw => sim.config.towers[tw.typeId].kind === 'boss' && tw.level >= maxLevel)) reachedL2 = true;
+        acc += dt;
+        if (acc >= 500) { acc = 0; if (sim.state.status === 'playing' && policy.onDecision) policy.onDecision(bot); }
+        if (sim.state.status === 'won' && !summited) { if (sim.continueToSummit()) { summited = true; continue; } }
+        if (sim.state.status === 'lost') break;
+        if (summited && (sim.state.status === 'won' || sim.state.status === 'lost')) break;
+      }
+      assert.ok(reachedL2, `map${mapIndex} seed${seed}: the income economy funds a L2 boss (cost reachable)`);
+      anyL2 = anyL2 || reachedL2;
+    }
+  }
+  assert.ok(anyL2, 'at least one run reached a fully-upgraded boss');
 });
 
 // ---- (3) crash fix: coin sprite colors are always valid hex ----

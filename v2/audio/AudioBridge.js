@@ -78,6 +78,10 @@ export class AudioBridge {
     bus.on(EV.PROJECTILE_FIRE, () => this.play('projectile_fire'));
     bus.on(EV.WAVE_BONUS, () => this.play('coin_collect')); // end-of-wave bonus jingle
     bus.on(EV.BUTTON_CLICK, () => this.play('button_click'));
+    // P5 — distinct boss-defeated ding + win fanfare (additive; reuse pooled jingles,
+    // no new asset dependency). Each public boss-clear and the banked win celebrate.
+    bus.on(EV.BOSS_DEFEATED, () => this.play('coin_collect'));
+    bus.on(EV.GAME_WON, () => this.play('coin_collect'));
   }
 }
 

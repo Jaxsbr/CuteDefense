@@ -31,6 +31,12 @@ export const EV = {
   TOWER_PLACE: 'tower:place',
   TOWER_UPGRADE: 'tower:upgrade',
   TOWER_SELL: 'tower:sell',
+  TOWER_FORK: 'tower:fork',                 // P4 max-level identity fork { id, arm }
+  TOWER_STUN: 'tower:stun',                 // P3 disabler nap landed { towerId, untilClock, durationMs }
+  TOWER_WAKE: 'tower:wake',                 // P3 nap recovered { towerId }
+  DISABLER_BEAM: 'enemy:disablerBeam',      // P3 telegraph wind-up started { enemyId, towerId, fireAtClock }
+  FREEZE_CAST: 'ability:freeze',            // P3 freeze field cast { activeUntil, durationMs }
+  ULTIMATE_CAST: 'ability:ultimate',        // V2.2 boss-tower aimed BEAM cast { towerId, targetId }
   PROJECTILE_FIRE: 'projectile:fire',
   COIN_COLLECT: 'coin:collect',
   COIN_EXPIRE: 'coin:expire',
@@ -38,6 +44,9 @@ export const EV = {
   BUTTON_CLICK: 'ui:buttonClick',
   GAME_WON: 'game:won',
   GAME_LOST: 'game:lost',
+  BOSS_DEFEATED: 'boss:defeated',          // P5 distinct banner per public boss wave (5/10/15)
+  SUMMIT_START: 'summit:start',            // P5 opt-in continue into the secret wave 16
+  SUMMIT_WON: 'summit:won',                // W11 the TRUE ending: the secret wave 16 is CLEARED (separate from GAME_WON)
 };
 
 export default EventBus;

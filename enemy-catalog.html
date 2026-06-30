@@ -165,6 +165,35 @@
   .tower-table td:first-child{font-weight:bold; color:var(--onCard)}
   .tcap{font-size:11px; color:var(--muted); margin:6px 0 2px}
 
+  /* ---------- boss tower L1/L2 duo portrait ---------- */
+  .card.bosstower{border-color:#D26FC8; background:linear-gradient(180deg,#FCF0FB,#F6E4F4)}
+  .pill.bosspill{background:linear-gradient(90deg,#D26FC8,#A23F9C)}
+  .boss-duo{display:flex; gap:6px; align-items:flex-end}
+  .lvlport{position:relative; text-align:center}
+  .lvltag{font-size:11px; font-weight:bold; color:#A23F9C; margin-top:-4px}
+  .lvltag.l2{color:#C8881A}
+
+  /* ---------- L3 fork arms ---------- */
+  .forks-wrap{margin-top:12px; background:#FFF; border:2px solid #EADFF7; border-radius:14px; padding:10px 12px}
+  .forks-h{font-size:12px; font-weight:bold; color:#7C5BD6; margin-bottom:8px}
+  .fork{border-top:1px solid #F0E8FB; padding:7px 0}
+  .fork:first-of-type{border-top:none; padding-top:0}
+  .fork-h{display:flex; align-items:center; gap:7px; font-size:13.5px; color:var(--onCard)}
+  .fork-ic{font-size:16px}
+  .fork-blurb{color:var(--muted); font-weight:normal; font-size:12px}
+  .fork-eff{font-size:12.5px; color:#5a4a73; line-height:1.4; margin-top:3px}
+  .ult-stats{margin-top:7px; font-size:12px; color:#7a5410; background:#FFF4DA; border:1.5px solid #E8C97A; border-radius:10px; padding:6px 9px}
+  .ult-stats b{color:#9E4B16}
+
+  /* ---------- enemy effect flag cards ---------- */
+  .card.flag{border-color:#B9E0C2; background:linear-gradient(180deg,#F2FBF4,#E8F6EC)}
+  .flag .stage{align-items:center}
+  .flag-glyph{flex:0 0 auto; width:64px; height:64px; border-radius:18px; display:flex; align-items:center; justify-content:center; font-size:34px; background:#FFFFFF; border:3px solid #B9E0C2; box-shadow:0 4px 12px #5B507022}
+  .pill.flagpill{background:#3FA85C}
+  .flag .legend-txt{font-size:13.5px; color:#3d5a45; line-height:1.5; margin:6px 0 0}
+  .flag .behav{margin-top:10px; font-size:12.5px; background:#FFF; border:2px solid #CDEBD4; border-radius:12px; padding:8px 11px; color:#2f6b43}
+  .flag .behav b{color:#1f7a42}
+
   footer{text-align:center; color:var(--muted); font-size:12.5px; margin-top:36px; line-height:1.6}
 </style>
 </head>
@@ -174,7 +203,7 @@
   <header>
     <h1 class="title"><span class="c">Cute</span><span class="d">Defense</span></h1>
     <div class="subtitle">The Enemy Catalog &mdash; everyone who marches down the path</div>
-    <div class="credit">7 cuties &middot; 4 of them bosses &middot; 2 towers &middot; stats & looks pulled straight from the game's V2 config</div>
+    <div class="credit">7 cuties &middot; 4 of them bosses &middot; 3 towers (incl. the mighty Boss tower) &middot; stats & looks pulled straight from the game's V2 config</div>
   </header>
 
   <!-- ===================== MYSTERY BANNER ===================== -->
@@ -201,6 +230,10 @@
   <!-- ===================== TOWERS ===================== -->
   <h2 class="section">Your Defenders — Towers 🛡️ <span>the friendly cuties who fight back for you</span></h2>
   <div class="grid" id="grid-tower"></div>
+
+  <!-- ===================== ENEMY EFFECT FLAGS ===================== -->
+  <h2 class="section">Enemy Effects 🧬 <span>special powers stuck onto ordinary cuties — not new types</span></h2>
+  <div class="grid" id="grid-flags"></div>
 
   <!-- ===================== WAVE SCHEDULE ===================== -->
   <h2 class="section">The 15-Wave Schedule (+ 1 secret 🔒) <span>exactly who you meet, and when</span></h2>
@@ -238,8 +271,29 @@ function shapePath(ctx, shape, cx, cy, r){
     case 'hexagon': polygon(ctx,cx,cy,r,6,-Math.PI/2); break;
     case 'octagon': polygon(ctx,cx,cy,r,8,-Math.PI/8); break;
     case 'star': starPath(ctx,cx,cy,r,r*0.45,5,-Math.PI/2); break;
+    case 'fortress': fortressPath(ctx,cx,cy,r); break;
     default: ctx.arc(cx,cy,r,0,Math.PI*2);
   }
+}
+// fortress() — verbatim from render/shapes.js: the regal royal-keep silhouette
+// for the 2x2 boss tower (rounded keep body + soft 3-point crown).
+function fortressPath(ctx,cx,cy,r){
+  const X=(dx)=>cx+dx*r, Y=(dy)=>cy+dy*r; const rad=0.18;
+  ctx.moveTo(X(-0.95),Y(1.0-rad));
+  ctx.lineTo(X(-0.95),Y(-0.30));
+  ctx.lineTo(X(-0.70),Y(-0.30));
+  ctx.lineTo(X(-0.55),Y(-0.74));
+  ctx.lineTo(X(-0.30),Y(-0.40));
+  ctx.lineTo(X(0.0), Y(-1.0));
+  ctx.lineTo(X(0.30),Y(-0.40));
+  ctx.lineTo(X(0.55),Y(-0.74));
+  ctx.lineTo(X(0.70),Y(-0.30));
+  ctx.lineTo(X(0.95),Y(-0.30));
+  ctx.lineTo(X(0.95),Y(1.0-rad));
+  ctx.arcTo(X(0.95),Y(1.0),X(0.95-rad),Y(1.0),rad*r);
+  ctx.lineTo(X(-0.95+rad),Y(1.0));
+  ctx.arcTo(X(-0.95),Y(1.0),X(-0.95),Y(1.0-rad),rad*r);
+  ctx.closePath();
 }
 function polygon(ctx,cx,cy,r,sides,rot){
   for(let i=0;i<sides;i++){ const a=rot+(i/sides)*Math.PI*2; const x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r; if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);} ctx.closePath();
@@ -378,6 +432,84 @@ function bakeTowerPortrait(ctx, cx, cy, r, def, frame = 0) {
   drawHappyFace(ctx, cx, cy, r, frame === 1);
 }
 
+// ---- faces.js: the big confident MONARCH face on the boss tower (L2 = bolder) ----
+const BOSS_INK = '#3A2150';
+function drawBossFace(ctx, cx, cy, r, level){
+  const bold = level >= 2;
+  const eyeR = r*(bold?0.20:0.17), off = r*0.30, eyeY = cy + r*0.02;
+  ctx.fillStyle = '#ffffff';
+  for(const sx of [-1,1]){ ctx.beginPath(); ctx.arc(cx+sx*off,eyeY,eyeR,0,Math.PI*2); ctx.fill(); }
+  ctx.fillStyle = BOSS_INK;
+  for(const sx of [-1,1]){ ctx.beginPath(); ctx.arc(cx+sx*off,eyeY+eyeR*0.10,eyeR*0.58,0,Math.PI*2); ctx.fill(); }
+  ctx.fillStyle = '#ffffff';
+  for(const sx of [-1,1]){
+    ctx.beginPath(); ctx.arc(cx+sx*off-eyeR*0.25,eyeY-eyeR*0.25,eyeR*0.28,0,Math.PI*2); ctx.fill();
+    if(bold){ ctx.beginPath(); ctx.arc(cx+sx*off+eyeR*0.28,eyeY+eyeR*0.22,eyeR*0.14,0,Math.PI*2); ctx.fill(); }
+  }
+  ctx.save(); ctx.globalAlpha=0.85; ctx.fillStyle='#F6A8D8';
+  for(const sx of [-1,1]){ ctx.beginPath(); ctx.arc(cx+sx*r*0.42,cy+r*0.22,r*0.13,0,Math.PI*2); ctx.fill(); }
+  ctx.restore();
+  ctx.strokeStyle=BOSS_INK; ctx.lineWidth=Math.max(2,r*(bold?0.09:0.07)); ctx.lineCap='round';
+  ctx.beginPath(); ctx.arc(cx,cy+r*0.18,r*(bold?0.30:0.26),Math.PI*0.15,Math.PI*0.85); ctx.stroke();
+  if(bold){
+    ctx.strokeStyle=BOSS_INK; ctx.lineWidth=Math.max(2,r*0.06);
+    for(const sx of [-1,1]){ ctx.beginPath(); ctx.moveTo(cx+sx*off-eyeR,eyeY-eyeR*1.6); ctx.lineTo(cx+sx*off+eyeR,eyeY-eyeR*1.85); ctx.stroke(); }
+  }
+}
+function drawSparkle(ctx,x,y,s){
+  ctx.save(); ctx.fillStyle='#FFFDF2'; ctx.translate(x,y); ctx.beginPath();
+  for(let i=0;i<4;i++){ const a=i*Math.PI/2;
+    ctx.lineTo(Math.cos(a)*s,Math.sin(a)*s);
+    ctx.lineTo(Math.cos(a+Math.PI/4)*s*0.32,Math.sin(a+Math.PI/4)*s*0.32); }
+  ctx.closePath(); ctx.fill(); ctx.restore();
+}
+// The 3-point gold crown + sky gem across the top of the keep (L2 = larger/brighter).
+function bakeBossCrown(ctx,cx,cy,r,B,ult){
+  const topY=cy-r*(ult?0.94:0.88), sideY=cy-r*(ult?0.74:0.68), baseY=cy-r*0.20;
+  const w=r*(ult?0.62:0.56);
+  ctx.beginPath();
+  ctx.moveTo(cx-w,baseY);
+  ctx.lineTo(cx-w*0.62,sideY);
+  ctx.lineTo(cx-w*0.30,baseY-r*0.10);
+  ctx.lineTo(cx,topY);
+  ctx.lineTo(cx+w*0.30,baseY-r*0.10);
+  ctx.lineTo(cx+w*0.62,sideY);
+  ctx.lineTo(cx+w,baseY);
+  ctx.closePath();
+  ctx.fillStyle=B.crown; ctx.fill();
+  ctx.strokeStyle=darken(B.crown,40); ctx.lineWidth=Math.max(2,r*0.04); ctx.lineJoin='round'; ctx.stroke();
+  ctx.fillStyle=ult?lighten(B.gem,30):B.gem;
+  ctx.beginPath(); ctx.arc(cx,baseY-r*0.04,r*(ult?0.13:0.10),0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle=darken(B.gem,40); ctx.lineWidth=Math.max(1.5,r*0.03); ctx.stroke();
+  ctx.fillStyle='#FFFFFF'; ctx.beginPath(); ctx.arc(cx-r*0.03,baseY-r*0.08,r*0.03,0,Math.PI*2); ctx.fill();
+}
+// Boss-tower portrait — verbatim recipe from SpriteCache._bakeBossBody.
+// `def` carries the orchid palette tokens; `level` 1 vs 2 drives the upgrade tells.
+function bakeBossTowerPortrait(ctx,cx,cy,r,def,level){
+  const B = { body:def.color, crown:def.crown, gem:def.gem, border:def.borderC, glow:def.glow };
+  const ult = level >= 2;
+  const halo=ctx.createRadialGradient(cx,cy,r*0.55,cx,cy,r*1.3);
+  halo.addColorStop(0,withAlpha(B.glow,ult?'99':'66')); halo.addColorStop(1,withAlpha(B.glow,'00'));
+  ctx.fillStyle=halo; ctx.beginPath(); ctx.arc(cx,cy,r*1.3,0,Math.PI*2); ctx.fill();
+  const grad=ctx.createRadialGradient(cx-r*0.3,cy-r*0.45,r*0.2,cx,cy,r*1.1);
+  grad.addColorStop(0,lighten(B.body,55)); grad.addColorStop(0.6,B.body); grad.addColorStop(1,darken(B.body,22));
+  shapePath(ctx,def.shape,cx,cy,r); ctx.fillStyle=grad; ctx.fill();
+  ctx.save(); shapePath(ctx,def.shape,cx,cy,r); ctx.clip();
+  ctx.globalAlpha=0.28; ctx.fillStyle='#FFFFFF';
+  ctx.beginPath(); ctx.ellipse(cx,cy-r*0.45,r*0.7,r*0.4,0,0,Math.PI*2); ctx.fill();
+  ctx.restore(); ctx.globalAlpha=1;
+  shapePath(ctx,def.shape,cx,cy,r); ctx.strokeStyle=B.border; ctx.lineWidth=Math.max(3,r*0.09); ctx.lineJoin='round'; ctx.stroke();
+  bakeBossCrown(ctx,cx,cy,r,B,ult);
+  drawBossFace(ctx,cx,cy,r,level);
+  if(ult){ for(const [dx,dy] of [[-0.78,-0.55],[0.78,-0.55],[0,-1.02]]) drawSparkle(ctx,cx+dx*r,cy+dy*r,r*0.12); }
+}
+function makeBossTowerCanvas(def, r, level){
+  const box = Math.ceil((r*1.3+r*0.4)*2)+24;
+  const c=document.createElement('canvas'); const ctx=hidpi(c, box, box);
+  bakeBossTowerPortrait(ctx, box/2, box/2, r, def, level);
+  return c;
+}
+
 /* =====================================================================
    ENEMY DATA — verbatim from CuteDefense/v2/config/gameConfig.js.
    `waves` = every wave (1..15) this type actually spawns in.
@@ -412,8 +544,8 @@ const ENEMIES = [
     ability:'Regenerate — <b>heals 2 HP every second</b>. Chip damage won&rsquo;t cut it; you need enough firepower to out-damage the healing.',
     waves:[15] },
   { id:'boss_split', name:'Split Boss', shape:'star', color:'#FF9417', border:'#D6700A', glow:'#FFC880',
-    speed:1.35, hp:20000, size:1.4, reward:15, livesCost:99, animSpeed:1.2, boss:true, secret:true,
-    hpWave16:146600,
+    speed:1.35, hp:24000, size:1.4, reward:15, livesCost:99, animSpeed:1.2, boss:true, secret:true,
+    hpWave16:580115,
     blurb:'The mean orange star from the menu — the one everyone wanted to fight. It now headlines a secret 16th wave.',
     ability:'Split — when defeated, <b>bursts into 3 weaker boss shards (Star Shards)</b> that carry on toward the goal — so the fight isn&rsquo;t over.',
     waves:[16] }, // ⭐ SECRET wave 16 — only reachable after surviving all 15
@@ -452,15 +584,52 @@ const TOWERS = [
       { lvl:1, damage:8,  range:2,   fireRateMs:1800, cost:5 },
       { lvl:2, damage:12, range:2.5, fireRateMs:1350, cost:50 },
       { lvl:3, damage:18, range:3,   fireRateMs:900,  cost:100 },
+    ],
+    forks:[
+      { id:'sniper', name:'Sniper', icon:'🎯', blurb:'Far + big hits', rangeMult:1.6, critChance:0.6, critMult:3,
+        effect:'Reaches much farther (range ×1.6) and lands a TRIPLE-damage crit 60% of the time — the precision arm.' },
+      { id:'gunner', name:'Gunner', icon:'⚡', blurb:'Shoots fast', fireRateMult:0.55,
+        effect:'Hoses the path — fire interval ×0.55, nearly double the shots per second.' },
     ] },
   { id:'strong', name:'Strong', shape:'square', color:'#8453E8', kind:'AoE bomber', aoeRadius:1.0,
     projectile:{ speed:400, size:18, color:'#FF5630' },
     blurb:'A violet bomb-lobber — slow, but its blast splashes a whole cluster of cuties at once.',
     levels:[
       { lvl:1, damage:20, range:1.5, fireRateMs:3000, cost:15,  bombDamage:40 },
-      { lvl:2, damage:35, range:2,   fireRateMs:2000, cost:60,  bombDamage:80 },
+      { lvl:2, damage:35, range:2,   fireRateMs:2000, cost:55,  bombDamage:85 },
       { lvl:3, damage:55, range:2.5, fireRateMs:1500, cost:120, bombDamage:120 },
+    ],
+    forks:[
+      { id:'bomber',  name:'Bomber',  icon:'💥', blurb:'Bigger boom', aoeRadiusMult:1.8, bombDamageMult:1.15,
+        effect:'A much wider crater — blast radius ×1.8 and bomb damage ×1.15, so a single shell wipes a whole bunch.' },
+      { id:'froster', name:'Froster', icon:'❄️', blurb:'Freezes them', slowFactor:0.5, slowDurationMs:1200,
+        effect:'Chills whatever it hits — drops them to half speed (×0.5) for 1.2s. Reuses the same slow field as the Freeze ability.' },
     ] },
+  { id:'boss', name:'Boss', shape:'fortress', color:'#D26FC8', kind:'Boss',
+    fullMap:true, footprint:2,
+    crown:'#FFD86B', gem:'#7FE3FF', borderC:'#A23F9C', glow:'#F6BCEE',
+    projectile:{ speed:600, size:28, color:'#F08CD0' },
+    blurb:'A friendly-but-MIGHTY crowned monarch. A 2×2 orchid keep that sees the WHOLE map, but only plinks slowly on its own — its real power is the upgrade that unlocks a manual aimed BEAM.',
+    levels:[
+      { lvl:1, damage:90,  range:34, fireRateMs:4000, cost:750, ultimate:false },
+      { lvl:2, damage:130, range:34, fireRateMs:3600, cost:500, ultimate:true  },
+    ],
+    ultimate:{ name:'Boss Beam', cooldownMs:7000,
+      beamTotalDamage:340000, beamDurationMs:2500, beamTickMs:250,
+      desc:'An AIMED, SINGLE-TARGET, shield-piercing laser. You arm a crosshair and pick ONE enemy; it then burns that target with damage-over-time (≈340,000 total across 2.5s in 250ms ticks). Enormous, but never a one-shot — about 2 casts crack the secret star boss. Rides a long 7s per-tower cooldown.' } },
+];
+
+/* =====================================================================
+   ENEMY EFFECT FLAGS — verbatim from gameConfig.enemyFlags.defs (V2).
+   Authored onto base bodies in the wave list (not new enemy types); each
+   adds a property + an affinity trait so the right tower counters it.
+   ===================================================================== */
+const FLAGS = [
+  { id:'armored', label:'Tough',  glyph:'🛡️', legend:'Hard shell — strong towers hit best' },
+  { id:'evasive', label:'Quick',  glyph:'💨', legend:'Slippery — basic towers catch it' },
+  { id:'regen',   label:'Healer', glyph:'🌿', legend:'Heals up — pop it fast', regenHpPerSec:3 },
+  { id:'swarm',   label:'Swarm',  glyph:'👥', legend:'Comes in a big bunch' },
+  { id:'buffer',  label:'Helper', glyph:'☂️', legend:'Shields its friends nearby', buffRadius:1.5, buffMult:0.5 },
 ];
 
 const BY_ID = Object.fromEntries(ENEMIES.map(e=>[e.id,e]));
@@ -597,47 +766,85 @@ function card(def, i){
   return el;
 }
 
+// Fork (L3 reversible identity arm) chips — verbatim numbers from gameConfig forks.
+function forkBlock(def){
+  if(!def.forks) return '';
+  const arms = def.forks.map(f=>
+    `<div class="fork">
+       <div class="fork-h"><span class="fork-ic">${f.icon}</span><b>${f.name}</b>
+         <span class="fork-blurb">“${f.blurb}”</span></div>
+       <div class="fork-eff">${f.effect}</div>
+     </div>`).join('');
+  return `<div class="forks-wrap"><div class="forks-h">⑂ L3 fork — pick ONE arm (free first pick, swap for 20 🪙):</div>${arms}</div>`;
+}
+
 function towerCard(def, i){
   const isAoe = def.kind === 'AoE bomber';
+  const isBoss = def.kind === 'Boss';
   const el = document.createElement('div');
-  el.className = 'card tower';
+  el.className = 'card tower' + (isBoss ? ' bosstower' : '');
 
   const stage = document.createElement('div'); stage.className='stage';
-  const pc = document.createElement('div'); pc.className='portrait-c';
-  pc.appendChild(makeTowerPortraitCanvas(def, 60, i));
-  stage.appendChild(pc);
+  if(isBoss){
+    // show BOTH L1 and L2 portraits so the upgrade tell is visible
+    const pc = document.createElement('div'); pc.className='portrait-c boss-duo';
+    const w1=document.createElement('div'); w1.className='lvlport';
+    w1.appendChild(makeBossTowerCanvas(def, 56, 1));
+    w1.insertAdjacentHTML('beforeend','<div class="lvltag">L1</div>');
+    const w2=document.createElement('div'); w2.className='lvlport';
+    w2.appendChild(makeBossTowerCanvas(def, 56, 2));
+    w2.insertAdjacentHTML('beforeend','<div class="lvltag l2">L2 ⚡</div>');
+    pc.appendChild(w1); pc.appendChild(w2);
+    stage.appendChild(pc);
+  } else {
+    const pc = document.createElement('div'); pc.className='portrait-c';
+    pc.appendChild(makeTowerPortraitCanvas(def, 60, i));
+    stage.appendChild(pc);
+  }
 
   const meta = document.createElement('div'); meta.className='meta';
   meta.innerHTML =
-    `<h3>${def.name} <span class="pill tower">TOWER</span></h3>
+    `<h3>${def.name} <span class="pill ${isBoss?'bosspill':'tower'}">${isBoss?'BOSS TOWER 👑':'TOWER'}</span></h3>
      <div class="swatchrow"><span class="swatch" style="background:${def.color}"></span>
         <span class="pill shape">${def.shape}</span> ${def.color}</div>
-     <div class="swatchrow"><span class="pill kind">${def.kind}</span></div>`;
+     <div class="swatchrow"><span class="pill kind">${def.kind}</span>${isBoss?'<span class="pill kind" style="background:#C8881A">2×2 · full-map range</span>':''}</div>`;
   stage.appendChild(meta);
 
-  const headExtra = isAoe ? '<th>Bomb</th>' : '';
+  const headExtra = isAoe ? '<th>Bomb</th>' : (isBoss ? '<th>Ult</th>' : '');
   const rows = def.levels.map(l=>{
     const fr = (l.fireRateMs/1000).toFixed(1)+'s';
-    let cells = `<td>Lv ${l.lvl}</td><td>${l.damage}</td><td>${l.range}</td><td>${fr}</td><td>${l.cost} 🪙</td>`;
+    const rangeTxt = isBoss ? 'full-map' : l.range;
+    let cells = `<td>Lv ${l.lvl}</td><td>${l.damage}</td><td>${rangeTxt}</td><td>${fr}</td><td>${l.cost} 🪙</td>`;
     if(isAoe) cells += `<td>${l.bombDamage}</td>`;
+    if(isBoss) cells += `<td>${l.ultimate?'🔓 BEAM':'🔒 locked'}</td>`;
     return `<tr>${cells}</tr>`;
   }).join('');
+  const capExtra = isAoe ? ' · bomb = splash dmg' : (isBoss ? ' · range spans the whole board (renderer skips the ring) · L1+L2 = 1250 🪙 total' : '');
   const table =
     `<div class="tower-table"><table><thead><tr>`+
     `<th>Level</th><th>Dmg</th><th>Range</th><th>Fire</th><th>Cost</th>${headExtra}`+
     `</tr></thead><tbody>${rows}</tbody></table></div>`+
-    `<div class="tcap">Range in tiles · fire rate in seconds${isAoe?` · bomb = splash dmg`:''}</div>`;
+    `<div class="tcap">Range in tiles · fire rate in seconds${capExtra}</div>`;
 
-  const chips = isAoe
-    ? `<span class="chip">AoE radius ${def.aoeRadius.toFixed(1)} tile</span><span class="chip">bomb shell ${def.projectile.size}px</span>`
-    : `<span class="chip">single-target</span><span class="chip">shot ${def.projectile.size}px</span>`;
+  let chips;
+  if(isBoss) chips = `<span class="chip">2×2 footprint</span><span class="chip">heavy plink ${def.projectile.size}px</span><span class="chip cost">L1 ${def.levels[0].cost} 🪙 → L2 ${def.levels[1].cost} 🪙</span>`;
+  else if(isAoe) chips = `<span class="chip">AoE radius ${def.aoeRadius.toFixed(1)} tile</span><span class="chip">bomb shell ${def.projectile.size}px</span>`;
+  else chips = `<span class="chip">single-target</span><span class="chip">shot ${def.projectile.size}px</span>`;
+
+  const ult = isBoss && def.ultimate
+    ? `<div class="ability"><b>Special — ${def.ultimate.name}:</b> ${def.ultimate.desc}
+         <div class="ult-stats">cooldown <b>${(def.ultimate.cooldownMs/1000).toFixed(0)}s</b> · DoT <b>${def.ultimate.beamTotalDamage.toLocaleString()}</b> over <b>${(def.ultimate.beamDurationMs/1000).toFixed(1)}s</b> (${def.ultimate.beamTickMs}ms ticks) · pierces shields</div>
+       </div>`
+    : '';
 
   el.appendChild(stage);
   const body = document.createElement('div');
   body.innerHTML =
     `<div style="font-size:13.5px;color:#5a4a73;line-height:1.5;margin:2px 0 10px">${def.blurb}</div>`+
     table+
-    `<div class="chips">${chips}</div>`;
+    `<div class="chips">${chips}</div>`+
+    ult+
+    forkBlock(def);
   el.appendChild(body);
   return el;
 }
@@ -650,6 +857,26 @@ ENEMIES.forEach((def,i)=>{ (def.boss?gBoss:gReg).appendChild(card(def,i)); });
 // towers
 const gTower = document.getElementById('grid-tower');
 TOWERS.forEach((def,i)=>{ gTower.appendChild(towerCard(def, 200+i)); });
+
+// enemy effect flags
+function flagCard(def){
+  const el=document.createElement('div'); el.className='card flag';
+  let behav='';
+  if(def.regenHpPerSec!=null) behav=`<div class="behav">🌱 <b>Regenerates ${def.regenHpPerSec} HP/sec</b> — out-damage the healing or it never dies.</div>`;
+  if(def.buffRadius!=null) behav=`<div class="behav">☂️ <b>Buffs friends within ${def.buffRadius} tiles</b> — shields them to ${Math.round(def.buffMult*100)}% incoming damage.</div>`;
+  el.innerHTML =
+    `<div class="stage">
+       <div class="flag-glyph">${def.glyph}</div>
+       <div class="meta">
+         <h3>${def.label} <span class="pill flagpill">EFFECT</span></h3>
+         <div class="swatchrow"><span class="pill shape">flag · ${def.id}</span></div>
+       </div>
+     </div>
+     <div class="legend-txt">${def.legend}</div>${behav}`;
+  return el;
+}
+const gFlags = document.getElementById('grid-flags');
+FLAGS.forEach(def=>{ gFlags.appendChild(flagCard(def)); });
 
 // hero star in the banner
 (function(){
